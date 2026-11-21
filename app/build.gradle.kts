@@ -142,6 +142,22 @@ configure<ApplicationExtension> {
         includeInApk = false
         includeInBundle = false
     }
+
+    lint {
+        baseline = file("lint-baseline.xml")
+        warningsAsErrors = true
+        abortOnError = true
+        checkDependencies = false
+        disable +=
+            setOf(
+                "AndroidGradlePluginVersion",
+                "ExtraTranslation",
+                "GradleDependency",
+                "ImpliedQuantity",
+                "MissingTranslation",
+                "NewerVersionAvailable",
+            )
+    }
 }
 
 room { schemaDirectory("$projectDir/schemas") }
@@ -272,6 +288,8 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
 
     testImplementation(libs.junit)
+
+    lintChecks(libs.compose.lint.checks)
 
     baselineProfile(project(":benchmark"))
 }

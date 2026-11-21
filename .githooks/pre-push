@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+echo "Running ktfmtCheck before push..."
+if ! bash ./gradlew ktfmtCheck --console=plain; then
+    echo ""
+    echo "Kotlin formatting issues found. Fix them with:"
+    echo "  bash ./gradlew ktfmtFormat"
+    echo "Then commit your changes and push again (or use --no-verify to bypass)."
+    exit 1
+fi

@@ -27,9 +27,19 @@ foldables (unfolded and folded states), and tablets:
 
 ## Verification
 
-Run formatting, static checks, compilation, and unit tests via Gradle:
+Run formatting, static checks, compilation, unit tests, and Android Lint via
+Gradle:
 
 ```bash
 bash ./gradlew ktfmtCheck checkCancellationRethrow checkItemProjection \
-  compileDebugKotlin testDebugUnitTest
+  compileDebugKotlin testDebugUnitTest :app:lintDebug
+```
+
+Android Lint (with Slack Compose lint checks) uses `app/lint-baseline.xml` so
+existing upstream issues are baselined while new warnings and errors fail the
+build. After merging upstream changes, refresh the baseline if upstream
+introduced new findings:
+
+```bash
+bash ./gradlew :app:updateLintBaselineDebug
 ```

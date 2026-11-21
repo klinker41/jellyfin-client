@@ -50,3 +50,7 @@ jobs:
       - name: Unit tests
         if: always()
         run: ./gradlew testDebugUnitTest
+
+      - name: Android Lint
+        if: always()
+        run: ./gradlew :app:lintDebug
