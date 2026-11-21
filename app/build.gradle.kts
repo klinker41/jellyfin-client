@@ -65,7 +65,7 @@ configure<ApplicationExtension> {
     }
 
     defaultConfig {
-        applicationId = "com.makd.afinity"
+        applicationId = "xyz.klinker.jellyfin"
         minSdk = 35
         targetSdk = 37
         versionCode = appVersionCode.toInt()
@@ -102,7 +102,7 @@ configure<ApplicationExtension> {
         create("nightly") {
             initWith(getByName("release"))
             applicationIdSuffix = ".nightly"
-            resValue("string", "app_name", "AFinity Nightly")
+            resValue("string", "launcher_name", "Jellyfin Nightly")
             buildConfigField("boolean", "IS_NIGHTLY", "true")
             buildConfigField("String", "BUILD_TIME", "\"${System.currentTimeMillis()}\"")
         }

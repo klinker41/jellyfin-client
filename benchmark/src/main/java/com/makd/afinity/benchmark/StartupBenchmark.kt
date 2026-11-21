@@ -31,6 +31,6 @@ class StartupBenchmark {
         }
 
     private companion object {
-        const val TARGET_PACKAGE = "com.makd.afinity"
+        const val TARGET_PACKAGE = "xyz.klinker.jellyfin"
     }
 }

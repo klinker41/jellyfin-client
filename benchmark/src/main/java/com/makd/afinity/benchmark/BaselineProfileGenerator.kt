@@ -17,7 +17,7 @@ class BaselineProfileGenerator {
         }
 
     private companion object {
-        const val TARGET_PACKAGE = "com.makd.afinity"
+        const val TARGET_PACKAGE = "xyz.klinker.jellyfin"
         const val IDLE_TIMEOUT_MS = 3_000L
     }
 }
