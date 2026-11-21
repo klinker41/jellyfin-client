@@ -345,14 +345,15 @@ fun MainNavigation(
         }
     }
 
+    val activeNavigationRoute = rememberActiveNavigationRoute(currentRoute)
+
     Box(modifier = modifier.fillMaxSize()) {
         NavigationSuiteScaffold(
+            state = rememberAnimatedNavigationSuiteState(visible = shouldShowNavigation),
             layoutType =
                 when {
                     authState !is AuthenticationState.Authenticated -> NavigationSuiteType.None
                     isPreAuth -> NavigationSuiteType.None
-                    appLoadingState.isLoading -> NavigationSuiteType.None
-                    !shouldShowNavigation -> NavigationSuiteType.None
                     navigationDrawerEnabled -> NavigationSuiteType.None
                     useNavRail -> NavigationSuiteType.NavigationRail
                     else -> NavigationSuiteType.NavigationBar
@@ -388,7 +389,9 @@ fun MainNavigation(
                     }
 
                     val selected =
-                        currentDestination?.hierarchy?.any { it.route == destination.route } == true
+                        activeNavigationRoute == destination.route ||
+                            currentDestination?.hierarchy?.any { it.route == destination.route } ==
+                                true
 
                     item(
                         selected = selected,
