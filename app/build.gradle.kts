@@ -301,6 +301,9 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.mockk)
+    testImplementation(libs.turbine)
 
     lintChecks(libs.compose.lint.checks)
 
