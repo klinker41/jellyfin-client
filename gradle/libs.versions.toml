@@ -51,9 +51,11 @@ readium = "3.4.0"
 reorderable = "3.1.0"
 richtext = "1.0.0-alpha05"
 retrofit = "3.0.0"
+robolectric = "4.18.1"
 room = "2.8.5"
 screenshot = "0.0.1-alpha17"
 slf4j = "2.0.20"
+testCore = "1.7.0"
 testRunner = "1.7.0"
 socketio = "2.1.2"
 telephoto = "0.19.0"
@@ -78,6 +80,8 @@ androidx-compose-material3-adaptive-navigation-suite = { module = "androidx.comp
 androidx-compose-material3-window-size-class1 = { module = "androidx.compose.material3:material3-window-size-class" }
 androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -109,6 +113,7 @@ androidx-room-compiler = { group = "androidx.room", name = "room-compiler", vers
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
+androidx-test-core-ktx = { group = "androidx.test", name = "core-ktx", version.ref = "testCore" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitExt" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "testRunner" }
 androidx-test-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "androidx-uiautomator" }
@@ -143,6 +148,7 @@ readium-streamer = { module = "org.readium.kotlin-toolkit:readium-streamer", ver
 reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 retrofit-kotlinx-serialization = { group = "com.squareup.retrofit2", name = "converter-kotlinx-serialization", version.ref = "retrofit" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 screenshot-validation-api = { group = "com.android.tools.screenshot", name = "screenshot-validation-api", version.ref = "screenshot" }
 slf4j-api = { group = "org.slf4j", name = "slf4j-api", version.ref = "slf4j" }
 socketio = { group = "io.socket", name = "socket.io-client", version.ref = "socketio" }

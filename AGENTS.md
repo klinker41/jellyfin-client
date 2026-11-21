@@ -42,6 +42,12 @@ Update reference screenshots after intentional UI or preview changes:
 bash ./gradlew :app:updateDebugScreenshotTestDefaultTestSuite
 ```
 
+Generate a JaCoCo unit test coverage report (XML and HTML) for debug builds:
+
+```bash
+bash ./gradlew :app:createDebugUnitTestCoverageReport
+```
+
 Android Lint (with Slack Compose lint checks) uses `app/lint-baseline.xml` so
 existing upstream issues are baselined while new warnings and errors fail the
 build. After merging upstream changes, refresh the baseline if upstream

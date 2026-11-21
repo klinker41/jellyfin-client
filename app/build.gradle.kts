@@ -3,6 +3,7 @@ import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import java.util.Properties
 import java.util.regex.Pattern
+import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
 import org.jetbrains.kotlin.compose.compiler.gradle.ComposeCompilerGradlePluginExtension
 
 plugins {
@@ -101,6 +102,7 @@ configure<ApplicationExtension> {
     buildTypes {
         debug {
             isDebuggable = true
+            enableUnitTestCoverage = true
             buildConfigField("boolean", "DEBUG", "true")
             buildConfigField("boolean", "IS_NIGHTLY", "false")
             buildConfigField("String", "BUILD_TIME", "\"\"")
@@ -211,7 +213,13 @@ kotlin {
     }
 }
 
-tasks.withType<Test>().configureEach { maxHeapSize = "2048m" }
+tasks.withType<Test>().configureEach {
+    maxHeapSize = "2048m"
+    extensions.findByType(JacocoTaskExtension::class.java)?.apply {
+        isIncludeNoLocationClasses = true
+        excludes = listOf("jdk.internal.*")
+    }
+}
 
 configure<ApplicationAndroidComponentsExtension> {
     onVariants { variant ->
@@ -241,6 +249,7 @@ configure<ApplicationAndroidComponentsExtension> {
 
 dependencies {
     coreLibraryDesugaring(libs.android.desugar.jdk)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.leakcanary.android)
     implementation(libs.aboutlibraries.compose.m3)
@@ -326,9 +335,13 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)
 
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.androidx.test.core.ktx)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
+    testImplementation(libs.robolectric)
     testImplementation(libs.turbine)
 
     lintChecks(libs.compose.lint.checks)
