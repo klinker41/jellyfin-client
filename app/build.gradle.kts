@@ -50,11 +50,33 @@ configure<ApplicationExtension> {
     compileSdkMinor = 2
 
     val keyPropertiesFile = rootProject.file("key.properties")
-    val hasReleaseKeystore = keyPropertiesFile.exists()
+    val envStoreFile = System.getenv("ANDROID_KEYSTORE_FILE")?.takeIf { it.isNotBlank() }
+    val envStorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")?.takeIf { it.isNotBlank() }
+    val envKeyAlias = System.getenv("ANDROID_KEY_ALIAS")?.takeIf { it.isNotBlank() }
+    val envKeyPassword = System.getenv("ANDROID_KEY_PASSWORD")?.takeIf { it.isNotBlank() }
+    val hasEnvKeystore =
+        envStoreFile != null &&
+            envStorePassword != null &&
+            envKeyAlias != null &&
+            envKeyPassword != null &&
+            rootProject.file(envStoreFile).exists()
+    val hasReleaseKeystore = hasEnvKeystore || keyPropertiesFile.exists()
+
+    if (providers.gradleProperty("requireReleaseSigning").orNull == "true" && !hasReleaseKeystore) {
+        throw GradleException(
+            "Release signing is required (-PrequireReleaseSigning=true), " +
+                "but neither ANDROID_KEYSTORE_* env vars nor key.properties were provided.",
+        )
+    }
 
     signingConfigs {
         create("release") {
-            if (hasReleaseKeystore) {
+            if (hasEnvKeystore) {
+                storeFile = rootProject.file(envStoreFile)
+                storePassword = envStorePassword
+                keyAlias = envKeyAlias
+                keyPassword = envKeyPassword
+            } else if (keyPropertiesFile.exists()) {
                 val keyProperties = Properties().apply { load(keyPropertiesFile.inputStream()) }
                 storeFile = file(keyProperties["storeFile"] as String)
                 storePassword = keyProperties["storePassword"] as String
@@ -101,16 +123,18 @@ configure<ApplicationExtension> {
         }
         create("nightly") {
             initWith(getByName("release"))
-            applicationIdSuffix = ".nightly"
             resValue("string", "launcher_name", "Jellyfin Nightly")
             buildConfigField("boolean", "IS_NIGHTLY", "true")
             buildConfigField("String", "BUILD_TIME", "\"${System.currentTimeMillis()}\"")
         }
     }
 
+    val isBundleBuild =
+        gradle.startParameter.taskNames.any { it.substringAfterLast(':').startsWith("bundle") }
+
     splits {
         abi {
-            isEnable = true
+            isEnable = !isBundleBuild
             reset()
             include("armeabi-v7a", "arm64-v8a")
         }
@@ -208,7 +232,7 @@ configure<ApplicationAndroidComponentsExtension> {
             }
 
         tasks
-            .matching { it.name == "assemble$variantName" }
+            .matching { it.name == "assemble$variantName" || it.name == "bundle$variantName" }
             .configureEach { finalizedBy(archiveMapping) }
     }
 }

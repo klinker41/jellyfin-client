@@ -508,27 +508,7 @@
     <string name="error_load_servers_failed">Не удалось загрузить серверы</string>
     <string name="error_delete_active_server">Нельзя удалить текущий активный сервер. Пожалуйста, сначала переключитесь на другой сервер.</string>
     <string name="error_delete_server_failed">Ошибка удаления сервера</string>
-    <string name="update_available_title">Доступно обновление</string>
-    <string name="update_whats_new">Что нового</string>
-    <string name="update_version_fmt">v%1$s</string>
-    <string name="btn_download_update">Скачать обновление</string>
-    <string name="btn_downloading">Загрузка…</string>
-    <string name="btn_install_restart">Установить и перезапустить</string>
     <string name="action_not_now">Не сейчас</string>
-    <string name="pref_group_updates">Обновления</string>
-    <string name="pref_check_updates_title">Проверить наличие обновлений</string>
-    <string name="update_status_checking">Проверка…</string>
-    <string name="update_status_downloading">Загрузка…</string>
-    <string name="update_status_uptodate_fmt">Актуальная версия • %1$s</string>
-    <string name="update_status_failed_fmt">Не удалось проверить • %1$s</string>
-    <string name="update_status_last_check_fmt">Последняя проверка: %1$s</string>
-    <string name="update_progress_fmt">%1$d%%</string>
-    <string name="pref_check_frequency_title">Частота проверок</string>
-    <string name="freq_on_app_open">При открытии приложения</string>
-    <string name="freq_6_hours">Каждые 6 часов</string>
-    <string name="freq_12_hours">Каждые 12 часов</string>
-    <string name="freq_24_hours">Каждые 24 часа</string>
-    <string name="update_never_checked">Никогда</string>
     <string name="jellyseerr_connect_subtitle">Введите данные вашего сервера, чтобы включить запросы контента</string>
     <string name="jellyseerr_placeholder_url">https://seerr.example.com</string>
     <string name="label_login_method">Способ входа</string>
@@ -813,9 +793,6 @@
     <string name="abs_days_unit">дн</string>
     <string name="error_no_trailer">Трейлер недоступен</string>
     <string name="error_unable_open_trailer">Не удалось открыть трейлер</string>
-    <string name="notif_update_available_fmt">Доступна новая версия %1$s</string>
-    <string name="notif_update_tap_to_download_fmt">Доступна версия %1$s. Нажмите, чтобы скачать.</string>
-    <string name="notif_channel_updates_desc">Уведомления об обновлениях приложения</string>
     <string name="notif_channel_downloads_desc">Фоновые задачи по загрузкам</string>
     <string name="error_invalid_url_format">Неверный формат URL</string>
     <string name="error_email_username_required">Требуется e-mail или имя пользователя</string>
@@ -1053,11 +1030,6 @@
     <string name="playback_stats_label_audio_channels">Аудио каналы</string>
     <string name="playback_stats_label_sample_rate">Частота дискретизации аудио</string>
     <string name="playback_stats_value_sample_rate_fmt">%1$s Гц</string>
-    <string name="btn_validate">Проверить</string>
-    <string name="update_console_status_hashing">расчет хэш-суммы загруженного файла…</string>
-    <string name="update_console_status_match">СОВПАДАЕТ: подлинная сборка, можно устанавливать</string>
-    <string name="update_console_status_mismatch">НЕ СОВПАДАЕТ: файл удален, скачайте еще раз</string>
-    <string name="update_console_status_error">ОШИБКА: не удалось прочитать файл, скачайте еще раз</string>
     <string name="build_nightly">Ночная сборка</string>
     <string name="section_ratings">Оценки</string>
     <string name="pref_cast_max_bitrate_auto">Авто (тест сети)</string>
@@ -1726,7 +1698,6 @@
     </plurals>
     <string name="notif_channel_downloads">Загрузки</string>
     <string name="notif_channel_audiobook_downloads">Загрузки аудиокниг</string>
-    <string name="notif_channel_updates">Обновления приложения</string>
     <string name="notif_downloads_in_progress">Активные загрузки</string>
     <string name="notif_downloads_finished">Загрузки завершены</string>
     <string name="notif_download_complete">Загрузка завершена</string>
@@ -1738,7 +1709,6 @@
     <string name="notif_download_progress_fmt">%1$s / %2$s</string>
     <string name="notif_download_starting">Запуск…</string>
     <string name="notif_action_pause">Пауза</string>
-    <string name="notif_update_available_title">Доступно обновление</string>
     <string name="nav_home">Главная</string>
     <string name="nav_audiobooks">Аудиокниги</string>
     <string name="section_awards">Награды</string>

@@ -41,10 +41,6 @@ import com.makd.afinity.data.manager.OfflineModeManager
 import com.makd.afinity.data.manager.PendingNavigationManager
 import com.makd.afinity.data.manager.RemoteMessageManager
 import com.makd.afinity.data.repository.PreferencesRepository
-import com.makd.afinity.data.updater.UpdateManager
-import com.makd.afinity.data.updater.UpdateScheduler
-import com.makd.afinity.data.updater.models.UpdateCheckFrequency
-import com.makd.afinity.data.updater.notification.UpdateNotificationManager
 import com.makd.afinity.data.websocket.AudiobookshelfSocketManager
 import com.makd.afinity.navigation.Destination
 import com.makd.afinity.navigation.MainNavigation
@@ -65,11 +61,7 @@ import kotlinx.coroutines.launch
 class MainActivity : AppCompatActivity() {
     @Inject lateinit var preferencesRepository: PreferencesRepository
 
-    @Inject lateinit var updateManager: UpdateManager
-
     @Inject lateinit var offlineModeManager: OfflineModeManager
-
-    @Inject lateinit var updateScheduler: UpdateScheduler
 
     @Inject lateinit var audiobookshelfSocketManager: AudiobookshelfSocketManager
 
@@ -134,11 +126,10 @@ class MainActivity : AppCompatActivity() {
                     CompositionLocalProvider(LocalStatusBarIcons provides statusBarIcons) {
                         Box(modifier = Modifier.fillMaxSize()) {
                             MainContent(
-                                modifier = Modifier.fillMaxSize(),
-                                viewModel = authViewModel,
-                                updateManager = updateManager,
                                 offlineModeManager = offlineModeManager,
                                 widthSizeClass = windowSize.widthSizeClass,
+                                modifier = Modifier.fillMaxSize(),
+                                viewModel = authViewModel,
                             )
 
                             val remoteMessage by
@@ -197,13 +188,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
         lifecycleScope.launch {
-            val frequency = preferencesRepository.getUpdateCheckFrequency()
-            if (frequency == UpdateCheckFrequency.ON_APP_OPEN.hours) {
-                updateManager.checkForUpdates()
-            }
-        }
-
-        lifecycleScope.launch {
             val alreadyGranted =
                 ContextCompat.checkSelfPermission(
                     this@MainActivity,
@@ -215,17 +199,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        if (intent.getBooleanExtra(UpdateNotificationManager.EXTRA_AUTO_DOWNLOAD_UPDATE, false)) {
-            lifecycleScope.launch { updateManager.triggerAutoDownload() }
-        }
         handleNavigationExtras(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        if (intent.getBooleanExtra(UpdateNotificationManager.EXTRA_AUTO_DOWNLOAD_UPDATE, false)) {
-            lifecycleScope.launch { updateManager.triggerAutoDownload() }
-        }
         handleNavigationExtras(intent)
     }
 
@@ -253,19 +231,17 @@ class MainActivity : AppCompatActivity() {
 
 @Composable
 private fun MainContent(
-    modifier: Modifier = Modifier,
-    viewModel: AuthViewModel = hiltViewModel(),
-    updateManager: UpdateManager,
     offlineModeManager: OfflineModeManager,
     widthSizeClass: WindowWidthSizeClass,
+    modifier: Modifier = Modifier,
+    viewModel: AuthViewModel = hiltViewModel(),
 ) {
     val authState by viewModel.authenticationState.collectAsStateWithLifecycle()
 
     MainNavigation(
-        modifier = modifier.fillMaxSize(),
-        updateManager = updateManager,
         offlineModeManager = offlineModeManager,
         widthSizeClass = widthSizeClass,
         authState = authState,
+        modifier = modifier.fillMaxSize(),
     )
 }

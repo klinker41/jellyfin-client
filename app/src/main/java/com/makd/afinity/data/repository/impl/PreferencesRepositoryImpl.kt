@@ -135,8 +135,6 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
 
         val OFFLINE_MODE = booleanPreferencesKey("offline_mode")
 
-        val UPDATE_CHECK_FREQUENCY = intPreferencesKey("update_check_frequency")
-        val LAST_UPDATE_CHECK = longPreferencesKey("last_update_check")
         val LAST_CACHE_INVALIDATED = longPreferencesKey("last_cache_invalidated")
 
         val VIDEO_ZOOM_MODE = intPreferencesKey("video_zoom_mode")
@@ -1123,26 +1121,6 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
 
     override fun getPipBackgroundPlayFlow(): Flow<Boolean> {
         return dataStore.data.map { preferences -> preferences[Keys.PIP_BACKGROUND_PLAY] ?: true }
-    }
-
-    override suspend fun setUpdateCheckFrequency(hours: Int) {
-        dataStore.edit { preferences -> preferences[Keys.UPDATE_CHECK_FREQUENCY] = hours }
-    }
-
-    override suspend fun getUpdateCheckFrequency(): Int {
-        return dataStore.data.first()[Keys.UPDATE_CHECK_FREQUENCY] ?: -1
-    }
-
-    override fun getUpdateCheckFrequencyFlow(): Flow<Int> {
-        return dataStore.data.map { preferences -> preferences[Keys.UPDATE_CHECK_FREQUENCY] ?: -1 }
-    }
-
-    override suspend fun setLastUpdateCheck(timestamp: Long) {
-        dataStore.edit { preferences -> preferences[Keys.LAST_UPDATE_CHECK] = timestamp }
-    }
-
-    override suspend fun getLastUpdateCheck(): Long {
-        return dataStore.data.first()[Keys.LAST_UPDATE_CHECK] ?: 0L
     }
 
     override suspend fun setLastCacheInvalidatedAt(timestamp: Long) {

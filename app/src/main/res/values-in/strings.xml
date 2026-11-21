@@ -461,27 +461,7 @@
     <string name="error_load_servers_failed">Gagal memuat server</string>
     <string name="error_delete_active_server">Tidak dapat menghapus server yang sedang aktif. Harap beralih ke server lain terlebih dahulu.</string>
     <string name="error_delete_server_failed">Gagal menghapus server</string>
-    <string name="update_available_title">Pembaruan Tersedia</string>
-    <string name="update_whats_new">Yang Baru</string>
-    <string name="update_version_fmt">v%1$s</string>
-    <string name="btn_download_update">Unduh Pembaruan</string>
-    <string name="btn_downloading">Mengunduh…</string>
-    <string name="btn_install_restart">Pasang &amp; Mulai Ulang</string>
     <string name="action_not_now">Nanti Saja</string>
-    <string name="pref_group_updates">Pembaruan</string>
-    <string name="pref_check_updates_title">Periksa Pembaruan</string>
-    <string name="update_status_checking">Memeriksa…</string>
-    <string name="update_status_downloading">Mengunduh…</string>
-    <string name="update_status_uptodate_fmt">"Terbaru -  %1$s"</string>
-    <string name="update_status_failed_fmt">"Pemeriksaan gagal -  %1$s"</string>
-    <string name="update_status_last_check_fmt">Terakhir diperiksa: %1$s</string>
-    <string name="update_progress_fmt">%1$d%%</string>
-    <string name="pref_check_frequency_title">Frekuensi Pemeriksaan</string>
-    <string name="freq_on_app_open">Saat Aplikasi Dibuka</string>
-    <string name="freq_6_hours">Setiap 6 Jam</string>
-    <string name="freq_12_hours">Setiap 12 Jam</string>
-    <string name="freq_24_hours">Setiap 24 Jam</string>
-    <string name="update_never_checked">Tidak Pernah</string>
     <string name="jellyseerr_connect_subtitle">Masukkan detail server Anda untuk mengaktifkan permintaan konten</string>
     <string name="jellyseerr_placeholder_url">https://seerr.example.com</string>
     <string name="label_login_method">Metode Masuk</string>
@@ -741,9 +721,6 @@
     <string name="action_read_more">Baca selengkapnya</string>
     <string name="error_no_trailer">Tidak ada trailer yang tersedia</string>
     <string name="error_unable_open_trailer">Tidak dapat membuka trailer</string>
-    <string name="notif_update_available_fmt">Versi %1$s kini tersedia</string>
-    <string name="notif_update_tap_to_download_fmt">Versi %1$s kini tersedia. Ketuk untuk mengunduh.</string>
-    <string name="notif_channel_updates_desc">Notifikasi untuk pembaruan aplikasi</string>
     <string name="notif_channel_downloads_desc">Tugas unduhan latar belakang</string>
     <string name="error_invalid_url_format">Format URL tidak valid</string>
     <string name="error_email_username_required">Email atau nama pengguna wajib diisi</string>
@@ -1068,11 +1045,6 @@
     <string name="pref_navigation_drawer_title">Menu navigasi</string>
     <string name="pref_navigation_drawer_summary">Gunakan menu navigasi samping alih-alih bilah bawah</string>
     <string name="pref_libraries_in_drawer_title">Tampilkan pustaka di menu</string>
-    <string name="btn_validate">Validasi</string>
-    <string name="update_console_status_hashing">sedang membuat hash file yang diunduh…</string>
-    <string name="update_console_status_match">COCOK: build autentik, aman untuk diinstal</string>
-    <string name="update_console_status_mismatch">TIDAK COCOK: file dihapus, unduh kembali</string>
-    <string name="update_console_status_error">KESALAHAN: tidak dapat membaca file, unduh kembali</string>
     <string name="section_ratings">Rating</string>
     <string name="request_all_seasons_note">Semua season akan diminta</string>
     <plurals name="request_quota_movie_remaining_fmt">
@@ -1615,7 +1587,6 @@
     </plurals>
     <string name="notif_channel_downloads">Unduhan</string>
     <string name="notif_channel_audiobook_downloads">Unduhan Buku Audio</string>
-    <string name="notif_channel_updates">Pembaruan Aplikasi</string>
     <string name="notif_downloads_in_progress">Unduhan sedang berlangsung</string>
     <string name="notif_downloads_finished">Unduhan selesai</string>
     <string name="notif_download_complete">Unduhan selesai</string>
@@ -1627,7 +1598,6 @@
     <string name="notif_download_progress_fmt">%1$s / %2$s</string>
     <string name="notif_download_starting">Memulai…</string>
     <string name="notif_action_pause">Jeda</string>
-    <string name="notif_update_available_title">Pembaruan Tersedia</string>
     <string name="jellyseerr_username_from_jellyfin">Dari akun Jellyfin Anda</string>
     <string name="jellyseerr_email_hint">Email akun Seerr Anda</string>
     <string name="jellyseerr_connect_subtitle_found_fmt">Ditemukan %1$s. Masuk untuk mengaktifkan permintaan konten.</string>

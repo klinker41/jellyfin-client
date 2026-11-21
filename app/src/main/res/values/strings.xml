@@ -1604,39 +1604,12 @@
     <string name="error_delete_active_server">Cannot delete the currently active server. Please switch to another server first.</string>
     <string name="error_delete_server_failed">Failed to delete server</string>
 
-    <string name="update_available_title">Update Available</string>
-    <string name="update_whats_new">What\'s New</string>
     <string name="update_alert_note">Note</string>
     <string name="update_alert_tip">Tip</string>
     <string name="update_alert_important">Important</string>
     <string name="update_alert_warning">Warning</string>
     <string name="update_alert_caution">Caution</string>
-    <string name="update_version_fmt">v%1$s</string>
-    <string name="btn_download_update">Download Update</string>
-    <string name="btn_downloading">Downloading…</string>
-    <string name="btn_install_restart">Install &amp; Restart</string>
-    <string name="btn_validate">Validate</string>
-    <string name="update_console_status_hashing">hashing downloaded file…</string>
-    <string name="update_console_status_match">MATCH: authentic build, safe to install</string>
-    <string name="update_console_status_mismatch">MISMATCH: file deleted, download again</string>
-    <string name="update_console_status_error">ERROR: could not read file, download again</string>
     <string name="action_not_now">Not Now</string>
-
-    <string name="pref_group_updates">Updates</string>
-    <string name="pref_check_updates_title">Check for Updates</string>
-    <string name="update_status_checking">Checking…</string>
-    <string name="update_status_downloading">Downloading…</string>
-    <string name="update_status_uptodate_fmt">Up to date • %1$s</string>
-    <string name="update_status_failed_fmt">Check failed • %1$s</string>
-    <string name="update_status_last_check_fmt">Last check: %1$s</string>
-    <string name="update_progress_fmt">%1$d%%</string>
-    <string name="pref_check_frequency_title">Check Frequency</string>
-
-    <string name="freq_on_app_open">On App Open</string>
-    <string name="freq_6_hours">Every 6 Hours</string>
-    <string name="freq_12_hours">Every 12 Hours</string>
-    <string name="freq_24_hours">Every 24 Hours</string>
-    <string name="update_never_checked">Never</string>
 
     <string name="jellyseerr_connect_subtitle">Enter your server details to enable content requests</string>
     <string name="jellyseerr_placeholder_url">https://seerr.example.com</string>
@@ -1695,7 +1668,7 @@
     <string name="error_audiobookshelf_logout_failed_fmt">Failed to disconnect from Audiobookshelf: %1$s</string>
 
     <string name="notification_permission_title">Enable Notifications</string>
-    <string name="notification_permission_message">AFinity uses notifications for music and audiobook playback controls (lock screen and notification shade) and to alert you when an app update is available.\n\nIf you change your mind later, you can enable it from App Info → Permissions → Notifications.</string>
+    <string name="notification_permission_message">AFinity uses notifications for music and audiobook playback controls (lock screen and notification shade).\n\nIf you change your mind later, you can enable it from App Info → Permissions → Notifications.</string>
     <string name="notification_permission_yes">Allow</string>
     <string name="notification_permission_no">No Thanks</string>
 
@@ -3122,8 +3095,6 @@
     <string name="notif_channel_downloads">Downloads</string>
     <string name="notif_channel_downloads_desc">Background download tasks</string>
     <string name="notif_channel_audiobook_downloads">Audiobook Downloads</string>
-    <string name="notif_channel_updates">App Updates</string>
-    <string name="notif_channel_updates_desc">Notifications for app updates</string>
     <string name="notif_downloads_in_progress">Downloads in progress</string>
     <string name="notif_downloads_finished">Downloads finished</string>
     <string name="notif_download_complete">Download complete</string>
@@ -3135,9 +3106,6 @@
     <string name="notif_download_progress_fmt">%1$s / %2$s</string>
     <string name="notif_download_starting">Starting…</string>
     <string name="notif_action_pause">Pause</string>
-    <string name="notif_update_available_title">Update Available</string>
-    <string name="notif_update_available_fmt">Version %1$s is now available</string>
-    <string name="notif_update_tap_to_download_fmt">Version %1$s is now available. Tap to download.</string>
 
     <!--ViewModel Error Strings-->
     <string name="error_invalid_url_format">Invalid URL format</string>

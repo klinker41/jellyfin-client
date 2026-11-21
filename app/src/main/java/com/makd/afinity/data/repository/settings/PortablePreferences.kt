@@ -27,6 +27,7 @@ internal object PortablePreferences {
             "offline_mode",
             "last_sync_time",
             "last_update_check",
+            "update_check_frequency",
             "last_cache_invalidated",
             "download_storage_volume_id",
             "max_bitrate",
@@ -110,7 +111,6 @@ internal object PortablePreferences {
             spec("sync_interval", PrefType.INT, SettingsSection.DOWNLOADS),
             spec("crash_reporting", PrefType.BOOLEAN, SettingsSection.PRIVACY),
             spec("usage_analytics", PrefType.BOOLEAN, SettingsSection.PRIVACY),
-            spec("update_check_frequency", PrefType.INT, SettingsSection.PRIVACY),
         )
 
     val bySection: Map<SettingsSection, List<PrefSpec>> = specs.groupBy { it.section }

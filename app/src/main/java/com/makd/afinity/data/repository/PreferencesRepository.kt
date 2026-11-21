@@ -390,16 +390,6 @@ interface PreferencesRepository {
 
     suspend fun getLastSyncTime(): Long
 
-    suspend fun setUpdateCheckFrequency(hours: Int)
-
-    suspend fun getUpdateCheckFrequency(): Int
-
-    fun getUpdateCheckFrequencyFlow(): Flow<Int>
-
-    suspend fun setLastUpdateCheck(timestamp: Long)
-
-    suspend fun getLastUpdateCheck(): Long
-
     suspend fun setLastCacheInvalidatedAt(timestamp: Long)
 
     suspend fun getLastCacheInvalidatedAt(): Long

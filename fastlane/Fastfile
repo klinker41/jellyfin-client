@@ -1,0 +1,73 @@
+opt_out_usage
+
+require "fileutils"
+require_relative "play_release_helper"
+
+default_platform(:android)
+
+platform :android do
+  desc "Build release-signed nightly AAB and upload to Google Play"
+  lane :publish_nightly do |options|
+    repo_root = File.expand_path("..", __dir__)
+    PlayReleaseHelper.validate_release_inputs!(env: ENV, repo_root: repo_root)
+
+    props = PlayReleaseHelper.read_gradle_properties(File.join(repo_root, "gradle.properties"))
+    package_name = ENV.fetch("PLAY_PACKAGE_NAME", "xyz.klinker.jellyfin")
+    track = ENV.fetch("PLAY_TRACK", "alpha")
+    release_status = ENV.fetch("PLAY_RELEASE_STATUS", "completed")
+    build_number = options[:build_number] || ENV["BUILD_NUMBER"] || "1"
+    json_key = ENV.fetch("PLAY_SERVICE_ACCOUNT_JSON").strip
+
+    existing_play_codes = PlayReleaseHelper::PLAY_TRACKS.flat_map do |play_track|
+      google_play_track_version_codes(
+        package_name: package_name,
+        track: play_track,
+        json_key: json_key,
+      )
+    rescue StandardError => e
+      UI.important("Could not read Play track '#{play_track}' version codes: #{e.message}")
+      []
+    end
+
+    version_code = PlayReleaseHelper.compute_nightly_version_code(
+      base_version_code: props[:version_code],
+      build_number: build_number,
+      existing_play_codes: existing_play_codes,
+    )
+    version_name = PlayReleaseHelper.compute_nightly_version_name(
+      base_version_name: props[:version_name],
+      build_number: build_number,
+    )
+
+    UI.message("Building #{package_name} nightly #{version_name} (#{version_code}) for '#{track}'")
+
+    bundle_dir = File.join(repo_root, "app", "build", "outputs", "bundle", "nightly")
+    FileUtils.rm_rf(bundle_dir)
+
+    gradle(
+      task: ":app:bundleNightly",
+      project_dir: repo_root,
+      flags: "--no-daemon",
+      properties: {
+        "app.versionCode" => version_code.to_s,
+        "app.versionName" => version_name,
+        "requireReleaseSigning" => "true",
+      },
+    )
+
+    aab_path = PlayReleaseHelper.resolve_aab_path(bundle_dir)
+
+    upload_to_play_store(
+      package_name: package_name,
+      track: track,
+      release_status: release_status,
+      json_key: json_key,
+      aab: aab_path,
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      skip_upload_changelogs: true,
+    )
+  end
+end

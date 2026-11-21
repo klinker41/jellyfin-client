@@ -105,7 +105,6 @@ import com.makd.afinity.ui.settings.logs.LogViewerScreen
 import com.makd.afinity.ui.settings.player.PlayerOptionsScreen
 import com.makd.afinity.ui.settings.servers.ServerManagementScreen
 import com.makd.afinity.ui.settings.update.CurrentChangelogDialog
-import com.makd.afinity.ui.settings.update.UpdateSection
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -583,8 +582,6 @@ fun SettingsScreen(
                                     )
                                 }
                             }
-
-                            item { UpdateSection(endPadding = listEndPadding) }
 
                             item {
                                 SettingsGroup(

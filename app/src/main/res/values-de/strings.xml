@@ -338,25 +338,7 @@
     <string name="error_test_connection_first">Bitte zuerst die Verbindung testen</string>
     <string name="server_management_title">Server verwalten</string>
     <string name="action_delete">Löschen</string>
-    <string name="update_available_title">Aktualisierung verfügbar</string>
-    <string name="update_version_fmt">v%1$s</string>
-    <string name="btn_download_update">Aktualisierung herunterladen</string>
-    <string name="btn_downloading">Wird heruntergeladen...</string>
-    <string name="update_status_downloading">Wird heruntergeladen...</string>
-    <string name="btn_install_restart">Installieren und neu starten</string>
     <string name="action_not_now">Nicht jetzt</string>
-    <string name="pref_group_updates">Aktualisierungen</string>
-    <string name="pref_check_updates_title">Auf Aktualisierungen prüfen</string>
-    <string name="update_status_checking">Wird überprüft...</string>
-    <string name="update_status_uptodate_fmt">Auf dem neuesten Stand • %1$s</string>
-    <string name="update_status_failed_fmt">Überprüfung fehlgeschlagen • %1$s</string>
-    <string name="update_status_last_check_fmt">Letzte Überprüfung: %1$s</string>
-    <string name="update_progress_fmt">%1$d%%</string>
-    <string name="freq_on_app_open">Beim Öffnen der App</string>
-    <string name="freq_6_hours">Alle 6 Stunden</string>
-    <string name="freq_12_hours">Alle 12 Stunden</string>
-    <string name="freq_24_hours">Alle 24 Stunden</string>
-    <string name="update_never_checked">Nie</string>
     <string name="login_method_jellyfin">Jellyfin-Konto</string>
     <string name="login_method_local">Lokales Konto</string>
     <string name="label_jellyfin_username">Jellyfin-Benutzername</string>
@@ -473,7 +455,6 @@
         <item quantity="other">Hierbei werden %1$d gespeicherte(r) Nutzer und alle dazugehörigen Daten gelöscht.</item>
     </plurals>
     <string name="error_delete_server_failed">Löschen des Servers fehlgeschlagen</string>
-    <string name="update_whats_new">Was gibt es neues</string>
     <string name="jellyseerr_connect_subtitle">Gib deine Serverinformationen ein, um Inhaltsanfragen zu aktivieren</string>
     <string name="label_login_method">Login-Methode</string>
     <string name="label_seerr_email">Seerr E-Mail</string>
@@ -581,7 +562,6 @@
     <string name="address_added_to_existing_server">Diese Adresse wurde zu deinem bereits hinzugefügten Server %1$s hinzugefügt.</string>
     <string name="btn_ok">Okay</string>
     <string name="address_already_saved">Diese Adresse ist bereits für diesen Server gespeichert</string>
-    <string name="pref_check_frequency_title">Frequenz überprüfen</string>
     <string name="licenses_footer_terms">Unter den jeweiligen Bedingungen lizenziert</string>
     <string name="pref_appearance_summary">Designs und Layout</string>
     <string name="pref_app_language">App-Sprache</string>
@@ -751,11 +731,8 @@
     <string name="action_read_more">Mehr lesen</string>
     <string name="error_no_trailer">Kein Trailer verfügbar</string>
     <string name="error_unable_open_trailer">Trailer konnte nicht geöffnet werden</string>
-    <string name="notif_update_available_fmt">Version %1$s ist jetzt verfügbar</string>
-    <string name="notif_update_tap_to_download_fmt">Version %1$s ist jetzt verfügbar.\nZum herunterladen tippen.</string>
     <string name="abs_server_url_placeholder">https://abs.example.com</string>
     <string name="abs_placeholder_server_url">https://abs.example.com</string>
-    <string name="notif_channel_updates_desc">Benachrichtigungen für App-Updates</string>
     <string name="notif_channel_downloads_desc">Downloads im Hintergrund</string>
     <string name="pref_buffer_size_title">Videopuffergröße</string>
     <string name="meta_part_of_fmt">Teil %1$d/%2$d</string>
@@ -871,7 +848,6 @@
     <string name="buffer_desc_default">Standard / Empfohlen</string>
     <string name="buffer_desc_slow_networks">Gut für langsame Netzwerke</string>
     <string name="buffer_desc_high">Hoch</string>
-    <string name="btn_validate">Validieren</string>
     <string name="pref_authorize_quickconnect">QuickConnect autorisieren</string>
     <string name="dialog_quickconnect_title">QuickConnect autorisieren</string>
     <string name="dialog_quickconnect_authorized">Gerät erfolgreich autorisiert</string>

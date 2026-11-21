@@ -6,6 +6,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.work.Configuration
+import androidx.work.WorkManager
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -24,8 +25,6 @@ import com.makd.afinity.data.repository.CacheMaintenance
 import com.makd.afinity.data.repository.PreferencesRepository
 import com.makd.afinity.data.repository.server.ServerRepository
 import com.makd.afinity.data.sync.PendingJellyfinSync
-import com.makd.afinity.data.updater.UpdateScheduler
-import com.makd.afinity.data.updater.models.UpdateCheckFrequency
 import com.makd.afinity.di.ImageClient
 import com.makd.afinity.ui.components.IMAGE_CROSSFADE_MILLIS
 import com.makd.afinity.util.logging.CrashFileExporter
@@ -48,8 +47,6 @@ import timber.log.Timber
 class AfinityApplication : Application(), Configuration.Provider, SingletonImageLoader.Factory {
 
     @Inject lateinit var workerFactory: HiltWorkerFactory
-
-    @Inject lateinit var updateScheduler: UpdateScheduler
 
     @Inject lateinit var preferencesRepository: PreferencesRepository
 
@@ -112,12 +109,8 @@ class AfinityApplication : Application(), Configuration.Provider, SingletonImage
                 .onFailure { Timber.w(it, "Failed to start pending user data sync observer") }
         }
 
-        applicationScope.launch {
-            val frequency = preferencesRepository.getUpdateCheckFrequency()
-            val checkFrequency = UpdateCheckFrequency.fromHours(frequency)
-            updateScheduler.scheduleUpdateChecks(checkFrequency)
-            Timber.d("Update scheduler initialized with frequency: ${checkFrequency.displayName}")
-        }
+        // Cancel any periodic GitHub update checks scheduled by pre-Play Store builds.
+        WorkManager.getInstance(this).cancelUniqueWork("update_check_worker")
 
         applicationScope.launch(Dispatchers.IO) {
             runCatching { cacheMaintenance.get().pruneExpiredData() }

@@ -85,7 +85,6 @@ import com.makd.afinity.data.models.media.AfinitySeason
 import com.makd.afinity.data.models.media.AfinityShow
 import com.makd.afinity.data.models.media.AfinityVideoPlaylist
 import com.makd.afinity.data.models.media.BookFormat
-import com.makd.afinity.data.updater.UpdateManager
 import com.makd.afinity.data.websocket.WebSocketState
 import com.makd.afinity.player.audiobookshelf.AudiobookSource
 import com.makd.afinity.ui.admin.identify.IdentifyScreen
@@ -155,7 +154,6 @@ import com.makd.afinity.ui.settings.logs.LogViewerScreen
 import com.makd.afinity.ui.settings.player.PlayerOptionsScreen
 import com.makd.afinity.ui.settings.servers.AddEditServerScreen
 import com.makd.afinity.ui.settings.servers.ServerManagementScreen
-import com.makd.afinity.ui.settings.update.GlobalUpdateDialog
 import com.makd.afinity.ui.theme.LocalCardSize
 import com.makd.afinity.ui.watchlist.WatchlistCategory
 import com.makd.afinity.ui.watchlist.WatchlistCategoryScreen
@@ -176,13 +174,12 @@ val LocalHeroStyle = compositionLocalOf { HeroStyle.FULL_BLEED }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainNavigation(
-    modifier: Modifier = Modifier,
-    mainViewModel: MainViewModel = hiltViewModel(),
-    viewModel: MainNavigationViewModel = hiltViewModel(),
-    updateManager: UpdateManager,
     offlineModeManager: OfflineModeManager,
     widthSizeClass: WindowWidthSizeClass,
     authState: AuthenticationState,
+    modifier: Modifier = Modifier,
+    mainViewModel: MainViewModel = hiltViewModel(),
+    viewModel: MainNavigationViewModel = hiltViewModel(),
 ) {
     val mainUiState by mainViewModel.uiState.collectAsStateWithLifecycle()
     val appLoadingState by viewModel.appLoadingState.collectAsStateWithLifecycle()
@@ -2610,8 +2607,6 @@ fun MainNavigation(
         }
     }
     if (!isPreAuth) {
-        GlobalUpdateDialog(updateManager = updateManager)
-
         val needsLocalNetworkPermission by
             mainViewModel.needsLocalNetworkPermission.collectAsStateWithLifecycle()
 

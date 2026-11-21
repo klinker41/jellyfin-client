@@ -484,27 +484,7 @@
     <string name="error_load_servers_failed">Kunde inte läsa in servrar</string>
     <string name="error_delete_active_server">Det går inte att ta bort den aktiva servern. Byt till en annan server först.</string>
     <string name="error_delete_server_failed">Kunde inte ta bort server</string>
-    <string name="update_available_title">Det finns en uppdatering</string>
-    <string name="update_whats_new">Vad är nytt</string>
-    <string name="update_version_fmt">v%1$s</string>
-    <string name="btn_download_update">Ladda ned uppdatering</string>
-    <string name="btn_downloading">Hämtar …</string>
-    <string name="btn_install_restart">Installera och starta om</string>
     <string name="action_not_now">Inte nu</string>
-    <string name="pref_group_updates">Uppdateringar</string>
-    <string name="pref_check_updates_title">Sök efter uppdateringar</string>
-    <string name="update_status_checking">Kontrollerar …</string>
-    <string name="update_status_downloading">Hämtar …</string>
-    <string name="update_status_uptodate_fmt">Senaste versionen • %1$s</string>
-    <string name="update_status_failed_fmt">Kontroll misslyckades • %1$s</string>
-    <string name="update_status_last_check_fmt">Senaste kontroll: %1$s</string>
-    <string name="update_progress_fmt">%1$d%%</string>
-    <string name="pref_check_frequency_title">Sökintervall</string>
-    <string name="freq_on_app_open">När appen öppnas</string>
-    <string name="freq_6_hours">Var 6:e timme</string>
-    <string name="freq_12_hours">Var 12:e timme</string>
-    <string name="freq_24_hours">Var 24:e timme</string>
-    <string name="update_never_checked">Aldrig</string>
     <string name="jellyseerr_connect_subtitle">Ange serveruppgifter för att aktivera förfrågningar</string>
     <string name="jellyseerr_placeholder_url">https://seerr.example.com</string>
     <string name="label_login_method">Logga in med</string>
@@ -755,9 +735,6 @@
     <string name="action_read_more">Läs mer</string>
     <string name="error_no_trailer">Ingen trailer tillgänglig</string>
     <string name="error_unable_open_trailer">Kunde inte öppna trailern</string>
-    <string name="notif_update_available_fmt">Version %1$s är tillgänglig</string>
-    <string name="notif_update_tap_to_download_fmt">Version %1$s är tillgänglig. Tryck för att ladda ned.</string>
-    <string name="notif_channel_updates_desc">Aviseringar för appuppdateringar</string>
     <string name="notif_channel_downloads_desc">Nedladdningar i bakgrunden</string>
     <string name="error_invalid_url_format">Ogiltigt adressformat</string>
     <string name="error_email_username_required">E-postadress eller användarnamn krävs</string>
@@ -1033,11 +1010,6 @@
     </plurals>
     <string name="seerr_recommendations_title">Rekommendationer</string>
     <string name="seerr_details_title">Detaljer</string>
-    <string name="btn_validate">Validera</string>
-    <string name="update_console_status_hashing">Beräknar kontrollsumma för nedladdad fil …</string>
-    <string name="update_console_status_match">MATCHNING: autentisk version, säker att installera</string>
-    <string name="update_console_status_mismatch">FELMATCHNING: filen har tagits bort, ladda ned igen</string>
-    <string name="update_console_status_error">FEL: kunde inte läsa filen, ladda ned igen</string>
     <string name="chapter_number_fmt">Kapitel %1$d</string>
     <string name="player_fast_forward_speed_label">2× hastighet</string>
     <string name="syncplay_waiting_for_members">Väntar på övriga deltagare …</string>
@@ -1578,7 +1550,6 @@
     <string name="season_no_info">Ingen säsongsinformation är tillgänglig. Alla säsonger kommer att begäras.</string>
     <string name="notif_channel_downloads">Nedladdningar</string>
     <string name="notif_channel_audiobook_downloads">Ljudboksnedladdningar</string>
-    <string name="notif_channel_updates">Appuppdateringar</string>
     <string name="notif_downloads_in_progress">Nedladdningar pågår</string>
     <string name="notif_downloads_finished">Nedladdningar slutförda</string>
     <string name="notif_download_complete">Nedladdning klar</string>
@@ -1590,7 +1561,6 @@
     <string name="notif_download_progress_fmt">%1$s / %2$s</string>
     <string name="notif_download_starting">Startar …</string>
     <string name="notif_action_pause">Pausa</string>
-    <string name="notif_update_available_title">Uppdatering tillgänglig</string>
     <string name="nav_home">Start</string>
     <string name="nav_audiobooks">Ljudböcker</string>
     <string name="section_awards">Utmärkelser</string>

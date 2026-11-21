@@ -75,9 +75,11 @@ misc.xml
 deploymentTargetDropDown.xml
 render.experimental.xml
 
-# Keystore files
+# Keystore files and Play credentials
 *.jks
 *.keystore
+key.properties
+play-service-account*.json
 
 # External native build folder generated in Android Studio 2.2 and later
 .externalNativeBuild
