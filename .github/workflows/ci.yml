@@ -51,6 +51,10 @@ jobs:
         if: always()
         run: ./gradlew testDebugUnitTest
 
+      - name: Screenshot tests
+        if: always()
+        run: ./gradlew :app:testDebugScreenshotTestDefaultTestSuite
+
       - name: Android Lint
         if: always()
         run: ./gradlew :app:lintDebug

@@ -158,6 +158,19 @@ configure<ApplicationExtension> {
                 "NewerVersionAvailable",
             )
     }
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+        screenshotTests.create("screenshotTest") {
+            engineVersion = libs.versions.screenshot.get()
+            imageDifferenceThreshold = 0.01f
+            targetVariants.add("debug")
+            dependencies {
+                implementation(libs.androidx.compose.ui.tooling)
+                implementation(libs.screenshot.validation.api)
+            }
+        }
+    }
 }
 
 room { schemaDirectory("$projectDir/schemas") }

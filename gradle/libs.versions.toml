@@ -50,6 +50,7 @@ reorderable = "3.1.0"
 richtext = "1.0.0-alpha05"
 retrofit = "3.0.0"
 room = "2.8.5"
+screenshot = "0.0.1-alpha17"
 slf4j = "2.0.20"
 testRunner = "1.7.0"
 socketio = "2.1.2"
@@ -137,6 +138,7 @@ readium-streamer = { module = "org.readium.kotlin-toolkit:readium-streamer", ver
 reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 retrofit-kotlinx-serialization = { group = "com.squareup.retrofit2", name = "converter-kotlinx-serialization", version.ref = "retrofit" }
+screenshot-validation-api = { group = "com.android.tools.screenshot", name = "screenshot-validation-api", version.ref = "screenshot" }
 slf4j-api = { group = "org.slf4j", name = "slf4j-api", version.ref = "slf4j" }
 socketio = { group = "io.socket", name = "socket.io-client", version.ref = "socketio" }
 telephoto-zoomable-image-coil3 = { module = "me.saket.telephoto:zoomable-image-coil3", version.ref = "telephoto" }
