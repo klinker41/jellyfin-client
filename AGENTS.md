@@ -1,6 +1,6 @@
 # jellyfin-client (AFinity Fork)
 
-- **Fork (`origin`):** https://github.com/klinker41/AFinity
+- **Fork (`origin`):** https://github.com/klinker41/jellyfin-client
 - **Upstream (`upstream`):** https://github.com/MakD/AFinity
 
 ## Upstream Mergeability
