@@ -479,7 +479,7 @@ private fun InsecureConnectionBanner(serverUrl: String) {
 }
 
 @Composable
-private fun LoginHeader(isConnected: Boolean, serverUrl: String) {
+internal fun LoginHeader(isConnected: Boolean, serverUrl: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         if (!isConnected) {
             Row(
@@ -552,7 +552,7 @@ private fun ConnectedServerPill(serverUrl: String) {
 }
 
 @Composable
-private fun ManualServerContent(
+internal fun ManualServerContent(
     serverUrl: String,
     savedServers: List<Server>,
     isConnecting: Boolean,
@@ -795,7 +795,7 @@ private fun SavedServerCard(
 }
 
 @Composable
-private fun UserSelectionAndTabs(
+internal fun UserSelectionAndTabs(
     uiState: LoginUiState,
     savedUsers: List<User>,
     publicUsers: List<User>,
@@ -955,7 +955,7 @@ private fun UserAvatarItem(
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-private fun PasswordForm(
+internal fun PasswordForm(
     uiState: LoginUiState,
     onUsernameChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,

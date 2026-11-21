@@ -211,6 +211,8 @@ kotlin {
     }
 }
 
+tasks.withType<Test>().configureEach { maxHeapSize = "2048m" }
+
 configure<ApplicationAndroidComponentsExtension> {
     onVariants { variant ->
         val buildType = variant.buildType ?: return@onVariants

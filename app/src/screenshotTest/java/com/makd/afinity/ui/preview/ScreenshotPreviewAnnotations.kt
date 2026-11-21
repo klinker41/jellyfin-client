@@ -21,6 +21,7 @@ annotation class ScreenshotComponentPreviews
 )
 @Preview(name = "Phone landscape", group = "Windows", device = "spec:width=891dp,height=411dp")
 @Preview(name = "Tablet landscape", group = "Windows", device = "spec:width=1280dp,height=800dp")
+@Preview(name = "Foldable unfolded", group = "Windows", device = "spec:width=673dp,height=841dp", uiMode = NIGHT)
 @Preview(
     name = "Phone font 150pct dark",
     group = "Windows",
@@ -29,6 +30,45 @@ annotation class ScreenshotComponentPreviews
     uiMode = NIGHT,
 )
 annotation class ScreenshotWindowPreviews
+
+@Preview(name = "Phone portrait", group = "FullScreens", device = "spec:width=411dp,height=891dp")
+@Preview(
+    name = "Phone portrait dark",
+    group = "FullScreens",
+    device = "spec:width=411dp,height=891dp",
+    uiMode = NIGHT,
+)
+@Preview(
+    name = "Phone landscape",
+    group = "FullScreens",
+    device = "spec:width=891dp,height=411dp",
+    uiMode = NIGHT,
+)
+@Preview(
+    name = "Foldable unfolded",
+    group = "FullScreens",
+    device = "spec:width=673dp,height=841dp",
+    uiMode = NIGHT,
+)
+@Preview(
+    name = "Tablet portrait",
+    group = "FullScreens",
+    device = "spec:width=800dp,height=1280dp",
+)
+@Preview(
+    name = "Tablet landscape",
+    group = "FullScreens",
+    device = "spec:width=1280dp,height=800dp",
+    uiMode = NIGHT,
+)
+@Preview(
+    name = "Phone font 150pct dark",
+    group = "FullScreens",
+    device = "spec:width=411dp,height=891dp",
+    fontScale = 1.5f,
+    uiMode = NIGHT,
+)
+annotation class ScreenshotFullScreenPreviews
 
 @Preview(name = "Phone 411dp", group = "Phone", widthDp = 411)
 annotation class ScreenshotPhonePreview

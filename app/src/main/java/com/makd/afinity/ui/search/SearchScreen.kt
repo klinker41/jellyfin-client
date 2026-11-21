@@ -517,7 +517,7 @@ fun SearchScreen(
 }
 
 @Composable
-private fun SearchTopBar(
+internal fun SearchTopBar(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     onBackClick: () -> Unit,
@@ -815,7 +815,7 @@ private fun ScopeChip(
 }
 
 @Composable
-private fun SearchHomeContent(
+internal fun SearchHomeContent(
     genres: List<String>,
     onGenreClick: (String) -> Unit,
     isAudiobookshelf: Boolean = false,
@@ -850,7 +850,7 @@ private fun SearchHomeContent(
 }
 
 @Composable
-private fun SearchResultsContent(
+internal fun SearchResultsContent(
     results: List<AfinityItem>,
     onItemClick: (AfinityItem) -> Unit,
     onEpisodeClick: (AfinityEpisode) -> Unit,
