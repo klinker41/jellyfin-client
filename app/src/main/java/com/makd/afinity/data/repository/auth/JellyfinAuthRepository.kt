@@ -9,6 +9,7 @@ import com.makd.afinity.data.repository.DatabaseRepository
 import com.makd.afinity.data.repository.SecurePreferencesRepository
 import com.makd.afinity.di.ApplicationScope
 import com.makd.afinity.util.forUser
+import com.makd.afinity.util.perfTraceAsync
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -99,71 +100,70 @@ constructor(
         }
 
     override suspend fun restoreAuthenticationState(): AuthRepository.RestoreResult {
-        return withContext(Dispatchers.IO) {
-            try {
-                if (!securePreferencesRepository.hasValidAuthData()) {
-                    Timber.d("No valid encrypted auth data found, user needs to login")
-                    return@withContext AuthRepository.RestoreResult.Failed
-                }
+        return perfTraceAsync("Auth.restoreSession") {
+            withContext(Dispatchers.IO) {
+                try {
+                    val snapshot = securePreferencesRepository.getSavedAuthSnapshot()
+                    if (!snapshot.hasBasicAuthData) {
+                        Timber.d("No valid encrypted auth data found, user needs to login")
+                        return@withContext AuthRepository.RestoreResult.Failed
+                    }
 
-                val accessToken = securePreferencesRepository.getAccessToken()
-                val userId = securePreferencesRepository.getSavedUserId()
-                val serverId = securePreferencesRepository.getSavedServerId()
-                val serverUrl = securePreferencesRepository.getSavedServerUrl()
-                val username = securePreferencesRepository.getSavedUsername()
-
-                if (
-                    accessToken.isNullOrBlank() ||
-                        userId.isNullOrBlank() ||
-                        serverUrl.isNullOrBlank() ||
-                        username.isNullOrBlank()
-                ) {
-                    Timber.w(
-                        "Incomplete encrypted auth data found, clearing and requiring fresh login",
-                    )
-                    clearAllAuthData()
-                    return@withContext AuthRepository.RestoreResult.Failed
-                }
-
-                val userUuid =
-                    try {
-                        UUID.fromString(userId)
-                    } catch (e: IllegalArgumentException) {
-                        Timber.e(e, "Invalid UUID format in saved data")
+                    if (!snapshot.isComplete) {
+                        Timber.w(
+                            "Incomplete encrypted auth data found, clearing and requiring fresh login",
+                        )
                         clearAllAuthData()
                         return@withContext AuthRepository.RestoreResult.Failed
                     }
 
-                val startResult =
-                    sessionManager.startSession(
-                        serverUrl = serverUrl,
-                        serverId = serverId ?: "",
-                        userId = userUuid,
-                        accessToken = accessToken,
-                    )
+                    val accessToken = snapshot.accessToken!!
+                    val userId = snapshot.userId!!
+                    val serverId = snapshot.serverId
+                    val serverUrl = snapshot.serverUrl!!
+                    val username = snapshot.username!!
 
-                val startFailure = startResult.exceptionOrNull()
-                if (startFailure != null) {
-                    val is401 = startFailure is InvalidStatusException && startFailure.status == 401
-                    if (is401) {
-                        Timber.e("Token rejected by server (401) - Logging out")
-                        clearAllAuthData()
-                        return@withContext AuthRepository.RestoreResult.Failed
+                    val userUuid =
+                        try {
+                            UUID.fromString(userId)
+                        } catch (e: IllegalArgumentException) {
+                            Timber.e(e, "Invalid UUID format in saved data")
+                            clearAllAuthData()
+                            return@withContext AuthRepository.RestoreResult.Failed
+                        }
+
+                    val startResult =
+                        sessionManager.startSession(
+                            serverUrl = serverUrl,
+                            serverId = serverId ?: "",
+                            userId = userUuid,
+                            accessToken = accessToken,
+                        )
+
+                    val startFailure = startResult.exceptionOrNull()
+                    if (startFailure != null) {
+                        val is401 =
+                            startFailure is InvalidStatusException && startFailure.status == 401
+                        if (is401) {
+                            Timber.e("Token rejected by server (401) - Logging out")
+                            clearAllAuthData()
+                            return@withContext AuthRepository.RestoreResult.Failed
+                        }
+                        Timber.w(
+                            startFailure,
+                            "SessionManager initMonitoring failed during restore (server unreachable)",
+                        )
+                        return@withContext AuthRepository.RestoreResult.Degraded(startFailure)
                     }
-                    Timber.w(
-                        startFailure,
-                        "SessionManager initMonitoring failed during restore (server unreachable)",
-                    )
-                    return@withContext AuthRepository.RestoreResult.Degraded(startFailure)
-                }
 
-                Timber.d("Session restored for user: $username (url: $serverUrl)")
-                return@withContext AuthRepository.RestoreResult.Success
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Timber.e(e, "Critical error during auth restoration")
-                return@withContext AuthRepository.RestoreResult.Failed
+                    Timber.d("Session restored for user: $username (url: $serverUrl)")
+                    return@withContext AuthRepository.RestoreResult.Success
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Timber.e(e, "Critical error during auth restoration")
+                    return@withContext AuthRepository.RestoreResult.Failed
+                }
             }
         }
     }

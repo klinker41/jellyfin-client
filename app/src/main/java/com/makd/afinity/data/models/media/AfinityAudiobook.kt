@@ -1,10 +1,12 @@
 package com.makd.afinity.data.models.media
 
+import androidx.compose.runtime.Immutable
 import com.makd.afinity.data.models.audiobookshelf.BookChapter
 import java.time.LocalDateTime
 import java.util.UUID
 import org.jellyfin.sdk.model.api.PersonKind
 
+@Immutable
 data class AfinityAudiobook(
     override val id: UUID,
     override val name: String,

@@ -5,10 +5,10 @@ import android.util.LruCache
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
@@ -45,11 +45,11 @@ internal const val IMAGE_CROSSFADE_MILLIS = 80
 
 val LocalImageUrlRewriter = staticCompositionLocalOf<((String) -> String)?> { null }
 
-val LocalOriginalImages = compositionLocalOf { false }
+val LocalOriginalImages = staticCompositionLocalOf { false }
 
 private const val BLUR_HASH_BASE_SIZE = 32
 private const val BLUR_HASH_MIN_SIZE = 25
-private const val BLUR_HASH_CACHE_ENTRIES = 256
+private const val BLUR_HASH_CACHE_ENTRIES = 512
 
 private val blurHashBitmapCache = LruCache<String, ImageBitmap>(BLUR_HASH_CACHE_ENTRIES)
 
@@ -365,41 +365,71 @@ private fun AsyncImageContent(
             }
         }
 
-    val blurHashPlaceholder = rememberBlurHashPainter(blurHash, targetWidth, targetHeight)
+    val isInMemoryCache =
+        remember(optimizedUrl, context) {
+            optimizedUrl != null &&
+                context.imageLoader.memoryCache?.get(MemoryCache.Key(optimizedUrl)) != null
+        }
+
     val lowResPlaceholder =
         rememberCachedLowResPlaceholder(
-            enabled = useLowResPlaceholder && !originalImages,
+            enabled = useLowResPlaceholder && !originalImages && !isInMemoryCache,
             imageUrl = imageUrl,
             targetWidthPx = targetWidthPx,
             filterQuality = filterQuality,
         )
+    val blurHashPlaceholder =
+        rememberBlurHashPainter(
+            blurHash = if (isInMemoryCache || lowResPlaceholder != null) null else blurHash,
+            targetWidth = targetWidth,
+            targetHeight = targetHeight,
+        )
     val loadingPlaceholder = lowResPlaceholder?.painter ?: blurHashPlaceholder ?: placeholder
 
-    AsyncImage(
-        model =
+    val currentOnLoading by rememberUpdatedState(onLoading)
+    val currentOnSuccess by rememberUpdatedState(onSuccess)
+    val currentOnError by rememberUpdatedState(onError)
+    val hasListeners = onLoading != null || onSuccess != null || onError != null
+    val isFileUrl = imageUrl?.startsWith("file://") == true
+    val lowResMemoryCacheKey = lowResPlaceholder?.memoryCacheKey
+    val imageRequest =
+        remember(
+            context,
+            optimizedUrl,
+            imageSize,
+            isFileUrl,
+            crossfadeMillis,
+            lowResMemoryCacheKey,
+            hasListeners,
+        ) {
             ImageRequest.Builder(context)
                 .data(optimizedUrl)
                 .apply { imageSize?.let { size(it) } }
                 .memoryCachePolicy(CachePolicy.ENABLED)
                 .diskCachePolicy(CachePolicy.ENABLED)
-                .networkCachePolicy(
-                    if (imageUrl?.startsWith("file://") == true) CachePolicy.DISABLED
-                    else CachePolicy.ENABLED,
-                )
+                .networkCachePolicy(if (isFileUrl) CachePolicy.DISABLED else CachePolicy.ENABLED)
                 .crossfade(crossfadeMillis)
-                .placeholderMemoryCacheKey(lowResPlaceholder?.memoryCacheKey)
-                .listener(
-                    onStart = { onLoading?.invoke(true) },
-                    onSuccess = { _, _ ->
-                        onLoading?.invoke(false)
-                        onSuccess?.invoke()
-                    },
-                    onError = { _, _ ->
-                        onLoading?.invoke(false)
-                        onError?.invoke()
-                    },
-                )
-                .build(),
+                .placeholderMemoryCacheKey(lowResMemoryCacheKey)
+                .apply {
+                    if (hasListeners) {
+                        listener(
+                            onStart = { currentOnLoading?.invoke(true) },
+                            onSuccess = { _, _ ->
+                                currentOnLoading?.invoke(false)
+                                currentOnSuccess?.invoke()
+                            },
+                            onError = { _, _ ->
+                                currentOnLoading?.invoke(false)
+                                currentOnError?.invoke()
+                            },
+                        )
+                    }
+                }
+                .build()
+        }
+
+    AsyncImage(
+        model = imageRequest,
         contentDescription = contentDescription,
         modifier = modifier,
         placeholder = loadingPlaceholder,

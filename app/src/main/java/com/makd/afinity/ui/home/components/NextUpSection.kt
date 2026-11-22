@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -14,6 +13,7 @@ import com.makd.afinity.R
 import com.makd.afinity.data.models.media.AfinityEpisode
 import com.makd.afinity.ui.components.CardRow
 import com.makd.afinity.ui.components.ContinueWatchingCard
+import com.makd.afinity.ui.components.rememberCardRowListState
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.landscapeWidth
 
@@ -27,7 +27,7 @@ fun NextUpSection(
     val cardWidth = widthSizeClass.landscapeWidth
     val fixedRowHeight = CardDimensions.rowHeight(cardWidth, CardDimensions.ASPECT_RATIO_LANDSCAPE)
 
-    val scrollState = rememberLazyListState()
+    val scrollState = rememberCardRowListState()
 
     LaunchedEffect(episodes.firstOrNull()?.id) {
         if (episodes.isNotEmpty()) {
@@ -41,7 +41,11 @@ fun NextUpSection(
         HomeSectionHeader(title = stringResource(R.string.home_next_up))
 
         CardRow(state = scrollState, modifier = Modifier.height(fixedRowHeight)) {
-            items(items = episodes, key = { episode -> "nextup_${episode.id}" }) { episode ->
+            items(
+                items = episodes,
+                key = { episode -> "nextup_${episode.id}" },
+                contentType = { "nextup_card" },
+            ) { episode ->
                 ContinueWatchingCard(
                     item = episode,
                     onClick = { onEpisodeClick(episode) },

@@ -1,11 +1,13 @@
 package com.makd.afinity.data.models.media
 
+import androidx.compose.runtime.Immutable
 import com.makd.afinity.data.database.entities.AfinityMediaStreamDto
 import com.makd.afinity.data.repository.subtitles.externalSubtitleFileName
 import org.jellyfin.sdk.model.api.MediaStream
 import org.jellyfin.sdk.model.api.MediaStreamType
 import org.jellyfin.sdk.model.api.VideoRangeType
 
+@Immutable
 data class AfinityMediaStream(
     val title: String,
     val displayTitle: String?,

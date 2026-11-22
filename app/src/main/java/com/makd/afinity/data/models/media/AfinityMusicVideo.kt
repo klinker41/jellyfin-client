@@ -1,8 +1,10 @@
 package com.makd.afinity.data.models.media
 
+import androidx.compose.runtime.Immutable
 import java.time.LocalDateTime
 import java.util.UUID
 
+@Immutable
 data class AfinityMusicVideo(
     override val id: UUID,
     override val name: String,
@@ -41,4 +43,4 @@ data class AfinityMusicVideo(
     val mediaSourceCount: Int?,
 ) : AfinityItem, AfinitySources
 
-data class AfinityMusicVideoArtist(val id: UUID, val name: String)
+@Immutable data class AfinityMusicVideoArtist(val id: UUID, val name: String)

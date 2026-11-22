@@ -1,6 +1,7 @@
 package com.makd.afinity.data.models.media
 
 import android.net.Uri
+import androidx.compose.runtime.Immutable
 import androidx.core.net.toUri
 import com.makd.afinity.data.database.dao.ServerDatabaseDao
 import com.makd.afinity.data.database.entities.AfinityEpisodeDto
@@ -13,6 +14,7 @@ import org.jellyfin.sdk.model.api.ImageType
 import org.jellyfin.sdk.model.api.LocationType
 import org.jellyfin.sdk.model.api.PlayAccess
 
+@Immutable
 data class AfinityEpisode(
     override val id: UUID,
     override val name: String,

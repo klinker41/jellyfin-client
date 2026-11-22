@@ -6,7 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.makd.afinity.R
 import com.makd.afinity.data.models.mdblist.MdbListRating
-import java.util.Locale
+import com.makd.afinity.util.formatOneDecimal
 
 data class MdbListRatingDisplay(
     val sourceName: String,
@@ -53,9 +53,9 @@ fun MdbListRating.toDisplay(): MdbListRatingDisplay? {
 
     val formattedScore =
         when {
-            sourceLower == "metacriticuser" -> String.format(Locale.US, "%.1f", rawValue / 10.0)
+            sourceLower == "metacriticuser" -> formatOneDecimal(rawValue / 10.0)
             sourceLower == RATING_SOURCE_COMMUNITY || sourceLower == RATING_SOURCE_IMDB ->
-                String.format(Locale.US, "%.1f", rawValue)
+                formatOneDecimal(rawValue)
             rawValue % 1.0 == 0.0 -> rawValue.toInt().toString()
             else -> rawValue.toString()
         }

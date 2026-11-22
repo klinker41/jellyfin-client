@@ -34,6 +34,7 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Qualifier
 import javax.inject.Singleton
 import kotlin.time.Duration.Companion.milliseconds
@@ -154,8 +155,8 @@ object NetworkModule {
                     },
                 )
                 .apply {
-                    maxRequests = 45
-                    maxRequestsPerHost = 6
+                    maxRequests = 64
+                    maxRequestsPerHost = 12
                 }
 
         val connectionPool =
@@ -234,9 +235,10 @@ object NetworkModule {
     ): OkHttpClient {
         val dispatcher =
             Dispatcher().apply {
-                maxRequests = 16
-                maxRequestsPerHost = 4
+                maxRequests = 32
+                maxRequestsPerHost = 10
             }
+        val cachedServerHost = AtomicReference<Pair<String, String>?>(null)
         return baseOkHttpClient
             .newBuilder()
             .dispatcher(dispatcher)
@@ -253,7 +255,15 @@ object NetworkModule {
                 val token = session?.user?.accessToken
                 val serverUrl = session?.serverUrl
                 if (token != null && serverUrl != null) {
-                    val serverHost = serverUrl.toHttpUrlOrNull()?.host
+                    val cached = cachedServerHost.get()
+                    val serverHost =
+                        if (cached != null && cached.first == serverUrl) {
+                            cached.second
+                        } else {
+                            serverUrl.toHttpUrlOrNull()?.host?.also { host ->
+                                cachedServerHost.set(serverUrl to host)
+                            }
+                        }
                     if (serverHost != null && request.url.host == serverHost) {
                         return@addInterceptor chain.proceed(
                             request

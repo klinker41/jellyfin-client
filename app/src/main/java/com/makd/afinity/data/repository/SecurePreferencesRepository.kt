@@ -35,6 +35,8 @@ interface SecurePreferencesRepository {
 
     suspend fun hasValidAuthData(): Boolean
 
+    suspend fun getSavedAuthSnapshot(): SavedAuthSnapshot
+
     fun getAuthenticationStateFlow(): Flow<Boolean>
 
     suspend fun saveServerUserToken(
@@ -152,6 +154,8 @@ interface SecurePreferencesRepository {
     fun getCachedJellyfinToken(): String?
 
     fun getCachedJellyfinServerUrl(): String?
+
+    fun setCachedJellyfinAuth(accessToken: String, serverUrl: String) {}
 
     suspend fun saveActiveSession(serverId: String, userId: UUID, serverUrl: String)
 

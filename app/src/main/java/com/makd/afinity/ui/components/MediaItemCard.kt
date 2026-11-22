@@ -50,7 +50,7 @@ import com.makd.afinity.ui.preview.PreviewHost
 import com.makd.afinity.ui.preview.StressPreviews
 import com.makd.afinity.ui.preview.WidthPreviews
 import com.makd.afinity.ui.theme.CardDimensions
-import java.util.Locale
+import com.makd.afinity.util.formatOneDecimal
 
 fun AfinityItem.hasCardMetadata(showRatings: Boolean): Boolean {
     val year =
@@ -227,7 +227,7 @@ fun MediaItemCard(
                             modifier = Modifier.size(ratingScale.rtIconSize),
                         )
                         Text(
-                            text = String.format(Locale.US, "%.1f", rating),
+                            text = formatOneDecimal(rating),
                             style =
                                 MaterialTheme.typography.bodySmall.copy(
                                     fontSize =

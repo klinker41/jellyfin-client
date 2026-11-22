@@ -1,9 +1,11 @@
 package com.makd.afinity.data.models.media
 
+import androidx.compose.runtime.Immutable
 import java.time.LocalDateTime
 import java.util.UUID
 import org.jellyfin.sdk.model.api.ImageOrientation
 
+@Immutable
 data class AfinityPhoto(
     override val id: UUID,
     override val name: String,
@@ -39,6 +41,7 @@ data class AfinityPhoto(
     val fileName: String? = null,
 ) : AfinityItem
 
+@Immutable
 data class AfinityPhotoExif(
     val cameraMake: String?,
     val cameraModel: String?,

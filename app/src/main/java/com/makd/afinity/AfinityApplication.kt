@@ -30,13 +30,17 @@ import com.makd.afinity.ui.components.IMAGE_CROSSFADE_MILLIS
 import com.makd.afinity.util.logging.CrashFileExporter
 import com.makd.afinity.util.logging.RingBufferTree
 import com.makd.afinity.util.logging.SdkLogBridge
+import com.makd.afinity.util.perfTrace
 import dagger.hilt.android.HiltAndroidApp
 import io.github.oshai.kotlinlogging.Level
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
@@ -46,30 +50,29 @@ import timber.log.Timber
 @HiltAndroidApp
 class AfinityApplication : Application(), Configuration.Provider, SingletonImageLoader.Factory {
 
-    @Inject lateinit var workerFactory: HiltWorkerFactory
+    @Inject lateinit var workerFactory: dagger.Lazy<HiltWorkerFactory>
 
-    @Inject lateinit var preferencesRepository: PreferencesRepository
+    @Inject lateinit var preferencesRepository: dagger.Lazy<PreferencesRepository>
 
-    @Inject lateinit var castManager: CastManager
+    @Inject lateinit var castManager: dagger.Lazy<CastManager>
 
-    @Inject lateinit var castPlaybackBridge: CastPlaybackBridge
+    @Inject lateinit var castPlaybackBridge: dagger.Lazy<CastPlaybackBridge>
 
-    @Inject @ImageClient lateinit var imageOkHttpClient: OkHttpClient
+    @Inject @ImageClient lateinit var imageOkHttpClient: dagger.Lazy<OkHttpClient>
 
     @Inject lateinit var cacheMaintenance: dagger.Lazy<CacheMaintenance>
 
     @Inject lateinit var pendingJellyfinSync: dagger.Lazy<PendingJellyfinSync>
 
-    @Inject lateinit var sessionManager: SessionManager
+    @Inject lateinit var sessionManager: dagger.Lazy<SessionManager>
 
     @Inject lateinit var serverRepository: dagger.Lazy<ServerRepository>
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+    private lateinit var imageCachePrefsDeferred: Deferred<Pair<Boolean, Int>>
     var ringBufferTree: RingBufferTree? = null
         private set
-
-    private var imageCacheEnabled: Boolean = true
-    private var imageCacheSizeMb: Int = 512
 
     override fun onCreate() {
         super.onCreate()
@@ -87,37 +90,43 @@ class AfinityApplication : Application(), Configuration.Provider, SingletonImage
             CrashFileExporter(this, ringBufferTree, Thread.getDefaultUncaughtExceptionHandler()),
         )
 
-        try {
-            runBlocking {
-                imageCacheEnabled = preferencesRepository.getImageCacheEnabled()
-                imageCacheSizeMb = preferencesRepository.getImageCacheSizeMb()
+        perfTrace("App.onCreate") {
+            imageCachePrefsDeferred =
+                applicationScope.async(Dispatchers.IO) {
+                    try {
+                        val prefs = preferencesRepository.get()
+                        prefs.getImageCacheEnabled() to prefs.getImageCacheSizeMb()
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Timber.e(e, "Failed to read ImageLoader prefs, using defaults")
+                        true to 512
+                    }
+                }
+
+            applicationScope.launch { castManager.get().initialize(this@AfinityApplication) }
+            applicationScope.launch { castPlaybackBridge.get().start() }
+
+            applicationScope.launch(Dispatchers.IO) {
+                runCatching { pendingJellyfinSync.get().initMonitoring() }
+                    .onFailure { Timber.w(it, "Failed to start pending user data sync observer") }
             }
-            Timber.d(
-                "ImageLoader prefs: cacheEnabled=$imageCacheEnabled, cacheSizeMb=$imageCacheSizeMb",
-            )
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to read ImageLoader prefs, using defaults")
+
+            // Cancel any periodic GitHub update checks scheduled by pre-Play Store builds.
+            applicationScope.launch(Dispatchers.IO) {
+                perfTrace("App.cancelUpdateWorker") {
+                    WorkManager.getInstance(this@AfinityApplication)
+                        .cancelUniqueWork("update_check_worker")
+                }
+            }
+
+            applicationScope.launch(Dispatchers.IO) {
+                runCatching { cacheMaintenance.get().pruneExpiredData() }
+                    .onFailure { Timber.w(it, "Cache pruning failed") }
+            }
+
+            observeForegroundReconnect()
         }
-
-        castManager.initialize(this)
-        castPlaybackBridge.start()
-
-        applicationScope.launch(Dispatchers.IO) {
-            runCatching { pendingJellyfinSync.get().initMonitoring() }
-                .onFailure { Timber.w(it, "Failed to start pending user data sync observer") }
-        }
-
-        // Cancel any periodic GitHub update checks scheduled by pre-Play Store builds.
-        WorkManager.getInstance(this).cancelUniqueWork("update_check_worker")
-
-        applicationScope.launch(Dispatchers.IO) {
-            runCatching { cacheMaintenance.get().pruneExpiredData() }
-                .onFailure { Timber.w(it, "Cache pruning failed") }
-        }
-
-        observeForegroundReconnect()
     }
 
     private fun observeForegroundReconnect() {
@@ -126,8 +135,9 @@ class AfinityApplication : Application(), Configuration.Provider, SingletonImage
             .addObserver(
                 object : DefaultLifecycleObserver {
                     override fun onStart(owner: LifecycleOwner) {
-                        if (sessionManager.currentSession.value == null) return
-                        if (sessionManager.isServerReachable.value) return
+                        val sm = sessionManager.get()
+                        if (sm.currentSession.value == null) return
+                        if (sm.isServerReachable.value) return
                         applicationScope.launch(Dispatchers.IO) {
                             Timber.d("App foregrounded while server unreachable, re-resolving")
                             runCatching { serverRepository.get().forceReconnect() }
@@ -139,19 +149,30 @@ class AfinityApplication : Application(), Configuration.Provider, SingletonImage
     }
 
     override val workManagerConfiguration: Configuration
-        get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
+        get() = Configuration.Builder().setWorkerFactory(workerFactory.get()).build()
 
     @OptIn(ExperimentalCoilApi::class)
     override fun newImageLoader(context: PlatformContext): ImageLoader {
-        val isCacheEnabled = imageCacheEnabled
-        val cacheSizeMb = imageCacheSizeMb
+        val (isCacheEnabled, cacheSizeMb) =
+            if (::imageCachePrefsDeferred.isInitialized) {
+                @OptIn(ExperimentalCoroutinesApi::class)
+                if (imageCachePrefsDeferred.isCompleted) {
+                    imageCachePrefsDeferred.getCompleted()
+                } else {
+                    perfTrace("App.awaitImagePrefs") {
+                        runBlocking { imageCachePrefsDeferred.await() }
+                    }
+                }
+            } else {
+                true to 512
+            }
         Timber.d(
             "ImageLoader: creating singleton (cacheEnabled=$isCacheEnabled, cacheSizeMb=$cacheSizeMb)",
         )
 
         return ImageLoader.Builder(context)
             .components {
-                add(OkHttpNetworkFetcherFactory(callFactory = { imageOkHttpClient }))
+                add(OkHttpNetworkFetcherFactory(callFactory = { imageOkHttpClient.get() }))
                 add(SvgDecoder.Factory())
                 add(AnimatedImageDecoder.Factory())
             }

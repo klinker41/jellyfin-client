@@ -30,6 +30,7 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -49,11 +50,13 @@ import com.makd.afinity.ui.player.components.BufferingIndicator
 import com.makd.afinity.ui.player.components.rememberDominantColor
 import timber.log.Timber
 
+@Immutable
 sealed class AudioMiniPlayerState {
     abstract val isPlaying: Boolean
     abstract val isBuffering: Boolean
     abstract val coverUrl: String?
 
+    @Immutable
     data class Abs(
         val title: String,
         val author: String?,
@@ -65,6 +68,7 @@ sealed class AudioMiniPlayerState {
         override val isBuffering: Boolean,
     ) : AudioMiniPlayerState()
 
+    @Immutable
     data class Music(
         val title: String,
         val artist: String?,

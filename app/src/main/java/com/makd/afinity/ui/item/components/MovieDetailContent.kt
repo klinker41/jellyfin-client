@@ -165,7 +165,11 @@ private fun PartsSection(
         DetailSectionTitle(text = stringResource(R.string.parts_title))
 
         CardRow(modifier = Modifier.height(fixedRowHeight)) {
-            itemsIndexed(parts, key = { _, part -> part.id }) { index, part ->
+            itemsIndexed(
+                items = parts,
+                key = { _, part -> part.id },
+                contentType = { _, _ -> "movie_part_card" },
+            ) { index, part ->
                 PartCard(
                     part = part,
                     partNumber = index + 1,
@@ -291,9 +295,11 @@ internal fun ChaptersSection(
         DetailSectionTitle(text = stringResource(R.string.chapters_title))
 
         CardRow(modifier = Modifier.height(fixedRowHeight)) {
-            itemsIndexed(chapters, key = { index, chapter -> "${chapter.startPosition}_$index" }) {
-                index,
-                chapter ->
+            itemsIndexed(
+                items = chapters,
+                key = { index, chapter -> "${chapter.startPosition}_$index" },
+                contentType = { _, _ -> "chapter_card" },
+            ) { index, chapter ->
                 ChapterCard(
                     chapter = chapter,
                     index = index,

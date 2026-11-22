@@ -1,5 +1,6 @@
 package com.makd.afinity.data.models.media
 
+import androidx.compose.runtime.Immutable
 import com.makd.afinity.data.models.music.AfinityAlbum
 import com.makd.afinity.data.models.music.AfinityArtist
 import com.makd.afinity.data.models.music.AfinityTrack
@@ -7,6 +8,7 @@ import com.makd.afinity.data.models.user.AfinityUserDataDto
 import java.util.UUID
 import org.jellyfin.sdk.model.api.UserItemDataDto
 
+@Immutable
 data class UserDataPatch(
     val played: Boolean? = null,
     val favorite: Boolean? = null,
@@ -14,6 +16,7 @@ data class UserDataPatch(
     val playbackPositionTicks: Long? = null,
 )
 
+@Immutable
 data class UserDataValues(
     val played: Boolean,
     val favorite: Boolean,

@@ -1,8 +1,10 @@
 package com.makd.afinity.data.models
 
+import androidx.compose.runtime.Immutable
+
 enum class GenreType {
     MOVIE,
     SHOW,
 }
 
-data class GenreItem(val name: String, val type: GenreType)
+@Immutable data class GenreItem(val name: String, val type: GenreType)

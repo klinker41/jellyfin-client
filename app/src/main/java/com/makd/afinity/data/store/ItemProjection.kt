@@ -54,15 +54,24 @@ class ItemProjection internal constructor() {
 
     fun <T : AfinityItem> live(list: List<T>): List<T> {
         if (list.isEmpty()) return list
-        val resolved = list.map { live(it) }
+        val resolved = mapPreservingIdentity(list) { live(it) }
+        if (resolved === list) {
+            currentResults[list] = list
+            return list
+        }
         return remembered(list, resolved) { it.sameElementsAs(resolved) }
     }
 
     fun <T : AfinityUserDataOwner> liveOwners(list: List<T>): List<T> {
         if (list.isEmpty()) return list
-        val resolved = list.map { owner ->
-            val isFresh = note(owner)
-            if (isFresh && owner.id in staleIds) owner else resolveOwner(owner)
+        val resolved =
+            mapPreservingIdentity(list) { owner ->
+                val isFresh = note(owner)
+                if (isFresh && owner.id in staleIds) owner else resolveOwner(owner)
+            }
+        if (resolved === list) {
+            currentResults[list] = list
+            return list
         }
         return remembered(list, resolved) { it.sameElementsAs(resolved) }
     }
@@ -79,19 +88,24 @@ class ItemProjection internal constructor() {
         rebuild: (E, I) -> E,
     ): List<E> {
         if (list.isEmpty()) return list
-        val resolved = list.map { element ->
-            val original = inner(element)
-            val current = liveOwner(original)
-            if (current === original) {
-                element
-            } else {
-                @Suppress("UNCHECKED_CAST") val previous = previousResults[element] as? E
-                val next =
-                    if (previous != null && inner(previous) === current) previous
-                    else rebuild(element, current)
-                currentResults[element] = next
-                next
+        val resolved =
+            mapPreservingIdentity(list) { element ->
+                val original = inner(element)
+                val current = liveOwner(original)
+                if (current === original) {
+                    element
+                } else {
+                    @Suppress("UNCHECKED_CAST") val previous = previousResults[element] as? E
+                    val next =
+                        if (previous != null && inner(previous) === current) previous
+                        else rebuild(element, current)
+                    currentResults[element] = next
+                    next
+                }
             }
+        if (resolved === list) {
+            currentResults[list] = list
+            return list
         }
         return remembered(list, resolved) { it.sameElementsAs(resolved) }
     }
@@ -102,19 +116,24 @@ class ItemProjection internal constructor() {
         rebuild: (E, List<T>) -> E,
     ): List<E> {
         if (list.isEmpty()) return list
-        val resolved = list.map { element ->
-            val original = items(element)
-            val current = live(original)
-            if (current === original) {
-                element
-            } else {
-                @Suppress("UNCHECKED_CAST") val previous = previousResults[element] as? E
-                val next =
-                    if (previous != null && items(previous).sameElementsAs(current)) previous
-                    else rebuild(element, current)
-                currentResults[element] = next
-                next
+        val resolved =
+            mapPreservingIdentity(list) { element ->
+                val original = items(element)
+                val current = live(original)
+                if (current === original) {
+                    element
+                } else {
+                    @Suppress("UNCHECKED_CAST") val previous = previousResults[element] as? E
+                    val next =
+                        if (previous != null && items(previous).sameElementsAs(current)) previous
+                        else rebuild(element, current)
+                    currentResults[element] = next
+                    next
+                }
             }
+        if (resolved === list) {
+            currentResults[list] = list
+            return list
         }
         return remembered(list, resolved) { it.sameElementsAs(resolved) }
     }
@@ -125,28 +144,51 @@ class ItemProjection internal constructor() {
         rebuild: (E, List<T>) -> E,
     ): List<E> {
         if (list.isEmpty()) return list
-        val resolved = list.map { element ->
-            val original = items(element)
-            val current = liveOwners(original)
-            if (current.sameElementsAs(original)) {
-                element
-            } else {
-                @Suppress("UNCHECKED_CAST") val previous = previousResults[element] as? E
-                val next =
-                    if (previous != null && items(previous).sameElementsAs(current)) previous
-                    else rebuild(element, current)
-                currentResults[element] = next
-                next
+        val resolved =
+            mapPreservingIdentity(list) { element ->
+                val original = items(element)
+                val current = liveOwners(original)
+                if (current === original || current.sameElementsAs(original)) {
+                    element
+                } else {
+                    @Suppress("UNCHECKED_CAST") val previous = previousResults[element] as? E
+                    val next =
+                        if (previous != null && items(previous).sameElementsAs(current)) previous
+                        else rebuild(element, current)
+                    currentResults[element] = next
+                    next
+                }
             }
+        if (resolved === list) {
+            currentResults[list] = list
+            return list
         }
         return remembered(list, resolved) { it.sameElementsAs(resolved) }
     }
 
     fun <K, T : AfinityItem> liveValues(map: Map<K, List<T>>): Map<K, List<T>> {
         if (map.isEmpty()) return map
-        val resolved = map.mapValues { (_, list) -> live(list) }
-        val unchanged = map.all { (key, list) -> resolved[key] === list }
-        if (unchanged) {
+        var resolved: LinkedHashMap<K, List<T>>? = null
+        var index = 0
+        for ((key, value) in map) {
+            val nextValue = live(value)
+            if (resolved != null) {
+                resolved[key] = nextValue
+            } else if (nextValue !== value) {
+                resolved =
+                    LinkedHashMap<K, List<T>>(map.size).apply {
+                        var seen = 0
+                        for ((prevKey, prevValue) in map) {
+                            if (seen >= index) break
+                            put(prevKey, prevValue)
+                            seen++
+                        }
+                        put(key, nextValue)
+                    }
+            }
+            index++
+        }
+        if (resolved == null) {
             currentResults[map] = map
             return map
         }
@@ -163,12 +205,30 @@ class ItemProjection internal constructor() {
         return result
     }
 
+    private inline fun <E> mapPreservingIdentity(list: List<E>, transform: (E) -> E): List<E> {
+        var copy: ArrayList<E>? = null
+        for (index in list.indices) {
+            val original = list[index]
+            val next = transform(original)
+            if (copy != null) {
+                copy.add(next)
+            } else if (next !== original) {
+                copy =
+                    ArrayList<E>(list.size).apply {
+                        for (prev in 0 until index) add(list[prev])
+                        add(next)
+                    }
+            }
+        }
+        return copy ?: list
+    }
+
     private fun <T> remembered(
         base: List<T>,
         resolved: List<T>,
         matchesPrevious: (List<T>) -> Boolean,
     ): List<T> {
-        if (base.sameElementsAs(resolved)) {
+        if (resolved === base || base.sameElementsAs(resolved)) {
             currentResults[base] = base
             return base
         }

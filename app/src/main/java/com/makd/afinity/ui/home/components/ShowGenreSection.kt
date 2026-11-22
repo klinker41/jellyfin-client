@@ -45,7 +45,11 @@ fun ShowGenreSection(
             MediaRowSkeleton(cardWidth = cardWidth, height = fixedRowHeight)
         } else {
             CardRow(modifier = Modifier.height(fixedRowHeight)) {
-                items(shows, key = { "show_genre_${genre}_${it.id}" }) { show ->
+                items(
+                    items = shows,
+                    key = { "show_genre_${genre}_${it.id}" },
+                    contentType = { "genre_show_card" },
+                ) { show ->
                     MediaItemCard(
                         item = show,
                         onClick = { onItemClick(show) },

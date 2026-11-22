@@ -1,5 +1,6 @@
 package com.makd.afinity.data.models.media
 
+import androidx.compose.runtime.Immutable
 import com.makd.afinity.data.database.dao.ServerDatabaseDao
 import com.makd.afinity.data.models.extensions.toAfinityImages
 import com.makd.afinity.data.models.extensions.toAfinityPerson
@@ -10,6 +11,7 @@ import java.util.UUID
 import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.api.PlayAccess
 
+@Immutable
 data class AfinityMovie(
     override val id: UUID,
     override val name: String,

@@ -2,6 +2,7 @@ package com.makd.afinity.ui.components
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.util.LruCache
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -64,7 +65,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -99,10 +100,13 @@ import com.makd.afinity.navigation.LocalHeroStyle
 import com.makd.afinity.navigation.LocalShowRatings
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.utils.bottomOverlap
-import java.util.Locale
+import com.makd.afinity.util.formatOneDecimal
+import com.makd.afinity.util.perfTraceAsync
 import kotlin.math.max
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 private val HeroMaxHeight = 560.dp
@@ -206,7 +210,7 @@ private class HeroTextRegionTracker {
             logo
                 ?.takeIf { it.isAttached }
                 ?.let { container.localBoundingBoxOf(it, clipBounds = false).bottom } ?: bounds.top
-        region =
+        val nextRegion =
             HeroTextRegion(
                 left = bounds.left,
                 top = top,
@@ -215,6 +219,9 @@ private class HeroTextRegionTracker {
                 heroWidth = container.size.width.toFloat(),
                 heroHeight = container.size.height.toFloat(),
             )
+        if (region != nextRegion) {
+            region = nextRegion
+        }
     }
 }
 
@@ -246,17 +253,19 @@ private suspend fun loadHeroBackdropSample(context: Context, url: String): HeroB
             .allowHardware(false)
             .build()
     val result = context.imageLoader.execute(request) as? SuccessResult ?: return null
-    val decoded = result.image.asDrawable(context.resources).toBitmap()
-    val bitmap =
-        if (decoded.config == Bitmap.Config.HARDWARE) {
-            decoded.copy(Bitmap.Config.ARGB_8888, false) ?: return null
-        } else {
-            decoded
-        }
-    if (bitmap.width <= 0 || bitmap.height <= 0) return null
-    val pixels = IntArray(bitmap.width * bitmap.height)
-    bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
-    return HeroBackdropSample(bitmap.width, bitmap.height, pixels)
+    return withContext(Dispatchers.Default) {
+        val decoded = result.image.asDrawable(context.resources).toBitmap()
+        val bitmap =
+            if (decoded.config == Bitmap.Config.HARDWARE) {
+                decoded.copy(Bitmap.Config.ARGB_8888, false) ?: return@withContext null
+            } else {
+                decoded
+            }
+        if (bitmap.width <= 0 || bitmap.height <= 0) return@withContext null
+        val pixels = IntArray(bitmap.width * bitmap.height)
+        bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+        HeroBackdropSample(bitmap.width, bitmap.height, pixels)
+    }
 }
 
 private fun heroTextTone(
@@ -356,6 +365,7 @@ fun HeroCarousel(
     onMoreInformationClick: (AfinityItem) -> Unit,
     modifier: Modifier = Modifier,
     isScrolling: Boolean = false,
+    isScrollingProvider: (() -> Boolean)? = null,
     slideSeconds: Int = HeroContentSource.DEFAULT_SLIDE_SECONDS,
     indicator: HeroIndicator = HeroIndicator.DOTS,
 ) {
@@ -396,6 +406,7 @@ fun HeroCarousel(
         pagerState = pagerState,
         items = items,
         isScrolling = isScrolling,
+        isScrollingProvider = isScrollingProvider,
         slideSeconds = slideSeconds,
         logoWidthPx = with(density) { logoSize.width.toPx().toInt() },
         logoHeightPx = with(density) { logoSize.height.toPx().toInt() },
@@ -450,46 +461,97 @@ private fun HeroFullBleed(
 
     val currentItem by
         remember(items) { derivedStateOf { items[pagerState.currentPage % items.size] } }
-    val contentAlpha by remember {
-        derivedStateOf {
-            1f - (kotlin.math.abs(pagerState.currentPageOffsetFraction) * 2f).coerceIn(0f, 1f)
+    val contentAlphaProvider: () -> Float =
+        remember(pagerState) {
+            { 1f - (kotlin.math.abs(pagerState.currentPageOffsetFraction) * 2f).coerceIn(0f, 1f) }
         }
-    }
 
     val colorScheme = MaterialTheme.colorScheme
     val isLightTheme = colorScheme.background.luminance() > LIGHT_BACKGROUND_LUMINANCE
     val pageColor = colorScheme.surface
     val context = LocalContext.current
     val urlRewriter = LocalImageUrlRewriter.current
-    val backdropUrls = remember(items) { items.mapNotNull(::heroBackdropUrl).distinct() }
-    val backdropSamples by
-        produceState(emptyMap<String, HeroBackdropSample>(), backdropUrls, urlRewriter) {
-            value = value.filterKeys { it in backdropUrls }
-            for (url in backdropUrls) {
-                if (url in value) continue
-                val rewritten = urlRewriter?.invoke(url) ?: url
-                val sample =
-                    loadHeroBackdropSample(context, rewritten)
-                        ?: if (rewritten != url) loadHeroBackdropSample(context, url) else null
-                if (sample != null) value = value + (url to sample)
-            }
-        }
 
+    val sampleCache = remember(urlRewriter) { LruCache<String, HeroBackdropSample>(12) }
+    val toneCache = remember(urlRewriter) { LruCache<String, HeroTextTone>(24) }
     val toneTracker = remember(isLandscape) { HeroTextRegionTracker() }
     val fadeHeightPx = with(LocalDensity.current) { HeroFadeHeight.toPx() }
-    val currentSample = heroBackdropUrl(currentItem)?.let { backdropSamples[it] }
+    val currentUrl = remember(currentItem) { heroBackdropUrl(currentItem) }
     val textRegion = toneTracker.region
-    val measuredTone =
-        remember(currentSample, textRegion, isLandscape, fadeHeightPx, pageColor) {
-            heroTextTone(currentSample, textRegion, isLandscape, fadeHeightPx, pageColor)
+    val toneKey =
+        remember(currentUrl, textRegion, isLandscape, fadeHeightPx, pageColor) {
+            currentUrl?.let { "$it|$textRegion|$isLandscape|$fadeHeightPx|${pageColor.toArgb()}" }
         }
-    val textTone = measuredTone ?: if (isLightTheme) HeroTextTone.DARK else HeroTextTone.LIGHT
+    val cachedTone = remember(toneKey, toneCache) { toneKey?.let { toneCache.get(it) } }
+    val measuredTone by
+        produceState<HeroTextTone?>(
+            initialValue = cachedTone,
+            toneKey,
+            toneCache,
+            urlRewriter,
+        ) {
+            if (cachedTone != null) {
+                value = cachedTone
+                return@produceState
+            }
+            val url = currentUrl
+            val key = toneKey
+            val region = textRegion
+            if (url == null || key == null || region == null) {
+                value = null
+                return@produceState
+            }
+            toneCache.get(key)?.let { cached ->
+                value = cached
+                return@produceState
+            }
+            val tone =
+                perfTraceAsync("HeroTone.sampleAndMeasure") {
+                    val sample =
+                        sampleCache.get(url)
+                            ?: run {
+                                val rewritten = urlRewriter?.invoke(url) ?: url
+                                loadHeroBackdropSample(context, rewritten)
+                                    ?: if (rewritten != url) {
+                                        loadHeroBackdropSample(context, url)
+                                    } else {
+                                        null
+                                    }
+                            }
+                                ?.also { sampleCache.put(url, it) }
+                    withContext(Dispatchers.Default) {
+                        heroTextTone(sample, region, isLandscape, fadeHeightPx, pageColor)
+                    }
+                }
+            if (tone != null) {
+                toneCache.put(key, tone)
+            }
+            value = tone
+        }
+
+    LaunchedEffect(pagerState.settledPage, items, urlRewriter) {
+        if (items.size < 2) return@LaunchedEffect
+        val settled = pagerState.settledPage.mod(items.size)
+        val neighbors = listOf(settled + 1, settled - 1).map { it.mod(items.size) }.distinct()
+        for (index in neighbors) {
+            val url = heroBackdropUrl(items[index]) ?: continue
+            if (sampleCache.get(url) != null) continue
+            val rewritten = urlRewriter?.invoke(url) ?: url
+            val sample =
+                loadHeroBackdropSample(context, rewritten)
+                    ?: if (rewritten != url) loadHeroBackdropSample(context, url) else null
+            if (sample != null) sampleCache.put(url, sample)
+        }
+    }
+
+    val textTone =
+        cachedTone ?: measuredTone ?: if (isLightTheme) HeroTextTone.DARK else HeroTextTone.LIGHT
 
     val overlap = if (isLandscape) HeroBottomOverlap else 0.dp
 
     Box(
         modifier =
-            modifier.bottomOverlap(overlap).fillMaxWidth().height(heroHeight).onGloballyPositioned {
+            modifier.bottomOverlap(overlap).fillMaxWidth().height(heroHeight).onPlaced {
                 toneTracker.container = it
                 toneTracker.update()
             },
@@ -507,7 +569,7 @@ private fun HeroFullBleed(
                     currentItem = currentItem,
                     items = items,
                     pagerState = pagerState,
-                    contentAlpha = contentAlpha,
+                    contentAlpha = contentAlphaProvider,
                     toneTracker = toneTracker,
                     screenWidthDp = screenWidthDp,
                     logoHeight = logoHeight,
@@ -520,7 +582,7 @@ private fun HeroFullBleed(
                     currentItem = currentItem,
                     items = items,
                     pagerState = pagerState,
-                    contentAlpha = contentAlpha,
+                    contentAlpha = contentAlphaProvider,
                     toneTracker = toneTracker,
                     screenWidthDp = screenWidthDp,
                     logoHeight = logoHeight,
@@ -590,15 +652,20 @@ private fun HeroCarouselAutoScrollAndPrefetch(
     pagerState: PagerState,
     items: List<AfinityItem>,
     isScrolling: Boolean,
+    isScrollingProvider: (() -> Boolean)?,
     slideSeconds: Int,
     logoWidthPx: Int,
     logoHeightPx: Int,
 ) {
     val context = LocalContext.current
     val isDragged by pagerState.interactionSource.collectIsDraggedAsState()
+    val scrollInProgress by
+        remember(isScrollingProvider, isScrolling) {
+            derivedStateOf { isScrollingProvider?.invoke() ?: isScrolling }
+        }
 
-    LaunchedEffect(pagerState.settledPage, isScrolling, isDragged, slideSeconds) {
-        if (!isDragged && !isScrolling && items.size > 1) {
+    LaunchedEffect(pagerState.settledPage, scrollInProgress, isDragged, slideSeconds) {
+        if (!isDragged && !scrollInProgress && items.size > 1) {
             if (
                 !pagerState.isScrollInProgress &&
                     kotlin.math.abs(pagerState.currentPageOffsetFraction) > 0.001f
@@ -1099,7 +1166,7 @@ private fun BoxScope.HeroContentCentered(
     currentItem: AfinityItem,
     items: List<AfinityItem>,
     pagerState: PagerState,
-    contentAlpha: Float,
+    contentAlpha: () -> Float,
     toneTracker: HeroTextRegionTracker,
     screenWidthDp: Dp,
     logoHeight: Dp,
@@ -1118,8 +1185,8 @@ private fun BoxScope.HeroContentCentered(
                 Modifier.align(Alignment.BottomCenter)
                     .padding(bottom = bottomPad)
                     .fillMaxWidth()
-                    .graphicsLayer { alpha = contentAlpha }
-                    .onGloballyPositioned {
+                    .graphicsLayer { alpha = contentAlpha() }
+                    .onPlaced {
                         toneTracker.column = it
                         toneTracker.update()
                     },
@@ -1130,7 +1197,7 @@ private fun BoxScope.HeroContentCentered(
                 modifier =
                     Modifier.fillMaxWidth(HeroLogoPortraitWidthFraction)
                         .height(logoHeight)
-                        .onGloballyPositioned {
+                        .onPlaced {
                             toneTracker.logo = it
                             toneTracker.update()
                         },
@@ -1252,7 +1319,7 @@ private fun HeroContentRich(
     currentItem: AfinityItem,
     items: List<AfinityItem>,
     pagerState: PagerState,
-    contentAlpha: Float,
+    contentAlpha: () -> Float,
     toneTracker: HeroTextRegionTracker,
     screenWidthDp: Dp,
     logoHeight: Dp,
@@ -1287,8 +1354,8 @@ private fun HeroContentRich(
                 modifier =
                     Modifier.weight(1f, fill = false)
                         .fillMaxWidth(0.75f)
-                        .graphicsLayer { alpha = contentAlpha }
-                        .onGloballyPositioned {
+                        .graphicsLayer { alpha = contentAlpha() }
+                        .onPlaced {
                             toneTracker.column = it
                             toneTracker.update()
                         },
@@ -1296,12 +1363,10 @@ private fun HeroContentRich(
             ) {
                 Box(
                     modifier =
-                        Modifier.fillMaxWidth(0.5f)
-                            .heightIn(max = clampedLogoHeight)
-                            .onGloballyPositioned {
-                                toneTracker.logo = it
-                                toneTracker.update()
-                            },
+                        Modifier.fillMaxWidth(0.5f).heightIn(max = clampedLogoHeight).onPlaced {
+                            toneTracker.logo = it
+                            toneTracker.update()
+                        },
                     contentAlignment = Alignment.CenterStart,
                 ) {
                     Box(
@@ -1455,7 +1520,7 @@ private fun HeroMetadata(
                                 modifier = Modifier.size(ratingScale.rtIconSize),
                             )
                             Text(
-                                text = String.format(Locale.US, "%.1f", rating),
+                                text = formatOneDecimal(rating),
                                 style = textStyle,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

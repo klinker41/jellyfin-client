@@ -16,7 +16,9 @@ import com.makd.afinity.testutil.TestMediaFixtures.testShow
 import com.makd.afinity.testutil.TestMediaFixtures.testSource
 import com.makd.afinity.testutil.TestMediaFixtures.testTrack
 import com.makd.afinity.testutil.TestMediaFixtures.testUuid
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -329,5 +331,89 @@ class ItemStoreTest {
         // Oldest bulk entry was evicted while newest remained.
         assertNull(store.get(testUuid(1)))
         assertNotNull(store.get(testUuid(2_005)))
+    }
+
+    @Test
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun projectSkipsReexecutionOnDisjointMutationsAndSelfPutLoaded() =
+        runTest(UnconfinedTestDispatcher()) {
+            val store = ItemStore()
+            val watchedId = testUuid(10)
+            val staleMovie = testMovie(id = watchedId, name = "Initial", played = false)
+            store.put(staleMovie)
+
+            val base = MutableStateFlow(staleMovie)
+            var transformCount = 0
+            val projected =
+                store.project(backgroundScope, base) { state ->
+                    transformCount++
+                    live(state)
+                }
+
+            assertEquals(1, transformCount)
+            assertFalse(projected.value.played)
+
+            // Disjoint store insertions and patches must not re-run this projection.
+            repeat(10) { offset ->
+                val otherId = testUuid(1000 + offset)
+                store.put(testMovie(id = otherId, name = "Other $offset"))
+                store.applyPatch(otherId, UserDataPatch(played = true))
+            }
+            assertEquals(1, transformCount)
+
+            // Stale refresh triggering fresh() self-writes to store without a second transform
+            // pass.
+            store.markStale(listOf(watchedId))
+            base.value =
+                testMovie(
+                    id = watchedId,
+                    name = "Refreshed",
+                    played = false,
+                    sources = listOf(testSource()),
+                )
+            assertEquals(2, transformCount)
+            assertEquals("Refreshed", projected.value.name)
+
+            // Mutating the watched item itself re-runs the projection.
+            store.applyPatch(watchedId, UserDataPatch(played = true))
+            assertEquals(3, transformCount)
+            assertTrue(projected.value.played)
+        }
+
+    @Test
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun projectAdvancesSkipVersionAcrossUnrelatedWritesAndHandlesBatchHistoryOverflow() = runTest {
+        val store = ItemStore()
+        val watchedId = testUuid(20)
+        val movie = testMovie(id = watchedId, played = false)
+        store.put(movie)
+
+        var transformCount = 0
+        val projected =
+            store.project(backgroundScope, MutableStateFlow(movie)) { state ->
+                transformCount++
+                live(state)
+            }
+        assertEquals(1, transformCount)
+
+        // Sequential unrelated writes advance lastVersion on skip without overflow.
+        repeat(5) { idx ->
+            store.put(testMovie(id = testUuid(2000 + idx), name = "Seq$idx"))
+            testScheduler.advanceUntilIdle()
+        }
+        assertEquals(1, transformCount)
+
+        // Burst >128 writes before collection causes versionHistory overflow -> conservative
+        // resync.
+        repeat(135) { idx -> store.put(testMovie(id = testUuid(3000 + idx), name = "Burst$idx")) }
+        testScheduler.advanceUntilIdle()
+        testScheduler.runCurrent()
+        assertEquals(2, transformCount)
+
+        store.applyPatch(watchedId, UserDataPatch(favorite = true))
+        testScheduler.advanceUntilIdle()
+        testScheduler.runCurrent()
+        assertEquals(3, transformCount)
+        assertTrue(projected.value.favorite)
     }
 }

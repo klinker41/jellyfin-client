@@ -161,4 +161,65 @@ class ItemProjectionTest {
             childScope.cancel()
             assertEquals(emptyList<Any>(), store.onScreen(listOf(id)))
         }
+
+    @Test
+    fun mapAndListHelpersPreserveInstanceIdentityWhenElementsUnchangedAndCopyOnlyChangedMapBuckets() =
+        runTest(UnconfinedTestDispatcher()) {
+            val store = ItemStore()
+            val m1 = testMovie(id = testUuid(11), played = false)
+            val m2 = testMovie(id = testUuid(12), played = false)
+
+            data class Holder(val movie: AfinityMovie)
+            data class Basket(
+                val movies: List<AfinityMovie>,
+                val holders: List<Holder>,
+                val buckets: Map<String, List<AfinityMovie>>,
+            )
+
+            val bucketA = listOf(m1)
+            val bucketB = listOf(m2)
+            val initial =
+                Basket(
+                    movies = listOf(m1, m2),
+                    holders = listOf(Holder(m1), Holder(m2)),
+                    buckets = linkedMapOf("a" to bucketA, "b" to bucketB),
+                )
+            val base = MutableStateFlow(initial)
+
+            val projected =
+                store.project(backgroundScope, base) { state ->
+                    state.copy(
+                        movies = live(state.movies),
+                        holders =
+                            liveEach(state.holders, { it.movie }) { h, next ->
+                                h.copy(movie = next)
+                            },
+                        buckets = liveValues(state.buckets),
+                    )
+                }
+
+            val projectedMovies = projected.value.movies
+            val projectedHolders = projected.value.holders
+            val projectedBuckets = projected.value.buckets
+            val projectedBucketA = projectedBuckets.getValue("a")
+            val projectedBucketB = projectedBuckets.getValue("b")
+
+            // Re-emitting new outer list/map wrappers with identical element instances preserves
+            // identities.
+            base.value =
+                Basket(
+                    movies = listOf(m1, m2),
+                    holders = listOf(initial.holders[0], initial.holders[1]),
+                    buckets = linkedMapOf("a" to listOf(m1), "b" to listOf(m2)),
+                )
+            assertSame(projectedMovies, projected.value.movies)
+            assertSame(projectedHolders, projected.value.holders)
+            assertSame(projectedBuckets, projected.value.buckets)
+
+            // Patching m1 updates bucket "a" while untouched bucket "b" keeps its list identity.
+            store.applyPatch(m1.id, UserDataPatch(played = true))
+            assertNotSame(projectedBucketA, projected.value.buckets.getValue("a"))
+            assertSame(projectedBucketB, projected.value.buckets.getValue("b"))
+            assertTrue(projected.value.buckets.getValue("a").single().played)
+        }
 }

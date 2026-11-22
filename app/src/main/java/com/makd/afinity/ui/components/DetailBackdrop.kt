@@ -53,11 +53,14 @@ fun DetailBackdrop(
 ) {
     var backdropIndex by remember(fallbackChain) { mutableIntStateOf(0) }
     val backdrop = fallbackChain.getOrNull(backdropIndex)
-    val onError = {
-        if (backdropIndex < fallbackChain.lastIndex) {
-            backdropIndex++
+    val onError: () -> Unit =
+        remember(fallbackChain) {
+            {
+                if (backdropIndex < fallbackChain.lastIndex) {
+                    backdropIndex++
+                }
+            }
         }
-    }
 
     when (style) {
         BackdropStyle.Cinematic -> CinematicBackdrop(backdrop, contentDescription, onError)

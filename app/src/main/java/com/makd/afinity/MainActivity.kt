@@ -24,6 +24,7 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -55,7 +56,29 @@ import com.makd.afinity.widget.AudioWidgetUpdater
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+
+@Immutable
+private data class ThemePreferences(
+    val themeMode: String = "SYSTEM",
+    val dynamicColors: Boolean = true,
+    val appFont: String = "DEFAULT",
+)
+
+@Composable
+private fun RemoteMessageOverlay(
+    remoteMessageManager: RemoteMessageManager,
+    modifier: Modifier = Modifier,
+) {
+    val remoteMessage by remoteMessageManager.message.collectAsStateWithLifecycle()
+    RemoteMessagePill(
+        message = remoteMessage,
+        onDismiss = remoteMessageManager::dismiss,
+        modifier = modifier,
+    )
+}
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -93,17 +116,32 @@ class MainActivity : AppCompatActivity() {
         setContent {
             @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
             val windowSize = calculateWindowSizeClass(this)
-            val themeModeFlow = remember { preferencesRepository.getThemeModeFlow() }
-            val dynamicColorsFlow = remember { preferencesRepository.getDynamicColorsFlow() }
-            val appFontFlow = remember { preferencesRepository.getAppFontFlow() }
-            val themeMode by themeModeFlow.collectAsStateWithLifecycle(initialValue = "SYSTEM")
-            val dynamicColors by dynamicColorsFlow.collectAsStateWithLifecycle(initialValue = true)
-
-            val appFont by appFontFlow.collectAsStateWithLifecycle(initialValue = "DEFAULT")
-            AFinityTheme(themeMode = themeMode, dynamicColor = dynamicColors, appFont = appFont) {
+            val themePreferencesFlow = remember {
+                combine(
+                        preferencesRepository.getThemeModeFlow(),
+                        preferencesRepository.getDynamicColorsFlow(),
+                        preferencesRepository.getAppFontFlow(),
+                    ) { themeMode, dynamicColors, appFont ->
+                        ThemePreferences(
+                            themeMode = themeMode,
+                            dynamicColors = dynamicColors,
+                            appFont = appFont,
+                        )
+                    }
+                    .distinctUntilChanged()
+            }
+            val themePreferences by
+                themePreferencesFlow.collectAsStateWithLifecycle(
+                    initialValue = ThemePreferences(),
+                )
+            AFinityTheme(
+                themeMode = themePreferences.themeMode,
+                dynamicColor = themePreferences.dynamicColors,
+                appFont = themePreferences.appFont,
+            ) {
                 val windowInsetsController =
-                    WindowCompat.getInsetsController(window, window.decorView)
-                val mode = ThemeMode.fromString(themeMode)
+                    remember(window) { WindowCompat.getInsetsController(window, window.decorView) }
+                val mode = ThemeMode.fromString(themePreferences.themeMode)
                 val systemInDarkTheme = isSystemInDarkTheme()
 
                 val isLightTheme =
@@ -132,11 +170,8 @@ class MainActivity : AppCompatActivity() {
                                 viewModel = authViewModel,
                             )
 
-                            val remoteMessage by
-                                remoteMessageManager.message.collectAsStateWithLifecycle()
-                            RemoteMessagePill(
-                                message = remoteMessage,
-                                onDismiss = remoteMessageManager::dismiss,
+                            RemoteMessageOverlay(
+                                remoteMessageManager = remoteMessageManager,
                                 modifier =
                                     Modifier.align(Alignment.TopCenter)
                                         .statusBarsPadding()

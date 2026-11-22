@@ -54,6 +54,7 @@ import com.makd.afinity.data.models.media.AfinityEpisode
 import com.makd.afinity.navigation.LocalShowRatings
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.util.DateSkeleton
+import com.makd.afinity.util.formatOneDecimal
 import com.makd.afinity.util.localizedDateFormatter
 import java.time.LocalDateTime
 import java.util.Locale
@@ -228,7 +229,7 @@ fun EpisodeListCard(
                                     modifier = Modifier.size(ratingScale.rtIconSize),
                                 )
                                 Text(
-                                    text = String.format(Locale.US, "%.1f", rating),
+                                    text = formatOneDecimal(rating),
                                     style =
                                         MaterialTheme.typography.labelMedium.copy(
                                             fontWeight = FontWeight.Bold,

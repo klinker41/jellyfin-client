@@ -1,6 +1,7 @@
 package com.makd.afinity.ui.home
 
 import android.content.Context
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.BackoffPolicy
@@ -948,30 +949,35 @@ constructor(
     }
 }
 
+@Immutable
 sealed interface HomeSection {
     val key: String
 
+    @Immutable
     data class Pending(
         override val key: String,
         val title: String,
         val cardStyle: CustomSectionCardStyle,
     ) : HomeSection
 
-    data class Person(override val key: String, val section: PersonSection) : HomeSection
+    @Immutable data class Person(override val key: String, val section: PersonSection) : HomeSection
 
-    data class Movie(override val key: String, val section: MovieSection) : HomeSection
+    @Immutable data class Movie(override val key: String, val section: MovieSection) : HomeSection
 
+    @Immutable
     data class PersonFromMovie(override val key: String, val section: PersonFromMovieSection) :
         HomeSection
 
-    data class Genre(override val key: String, val genreItem: GenreItem) : HomeSection
+    @Immutable data class Genre(override val key: String, val genreItem: GenreItem) : HomeSection
 
+    @Immutable
     data class Spotlight(
         override val key: String,
         val title: String,
         val items: List<AfinityItem>,
     ) : HomeSection
 
+    @Immutable
     data class Items(
         override val key: String,
         val title: String,
@@ -980,6 +986,7 @@ sealed interface HomeSection {
         val customSectionId: String? = null,
     ) : HomeSection
 
+    @Immutable
     data class Ranked(override val key: String, val title: String, val items: List<AfinityItem>) :
         HomeSection
 }
@@ -1032,6 +1039,7 @@ private fun HomeSectionDescriptor.toHomeSection(content: HomeSectionContent?): H
             }
     }
 
+@Immutable
 data class HomeUiState(
     val heroCarouselItems: List<AfinityItem> = emptyList(),
     val heroLoaded: Boolean = false,

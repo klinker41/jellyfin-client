@@ -58,7 +58,7 @@ import com.makd.afinity.ui.preview.PreviewHost
 import com.makd.afinity.ui.preview.StressPreviews
 import com.makd.afinity.ui.preview.WidthPreviews
 import com.makd.afinity.ui.theme.CardDimensions
-import java.util.Locale
+import com.makd.afinity.util.formatOneDecimal
 
 enum class AudiobookCardFrame {
     SQUARE,
@@ -269,7 +269,7 @@ fun MediaItemGridCard(
                             modifier = Modifier.size(ratingScale.rtIconSize),
                         )
                         Text(
-                            text = String.format(Locale.US, "%.1f", rating),
+                            text = formatOneDecimal(rating),
                             style =
                                 MaterialTheme.typography.bodySmall.copy(
                                     fontSize =

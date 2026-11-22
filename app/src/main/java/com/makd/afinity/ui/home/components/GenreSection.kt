@@ -45,7 +45,11 @@ fun GenreSection(
             MediaRowSkeleton(cardWidth = cardWidth, height = fixedRowHeight)
         } else {
             CardRow(modifier = Modifier.height(fixedRowHeight)) {
-                items(items = movies, key = { movie -> "genre_${genre}_${movie.id}" }) { movie ->
+                items(
+                    items = movies,
+                    key = { movie -> "genre_${genre}_${movie.id}" },
+                    contentType = { "genre_movie_card" },
+                ) { movie ->
                     MediaItemCard(
                         item = movie,
                         onClick = { onItemClick(movie) },

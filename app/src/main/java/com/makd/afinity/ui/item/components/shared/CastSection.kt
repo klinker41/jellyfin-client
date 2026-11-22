@@ -65,9 +65,10 @@ fun CastSection(
     onPersonClick: ((UUID) -> Unit)? = {},
     widthSizeClass: WindowWidthSizeClass,
 ) {
+    val actors = remember(item) { item.peopleOfKind(PersonKind.ACTOR) }
     PeopleRow(
         title = stringResource(R.string.cast_section_title),
-        people = item.peopleOfKind(PersonKind.ACTOR),
+        people = actors,
         onPersonClick = onPersonClick,
         widthSizeClass = widthSizeClass,
     )
@@ -79,9 +80,10 @@ fun GuestStarSection(
     onPersonClick: ((UUID) -> Unit)? = {},
     widthSizeClass: WindowWidthSizeClass,
 ) {
+    val guestStars = remember(item) { item.peopleOfKind(PersonKind.GUEST_STAR) }
     PeopleRow(
         title = stringResource(R.string.guest_stars_section_title),
-        people = item.peopleOfKind(PersonKind.GUEST_STAR),
+        people = guestStars,
         onPersonClick = onPersonClick,
         widthSizeClass = widthSizeClass,
     )
@@ -122,7 +124,11 @@ private fun PeopleRow(
         DetailSectionTitle(text = title)
 
         CardRow {
-            items(people, key = { "${it.id}|${it.type}|${it.role}" }) { person ->
+            items(
+                items = people,
+                key = { "${it.id}|${it.type}|${it.role}" },
+                contentType = { "cast_card" },
+            ) { person ->
                 CastMemberCard(
                     person = person,
                     onPersonClick = onPersonClick,

@@ -72,6 +72,7 @@ import com.makd.afinity.ui.item.components.shared.PeopleDialog
 import com.makd.afinity.ui.item.components.shared.PlaybackSelection
 import com.makd.afinity.ui.item.components.shared.PlaybackSelectionButton
 import com.makd.afinity.util.DateSkeleton
+import com.makd.afinity.util.formatOneDecimal
 import com.makd.afinity.util.localizedDateFormat
 import com.makd.afinity.util.rememberStorageLocationProvider
 import java.time.format.DateTimeFormatter
@@ -309,7 +310,7 @@ fun EpisodeDetailOverlay(
                                                 modifier = Modifier.size(ratingScale.rtIconSize),
                                             )
                                             Text(
-                                                text = String.format(Locale.US, "%.1f", rating),
+                                                text = formatOneDecimal(rating),
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )

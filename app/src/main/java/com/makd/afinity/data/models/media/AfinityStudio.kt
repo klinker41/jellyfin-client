@@ -1,8 +1,10 @@
 package com.makd.afinity.data.models.media
 
+import androidx.compose.runtime.Immutable
 import androidx.core.net.toUri
 import java.util.UUID
 
+@Immutable
 data class AfinityStudio(
     val id: UUID,
     val name: String,

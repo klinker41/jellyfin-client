@@ -228,7 +228,11 @@ fun MostPlayedAlbumsSection(
             bottomPadding = 12.dp,
         )
         CardRow(modifier = Modifier.height(rowHeight)) {
-            itemsIndexed(albums, key = { _, album -> album.id }) { index, album ->
+            itemsIndexed(
+                items = albums,
+                key = { _, album -> album.id },
+                contentType = { _, _ -> "most_played_album_card" },
+            ) { index, album ->
                 MostPlayedAlbumCard(
                     album = album,
                     ranking = index + 1,
@@ -313,7 +317,11 @@ fun MusicAlbumRowSection(
             HomeSectionHeader(title = title, bottomPadding = 12.dp)
         }
         CardRow {
-            items(albums, key = { it.id }) { album ->
+            items(
+                items = albums,
+                key = { it.id },
+                contentType = { "music_album_card" },
+            ) { album ->
                 MusicAlbumCard(
                     album = album,
                     onClick = { onAlbumClick(album) },
@@ -345,7 +353,11 @@ fun MusicPlaylistRowSection(
             HomeSectionHeader(title = title, bottomPadding = 12.dp)
         }
         CardRow {
-            items(playlists, key = { it.id }) { playlist ->
+            items(
+                items = playlists,
+                key = { it.id },
+                contentType = { "music_playlist_card" },
+            ) { playlist ->
                 MusicPlaylistCard(
                     playlist = playlist,
                     onClick = { onPlaylistClick(playlist) },

@@ -84,6 +84,7 @@ import com.makd.afinity.ui.components.FullScreenLoading
 import com.makd.afinity.ui.components.HeroCarousel
 import com.makd.afinity.ui.components.afinityTopAppBarHeight
 import com.makd.afinity.ui.components.heroCarouselLayoutHeight
+import com.makd.afinity.ui.components.rememberCardRowListState
 import com.makd.afinity.ui.downloads.DownloadedCategory
 import com.makd.afinity.ui.home.components.AudiobookRowSection
 import com.makd.afinity.ui.home.components.ContinueReadingSection
@@ -117,6 +118,7 @@ import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.landscapeWidth
 import com.makd.afinity.ui.theme.CardDimensions.portraitWidth
 import com.makd.afinity.ui.utils.rememberTopBarOpacity
+import com.makd.afinity.util.ReportHomeDrawn
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -153,10 +155,22 @@ fun HomeScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val randomNoneMessage = stringResource(R.string.random_item_none)
 
+    ReportHomeDrawn {
+        !uiState.isLoading &&
+            (uiState.heroLoaded ||
+                uiState.libraries.isNotEmpty() ||
+                (uiState.isOffline && uiState.offlineContentLoaded) ||
+                uiState.heroCarouselItems.isNotEmpty() ||
+                uiState.latestMovies.isNotEmpty() ||
+                uiState.latestTvSeries.isNotEmpty() ||
+                uiState.continueWatching.isNotEmpty() ||
+                uiState.error != null)
+    }
+
     val lazyListState = rememberLazyListState()
     val scrollToTopScope = rememberCoroutineScope()
     val showScrollToTop by remember { derivedStateOf { lazyListState.firstVisibleItemIndex > 3 } }
-    val continueWatchingScrollState = rememberLazyListState()
+    val continueWatchingScrollState = rememberCardRowListState()
     val nextUpMerged =
         !uiState.isOffline &&
             uiState.mergeContinueWatchingNextUp &&
@@ -197,8 +211,6 @@ fun HomeScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-
-    val isScrolling by remember { derivedStateOf { lazyListState.isScrollInProgress } }
 
     val latestLibraryRows =
         remember(
@@ -350,13 +362,13 @@ fun HomeScreen(
                                 bottom = max(bottomPadding, playerOffset) + 16.dp,
                             ),
                     ) {
-                        item(key = "hero_carousel") {
+                        item(key = "hero_carousel", contentType = "hero_carousel") {
                             if (showCarousel) {
                                 HeroCarousel(
                                     items = uiState.heroCarouselItems,
                                     slideSeconds = uiState.heroSettings.slideSeconds,
                                     indicator = uiState.heroSettings.indicator,
-                                    isScrolling = isScrolling,
+                                    isScrollingProvider = { lazyListState.isScrollInProgress },
                                     onWatchNowClick = onPlayClick,
                                     onPlayTrailerClick = { item ->
                                         viewModel.onPlayTrailerClick(context, item)
@@ -374,7 +386,7 @@ fun HomeScreen(
                                 !hideLibrariesSection &&
                                 HomeRow.LIBRARIES !in uiState.hiddenRows
                         ) {
-                            item(key = "libraries_section") {
+                            item(key = "libraries_section", contentType = "libraries_section") {
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     LibrariesSection(
                                         libraries = uiState.libraries,
@@ -398,7 +410,7 @@ fun HomeScreen(
                                 )
                             }
                         if (showContinueWatching) {
-                            item(key = "continue_watching") {
+                            item(key = "continue_watching", contentType = "landscape_media_row") {
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     if (continueWatchingItems.isNotEmpty()) {
                                         OptimizedContinueWatchingSection(
@@ -432,7 +444,7 @@ fun HomeScreen(
                                     loaded = HomeRow.CONTINUE_READING in uiState.loadedPlaybackRows,
                                 )
                         ) {
-                            item(key = "continue_reading") {
+                            item(key = "continue_reading", contentType = "portrait_media_row") {
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     if (uiState.continueReading.isNotEmpty()) {
                                         ContinueReadingSection(
@@ -461,7 +473,7 @@ fun HomeScreen(
                                         HomeRow.CONTINUE_LISTENING in uiState.loadedPlaybackRows,
                                 )
                         ) {
-                            item(key = "continue_listening") {
+                            item(key = "continue_listening", contentType = "square_media_row") {
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     if (uiState.continueListening.isNotEmpty()) {
                                         AudiobookRowSection(
@@ -486,7 +498,7 @@ fun HomeScreen(
                         }
 
                         if (uiState.isOffline && uiState.offlineNextUp.isNotEmpty()) {
-                            item(key = "offline_next_up") {
+                            item(key = "offline_next_up", contentType = "landscape_media_row") {
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     NextUpSection(
                                         episodes = uiState.offlineNextUp,
@@ -500,7 +512,10 @@ fun HomeScreen(
                         }
 
                         if (uiState.isOffline && uiState.offlineContinueReading.isNotEmpty()) {
-                            item(key = "offline_continue_reading") {
+                            item(
+                                key = "offline_continue_reading",
+                                contentType = "portrait_media_row",
+                            ) {
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     ContinueReadingSection(
                                         books = uiState.offlineContinueReading,
@@ -512,7 +527,10 @@ fun HomeScreen(
                         }
 
                         if (uiState.isOffline && uiState.offlineContinueListening.isNotEmpty()) {
-                            item(key = "offline_continue_listening") {
+                            item(
+                                key = "offline_continue_listening",
+                                contentType = "square_media_row",
+                            ) {
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     AudiobookRowSection(
                                         title = stringResource(R.string.home_continue_listening),
@@ -526,7 +544,7 @@ fun HomeScreen(
                         }
 
                         if (uiState.isOffline && uiState.downloadedMovies.isNotEmpty()) {
-                            item(key = "downloaded_movies") {
+                            item(key = "downloaded_movies", contentType = "portrait_media_row") {
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     OptimizedLatestTvSeriesSection(
                                         title = stringResource(R.string.home_downloaded_movies),
@@ -543,7 +561,7 @@ fun HomeScreen(
                         }
 
                         if (uiState.isOffline && uiState.downloadedShows.isNotEmpty()) {
-                            item(key = "downloaded_shows") {
+                            item(key = "downloaded_shows", contentType = "portrait_media_row") {
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     OptimizedLatestTvSeriesSection(
                                         title = stringResource(R.string.home_downloaded_shows),
@@ -560,7 +578,7 @@ fun HomeScreen(
                         }
 
                         if (uiState.isOffline && uiState.downloadedVideos.isNotEmpty()) {
-                            item(key = "downloaded_videos") {
+                            item(key = "downloaded_videos", contentType = "landscape_media_row") {
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     OptimizedLatestTvSeriesSection(
                                         title = stringResource(R.string.home_downloaded_videos),
@@ -577,7 +595,7 @@ fun HomeScreen(
                         }
 
                         if (uiState.isOffline && uiState.downloadedBooks.isNotEmpty()) {
-                            item(key = "downloaded_books") {
+                            item(key = "downloaded_books", contentType = "portrait_media_row") {
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     OptimizedLatestTvSeriesSection(
                                         title = stringResource(R.string.home_downloaded_books),
@@ -595,7 +613,10 @@ fun HomeScreen(
                         if (
                             uiState.isOffline && uiState.downloadedJellyfinAudiobooks.isNotEmpty()
                         ) {
-                            item(key = "downloaded_jellyfin_audiobooks") {
+                            item(
+                                key = "downloaded_jellyfin_audiobooks",
+                                contentType = "square_media_row",
+                            ) {
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     AudiobookRowSection(
                                         title =
@@ -619,7 +640,7 @@ fun HomeScreen(
                         }
 
                         if (uiState.isOffline && uiState.downloadedAudiobooks.isNotEmpty()) {
-                            item(key = "downloaded_audiobooks") {
+                            item(key = "downloaded_audiobooks", contentType = "square_media_row") {
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     DownloadedAudiobooksSection(
                                         title = stringResource(R.string.home_downloaded_audiobooks),
@@ -634,7 +655,7 @@ fun HomeScreen(
                         }
 
                         if (uiState.isOffline && uiState.downloadedPodcastEpisodes.isNotEmpty()) {
-                            item(key = "downloaded_podcasts") {
+                            item(key = "downloaded_podcasts", contentType = "square_media_row") {
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     DownloadedAudiobooksSection(
                                         title = stringResource(R.string.home_downloaded_episodes),
@@ -649,7 +670,10 @@ fun HomeScreen(
                         }
 
                         if (uiState.isOffline && uiState.downloadedMusicAlbums.isNotEmpty()) {
-                            item(key = "downloaded_music_albums") {
+                            item(
+                                key = "downloaded_music_albums",
+                                contentType = "square_media_row",
+                            ) {
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     DownloadedMusicAlbumsSection(
                                         title = stringResource(R.string.home_downloaded_albums),
@@ -666,7 +690,10 @@ fun HomeScreen(
                         }
 
                         if (uiState.isOffline && uiState.downloadedMusicTracks.isNotEmpty()) {
-                            item(key = "downloaded_music_tracks") {
+                            item(
+                                key = "downloaded_music_tracks",
+                                contentType = "square_media_row",
+                            ) {
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     DownloadedMusicTracksSection(
                                         title = stringResource(R.string.home_downloaded_tracks),
@@ -695,7 +722,7 @@ fun HomeScreen(
                                     loaded = HomeRow.NEXT_UP in uiState.loadedPlaybackRows,
                                 )
                         ) {
-                            item(key = "next_up") {
+                            item(key = "next_up", contentType = "landscape_media_row") {
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     if (uiState.nextUp.isNotEmpty()) {
                                         NextUpSection(
@@ -721,7 +748,10 @@ fun HomeScreen(
                                 HomeRow.LATEST_MOVIES !in uiState.hiddenRows &&
                                     uiState.latestMovies.isNotEmpty()
                             ) {
-                                item(key = "latest_movies_combined") {
+                                item(
+                                    key = "latest_movies_combined",
+                                    contentType = "portrait_media_row",
+                                ) {
                                     Box(modifier = baseModifier.padding(top = 24.dp)) {
                                         OptimizedLatestMoviesSection(
                                             items = uiState.latestMovies,
@@ -737,7 +767,10 @@ fun HomeScreen(
                                 HomeRow.LATEST_TV !in uiState.hiddenRows &&
                                     uiState.latestTvSeries.isNotEmpty()
                             ) {
-                                item(key = "latest_tv_combined") {
+                                item(
+                                    key = "latest_tv_combined",
+                                    contentType = "portrait_media_row",
+                                ) {
                                     Box(modifier = baseModifier.padding(top = 24.dp)) {
                                         OptimizedLatestTvSeriesSection(
                                             items = uiState.latestTvSeries,
@@ -797,6 +830,7 @@ fun HomeScreen(
                             items(
                                 items = uiState.latestBookSections,
                                 key = { (library, _) -> "book_lib_${library.id}" },
+                                contentType = { "book_library_row" },
                             ) { (library, books) ->
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     OptimizedLatestTvSeriesSection(
@@ -816,6 +850,7 @@ fun HomeScreen(
                             items(
                                 items = uiState.latestAudiobookSections,
                                 key = { (library, _) -> "audiobook_lib_${library.id}" },
+                                contentType = { "audiobook_library_row" },
                             ) { (library, books) ->
                                 val alsoHasBooks = library.id in uiState.bookLibraryIds
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
@@ -842,6 +877,7 @@ fun HomeScreen(
                             items(
                                 items = uiState.latestHomeVideoSections,
                                 key = { (library, _) -> "home_video_lib_${library.id}" },
+                                contentType = { "home_video_library_row" },
                             ) { (library, entries) ->
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     LatestGalleryRowSection(
@@ -860,6 +896,7 @@ fun HomeScreen(
                             items(
                                 items = uiState.latestMusicVideoSections,
                                 key = { (library, _) -> "music_video_lib_${library.id}" },
+                                contentType = { "music_video_library_row" },
                             ) { (library, videos) ->
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     LatestMusicVideoRowSection(
@@ -879,7 +916,7 @@ fun HomeScreen(
                                     loaded = uiState.upcomingLoaded,
                                 )
                         ) {
-                            item(key = "upcoming_episodes") {
+                            item(key = "upcoming_episodes", contentType = "landscape_media_row") {
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     if (uiState.upcomingEpisodes.isNotEmpty()) {
                                         UpcomingEpisodesSection(
@@ -908,7 +945,7 @@ fun HomeScreen(
                                     loaded = uiState.highestRatedLoaded,
                                 )
                         ) {
-                            item(key = "highest_rated") {
+                            item(key = "highest_rated", contentType = "portrait_media_row") {
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     if (uiState.highestRated.isNotEmpty()) {
                                         HighestRatedSection(
@@ -935,7 +972,7 @@ fun HomeScreen(
                                     loaded = uiState.franchisesLoaded,
                                 )
                         ) {
-                            item(key = "franchises") {
+                            item(key = "franchises", contentType = "franchises_row") {
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     if (uiState.franchises.isNotEmpty()) {
                                         FranchisesSection(
@@ -965,7 +1002,7 @@ fun HomeScreen(
                                     loaded = uiState.watchAgainLoaded,
                                 )
                         ) {
-                            item(key = "watch_again") {
+                            item(key = "watch_again", contentType = "portrait_media_row") {
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     if (uiState.watchAgain.isNotEmpty()) {
                                         ItemsRowSection(
@@ -993,7 +1030,7 @@ fun HomeScreen(
                                     loaded = uiState.popularStudiosLoaded,
                                 )
                         ) {
-                            item(key = "popular_studios") {
+                            item(key = "popular_studios", contentType = "studios_row") {
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
                                     if (uiState.popularStudios.isNotEmpty()) {
                                         PopularStudiosSection(

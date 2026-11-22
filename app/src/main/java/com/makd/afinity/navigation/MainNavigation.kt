@@ -8,14 +8,11 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -45,12 +42,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.compositeOver
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -78,7 +74,9 @@ import com.makd.afinity.data.models.common.SortBy
 import com.makd.afinity.data.models.jellyseerr.SearchResultItem
 import com.makd.afinity.data.models.media.AfinityAudiobook
 import com.makd.afinity.data.models.media.AfinityBook
+import com.makd.afinity.data.models.media.AfinityBoxSet
 import com.makd.afinity.data.models.media.AfinityItem
+import com.makd.afinity.data.models.media.AfinityMovie
 import com.makd.afinity.data.models.media.AfinityPhoto
 import com.makd.afinity.data.models.media.AfinityPhotoAlbum
 import com.makd.afinity.data.models.media.AfinitySeason
@@ -86,7 +84,6 @@ import com.makd.afinity.data.models.media.AfinityShow
 import com.makd.afinity.data.models.media.AfinityVideoPlaylist
 import com.makd.afinity.data.models.media.BookFormat
 import com.makd.afinity.data.websocket.WebSocketState
-import com.makd.afinity.player.audiobookshelf.AudiobookSource
 import com.makd.afinity.ui.admin.identify.IdentifyScreen
 import com.makd.afinity.ui.admin.images.EditImagesScreen
 import com.makd.afinity.ui.admin.lyrics.EditLyricsScreen
@@ -116,6 +113,7 @@ import com.makd.afinity.ui.franchise.FranchiseScreen
 import com.makd.afinity.ui.home.HomeScreen
 import com.makd.afinity.ui.home.HomeViewModel
 import com.makd.afinity.ui.item.ItemDetailScreen
+import com.makd.afinity.ui.item.components.shared.LocalDetailLayout
 import com.makd.afinity.ui.libraries.LibrariesScreen
 import com.makd.afinity.ui.library.LibraryContentScreen
 import com.makd.afinity.ui.login.LoginScreen
@@ -130,8 +128,6 @@ import com.makd.afinity.ui.music.player.MusicPlayerScreen
 import com.makd.afinity.ui.onboarding.ServicesHubScreen
 import com.makd.afinity.ui.person.PersonScreen
 import com.makd.afinity.ui.photo.PhotoViewerScreen
-import com.makd.afinity.ui.player.AudioMiniPlayer
-import com.makd.afinity.ui.player.AudioMiniPlayerState
 import com.makd.afinity.ui.player.PlayerLauncher
 import com.makd.afinity.ui.playlist.PlaylistScreen
 import com.makd.afinity.ui.reader.PageReaderScreen
@@ -158,18 +154,19 @@ import com.makd.afinity.ui.theme.LocalCardSize
 import com.makd.afinity.ui.watchlist.WatchlistCategory
 import com.makd.afinity.ui.watchlist.WatchlistCategoryScreen
 import com.makd.afinity.ui.watchlist.WatchlistScreen
+import com.makd.afinity.util.ReportAppStartupReady
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
 val LocalPlayerOffset = compositionLocalOf { 0.dp }
-val LocalSideSheetEnabled = compositionLocalOf { true }
-val LocalShowRatings = compositionLocalOf { true }
-val LocalBlurUnwatchedEpisodes = compositionLocalOf { false }
+val LocalSideSheetEnabled = staticCompositionLocalOf { true }
+val LocalShowRatings = staticCompositionLocalOf { true }
+val LocalBlurUnwatchedEpisodes = staticCompositionLocalOf { false }
 
-val LocalShowAwards = compositionLocalOf { true }
+val LocalShowAwards = staticCompositionLocalOf { true }
 
-val LocalHeroStyle = compositionLocalOf { HeroStyle.FULL_BLEED }
+val LocalHeroStyle = staticCompositionLocalOf { HeroStyle.FULL_BLEED }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -192,15 +189,15 @@ fun MainNavigation(
     val hasLiveTvAccess by viewModel.hasLiveTvAccess.collectAsStateWithLifecycle()
     val isOffline by offlineModeManager.isOffline.collectAsStateWithLifecycle(initialValue = false)
     val connectionType by offlineModeManager.connectionType.collectAsStateWithLifecycle()
-    val audiobookshelfPlaybackState by
-        viewModel.audiobookshelfPlaybackManager.playbackState.collectAsStateWithLifecycle()
-    val musicPlaybackState by viewModel.musicPlaybackManager.state.collectAsStateWithLifecycle()
+    val hasActiveAudioPlayback by viewModel.hasActiveAudioPlayback.collectAsStateWithLifecycle()
     val showRatings by viewModel.showRatings.collectAsStateWithLifecycle()
     val blurUnwatchedEpisodes by viewModel.blurUnwatchedEpisodes.collectAsStateWithLifecycle()
     val showAwards by viewModel.showAwards.collectAsStateWithLifecycle()
     val originalImages by viewModel.originalImages.collectAsStateWithLifecycle()
     val cardSize by viewModel.cardSize.collectAsStateWithLifecycle()
     val heroStyle by viewModel.heroStyle.collectAsStateWithLifecycle()
+    val detailLayout by viewModel.detailLayout.collectAsStateWithLifecycle()
+    val episodeLayout by viewModel.episodeLayout.collectAsStateWithLifecycle()
     val sideSheetEnabled by viewModel.sideSheetEnabled.collectAsStateWithLifecycle()
     val navigationDrawerEnabled by viewModel.navigationDrawerEnabled.collectAsStateWithLifecycle()
     val drawerLibrariesMode by viewModel.drawerLibrariesMode.collectAsStateWithLifecycle()
@@ -440,40 +437,12 @@ fun MainNavigation(
             val isOnPhotoViewer = currentDestination?.route == Destination.PHOTO_VIEWER_ROUTE
             val isOnAnyPlayer =
                 isOnAudiobookshelfPlayer || isOnMusicPlayer || isOnBookReader || isOnPhotoViewer
-            val currentTrack = musicPlaybackState.currentTrack
-            val miniPlayerState: AudioMiniPlayerState? =
-                when {
-                    isOnAnyPlayer -> null
-                    audiobookshelfPlaybackState.sessionId != null ->
-                        AudioMiniPlayerState.Abs(
-                            title = audiobookshelfPlaybackState.displayTitle,
-                            author = audiobookshelfPlaybackState.displayAuthor,
-                            currentChapter = audiobookshelfPlaybackState.currentChapter,
-                            coverUrl = audiobookshelfPlaybackState.coverUrl,
-                            currentTime = audiobookshelfPlaybackState.currentTime,
-                            duration = audiobookshelfPlaybackState.duration,
-                            isPlaying = audiobookshelfPlaybackState.isPlaying,
-                            isBuffering = audiobookshelfPlaybackState.isBuffering,
-                        )
-                    currentTrack != null ->
-                        AudioMiniPlayerState.Music(
-                            title = currentTrack.name,
-                            artist = currentTrack.artist ?: currentTrack.artists.firstOrNull(),
-                            coverUrl = currentTrack.images.primary?.toString(),
-                            blurHash = currentTrack.images.primaryImageBlurHash,
-                            positionMs = musicPlaybackState.positionMs,
-                            durationMs = musicPlaybackState.durationMs,
-                            isPlaying = musicPlaybackState.isPlaying,
-                            isBuffering = musicPlaybackState.isBuffering,
-                        )
-                    else -> null
-                }
-            val density = LocalDensity.current
+            val isMiniPlayerEligible = hasActiveAudioPlayback && !isOnAnyPlayer
             var miniPlayerCardHeight by remember { mutableStateOf(80.dp) }
             val navBarBottom =
                 WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
             val targetOffset =
-                if (miniPlayerState != null) {
+                if (isMiniPlayerEligible) {
                     miniPlayerCardHeight + navBarBottom
                 } else {
                     0.dp
@@ -493,6 +462,7 @@ fun MainNavigation(
                     LocalOriginalImages provides originalImages,
                     LocalCardSize provides cardSize,
                     LocalHeroStyle provides heroStyle,
+                    LocalDetailLayout provides detailLayout,
                 ) {
                     SharedTransitionLayout {
                         Box(modifier = Modifier.fillMaxSize()) {
@@ -900,6 +870,7 @@ fun MainNavigation(
                                         },
                                         modifier = Modifier.fillMaxSize(),
                                         widthSizeClass = widthSizeClass,
+                                        episodeLayout = episodeLayout,
                                     )
                                 }
 
@@ -991,6 +962,7 @@ fun MainNavigation(
                                         },
                                         onHomeClick = { navController.navigateHome() },
                                         widthSizeClass = widthSizeClass,
+                                        episodeLayout = episodeLayout,
                                     )
                                 }
 
@@ -2385,124 +2357,17 @@ fun MainNavigation(
                                         ),
                             )
 
-                            AnimatedVisibility(
-                                visible = miniPlayerState != null && !isPreAuth,
-                                enter = slideInVertically { it },
-                                exit = slideOutVertically { it },
+                            AudioMiniPlayerOverlay(
+                                visible = isMiniPlayerEligible && !isPreAuth,
+                                audiobookshelfPlaybackManager =
+                                    viewModel.audiobookshelfPlaybackManager,
+                                musicPlaybackManager = viewModel.musicPlaybackManager,
+                                audiobookshelfPlayer = viewModel.audiobookshelfPlayer,
+                                castManager = viewModel.castManager,
+                                navController = navController,
+                                onMeasuredHeightDp = { miniPlayerCardHeight = it },
                                 modifier = Modifier.align(Alignment.BottomCenter),
-                            ) {
-                                if (miniPlayerState != null) {
-                                    AudioMiniPlayer(
-                                        state = miniPlayerState,
-                                        modifier =
-                                            Modifier.navigationBarsPadding().onSizeChanged { size ->
-                                                if (size.height > 0) {
-                                                    miniPlayerCardHeight =
-                                                        with(density) { size.height.toDp() }
-                                                }
-                                            },
-                                        animatedVisibilityScope = this@AnimatedVisibility,
-                                        onPlayPauseClick = {
-                                            when (miniPlayerState) {
-                                                is AudioMiniPlayerState.Abs ->
-                                                    if (viewModel.audiobookshelfPlayer.isPlaying())
-                                                        viewModel.audiobookshelfPlayer.pause()
-                                                    else viewModel.audiobookshelfPlayer.play()
-                                                is AudioMiniPlayerState.Music ->
-                                                    if (musicPlaybackState.isPlaying)
-                                                        viewModel.musicPlaybackManager.pause()
-                                                    else viewModel.musicPlaybackManager.play()
-                                            }
-                                        },
-                                        onBackward = {
-                                            when (miniPlayerState) {
-                                                is AudioMiniPlayerState.Abs ->
-                                                    viewModel.audiobookshelfPlayer.skipBackward()
-
-                                                is AudioMiniPlayerState.Music ->
-                                                    viewModel.musicPlaybackManager.skipToPrevious()
-                                            }
-                                        },
-                                        onForward = {
-                                            when (miniPlayerState) {
-                                                is AudioMiniPlayerState.Abs ->
-                                                    viewModel.audiobookshelfPlayer.skipForward()
-
-                                                is AudioMiniPlayerState.Music ->
-                                                    viewModel.musicPlaybackManager.skipToNext()
-                                            }
-                                        },
-                                        onCloseClick = {
-                                            when (miniPlayerState) {
-                                                is AudioMiniPlayerState.Abs -> {
-                                                    Timber.tag("ABS-MiniPlayer")
-                                                        .d(
-                                                            "MainNavigation: ABS onCloseClick — calling pause()+closeSession()",
-                                                        )
-                                                    viewModel.audiobookshelfPlayer.pause()
-                                                    viewModel.audiobookshelfPlayer.closeSession()
-                                                }
-                                                is AudioMiniPlayerState.Music -> {
-                                                    Timber.tag("ABS-MiniPlayer")
-                                                        .d(
-                                                            "MainNavigation: Music onCloseClick — calling stop()+ACTION_STOP",
-                                                        )
-                                                    if (
-                                                        viewModel.castManager.castState.value
-                                                            .isMusicCasting
-                                                    ) {
-                                                        viewModel.castManager.stop()
-                                                    }
-                                                    viewModel.musicPlaybackManager.stop()
-                                                    navController.context.startService(
-                                                        android.content
-                                                            .Intent(
-                                                                navController.context,
-                                                                com.makd.afinity.player
-                                                                        .AudioService::class
-                                                                    .java,
-                                                            )
-                                                            .setAction(
-                                                                com.makd.afinity.player.AudioService
-                                                                    .ACTION_STOP,
-                                                            ),
-                                                    )
-                                                }
-                                            }
-                                        },
-                                        onClick = {
-                                            when (miniPlayerState) {
-                                                is AudioMiniPlayerState.Abs -> {
-                                                    val itemId = audiobookshelfPlaybackState.itemId
-                                                    val episodeId =
-                                                        audiobookshelfPlaybackState.episodeId
-                                                    val source =
-                                                        Destination.AUDIOBOOK_SOURCE_JELLYFIN
-                                                            .takeIf {
-                                                                audiobookshelfPlaybackState
-                                                                    .source ==
-                                                                    AudiobookSource.JELLYFIN
-                                                            }
-                                                    if (itemId != null) {
-                                                        navController.navigate(
-                                                            Destination
-                                                                .createAudiobookshelfPlayerRoute(
-                                                                    itemId = itemId,
-                                                                    episodeId = episodeId,
-                                                                    source = source,
-                                                                ),
-                                                        )
-                                                    }
-                                                }
-                                                is AudioMiniPlayerState.Music ->
-                                                    navController.navigate(
-                                                        Destination.MUSIC_PLAYER_ROUTE,
-                                                    )
-                                            }
-                                        },
-                                    )
-                                }
-                            }
+                            )
                         }
                     }
                 }
@@ -2584,6 +2449,13 @@ fun MainNavigation(
         }
 
         val isAuthenticating = authState !is AuthenticationState.Authenticated
+
+        ReportAppStartupReady {
+            currentRoute == Destination.LOGIN_ROUTE ||
+                (currentRoute != Destination.SPLASH_ROUTE &&
+                    !isAuthenticating &&
+                    !appLoadingState.isLoading)
+        }
 
         AnimatedVisibility(
             visible =
@@ -2846,6 +2718,8 @@ private fun NavController.navigateToItem(item: AfinityItem) {
                 when (item) {
                     is AfinityShow -> "Series"
                     is AfinitySeason -> "Season"
+                    is AfinityMovie -> "Movie"
+                    is AfinityBoxSet -> "BoxSet"
                     else -> null
                 },
             seriesId = (item as? AfinitySeason)?.seriesId?.toString(),

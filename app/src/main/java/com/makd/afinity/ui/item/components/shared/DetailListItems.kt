@@ -7,7 +7,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -18,7 +18,7 @@ import com.makd.afinity.ui.utils.gapIfNotEmpty
 
 val DetailSectionGap = 16.dp
 
-val LocalDetailLayout = compositionLocalOf { DetailLayout.CLASSIC }
+val LocalDetailLayout = staticCompositionLocalOf { DetailLayout.CLASSIC }
 
 fun LazyListScope.detailItem(
     key: Any,

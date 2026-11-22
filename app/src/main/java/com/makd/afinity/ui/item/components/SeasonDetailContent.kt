@@ -162,6 +162,7 @@ private fun HorizontalEpisodesList(
         items(
             count = lazyEpisodeItems.itemCount,
             key = lazyEpisodeItems.itemKey { it.id },
+            contentType = lazyEpisodeItems.itemContentType { "episode" },
         ) { index ->
             lazyEpisodeItems[index]?.let { episode ->
                 ContinueWatchingCard(

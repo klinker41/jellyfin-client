@@ -134,7 +134,11 @@ internal fun SeasonsSection(
             CardDimensions.rowHeight(cardWidth, CardDimensions.ASPECT_RATIO_PORTRAIT)
 
         CardRow(modifier = Modifier.height(fixedRowHeight)) {
-            items(seasons, key = { it.id.toString() }) { season ->
+            items(
+                items = seasons,
+                key = { it.id.toString() },
+                contentType = { "season_card" },
+            ) { season ->
                 SeasonCard(
                     season = season,
                     onClick = { onSeasonClick(season) },

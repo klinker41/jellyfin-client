@@ -1,5 +1,6 @@
 package com.makd.afinity.data.models.wikidata
 
+import androidx.compose.runtime.Immutable
 import kotlinx.serialization.Serializable
 
 enum class WikidataSubjectType(val value: String) {
@@ -20,6 +21,7 @@ enum class AwardResult {
     NOMINATED,
 }
 
+@Immutable
 @Serializable
 data class WikidataAward(
     val name: String,
@@ -29,6 +31,7 @@ data class WikidataAward(
     val works: List<String> = emptyList(),
 )
 
+@Immutable
 @Serializable
 data class WikidataAwards(
     val awards: List<WikidataAward> = emptyList(),

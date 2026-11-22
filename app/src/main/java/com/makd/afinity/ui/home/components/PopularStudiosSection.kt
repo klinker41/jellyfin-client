@@ -50,7 +50,11 @@ fun PopularStudiosSection(
         HomeSectionHeader(title = stringResource(R.string.home_popular_studios))
 
         CardRow(modifier = Modifier.height(fixedRowHeight)) {
-            itemsIndexed(items = studios, key = { _, studio -> studio.id }) { _, studio ->
+            itemsIndexed(
+                items = studios,
+                key = { _, studio -> studio.id },
+                contentType = { _, _ -> "studio_card" },
+            ) { _, studio ->
                 StudioCard(
                     studio = studio,
                     onClick = { onStudioClick(studio) },

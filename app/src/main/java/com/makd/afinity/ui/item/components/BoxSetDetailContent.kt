@@ -131,7 +131,11 @@ private fun BoxSetTypeSection(
         DetailSectionTitle(text = title)
 
         CardRow(modifier = Modifier.height(fixedRowHeight)) {
-            items(items, key = { it.id.toString() }) { item ->
+            items(
+                items = items,
+                key = { it.id.toString() },
+                contentType = { "boxset_media_card" },
+            ) { item ->
                 MediaItemCard(item = item, onClick = { onItemClick(item) }, cardWidth = cardWidth)
             }
         }
@@ -151,7 +155,11 @@ private fun BoxSetEpisodesSection(
         DetailSectionTitle(text = title)
 
         CardRow(modifier = Modifier.height(fixedRowHeight)) {
-            items(episodes, key = { it.id.toString() }) { episode ->
+            items(
+                items = episodes,
+                key = { it.id.toString() },
+                contentType = { "boxset_episode_card" },
+            ) { episode ->
                 ContinueWatchingCard(
                     item = episode,
                     onClick = { onEpisodeClick(episode) },

@@ -1,5 +1,6 @@
 package com.makd.afinity.data.models.media
 
+import androidx.compose.runtime.Immutable
 import com.makd.afinity.data.database.dao.ServerDatabaseDao
 import com.makd.afinity.data.models.extensions.toAfinityAudiobook
 import com.makd.afinity.data.models.extensions.toAfinityBook
@@ -15,6 +16,7 @@ import java.util.UUID
 import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.api.BaseItemKind
 
+@Immutable
 interface AfinityItem : AfinityUserDataOwner {
     override val id: UUID
     val name: String

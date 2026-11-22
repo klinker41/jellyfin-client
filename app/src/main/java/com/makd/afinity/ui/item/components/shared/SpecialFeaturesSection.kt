@@ -50,7 +50,11 @@ fun SpecialFeaturesSection(
             DetailSectionTitle(text = stringResource(R.string.special_features_title))
 
             CardRow(modifier = Modifier.height(fixedRowHeight)) {
-                items(specialFeatures, key = { it.id.toString() }) { feature ->
+                items(
+                    items = specialFeatures,
+                    key = { it.id.toString() },
+                    contentType = { "special_feature_card" },
+                ) { feature ->
                     SpecialFeatureCard(
                         feature = feature,
                         onClick = { onItemClick(feature) },

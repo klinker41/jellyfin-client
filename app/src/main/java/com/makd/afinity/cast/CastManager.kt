@@ -1,6 +1,7 @@
 package com.makd.afinity.cast
 
 import android.content.Context
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import com.google.android.gms.cast.MediaInfo
 import com.google.android.gms.cast.MediaLoadRequestData
@@ -33,6 +34,7 @@ import com.makd.afinity.data.repository.playback.PlaybackRepository
 import com.makd.afinity.ui.components.formatRuntime
 import com.makd.afinity.ui.components.ticksToTotalMinutes
 import com.makd.afinity.ui.player.PlaylistManager
+import com.makd.afinity.util.perfTrace
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -48,6 +50,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -119,20 +122,29 @@ constructor(
     private var musicCastProgressJob: Job? = null
 
     fun initialize(context: Context) {
-        try {
-            if (context.hasGooglePlayServices()) {
-                castContext = CastContext.getSharedInstance(context)
-                castContext
-                    ?.sessionManager
-                    ?.addSessionManagerListener(castSessionManagerListener, CastSession::class.java)
-            } else {
-                Timber.w("Google Play services unavailable, Chromecast disabled")
+        perfTrace("Cast.initialize") {
+            try {
+                if (context.hasGooglePlayServices()) {
+                    CastContext.getSharedInstance(context, Dispatchers.IO.asExecutor())
+                        .addOnSuccessListener(ContextCompat.getMainExecutor(context)) { ctx ->
+                            castContext = ctx
+                            ctx.sessionManager.addSessionManagerListener(
+                                castSessionManagerListener,
+                                CastSession::class.java,
+                            )
+                            Timber.d("CastManager initialized")
+                        }
+                        .addOnFailureListener { e ->
+                            Timber.e(e, "Failed to initialize CastManager")
+                        }
+                } else {
+                    Timber.w("Google Play services unavailable, Chromecast disabled")
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to initialize CastManager")
             }
-            Timber.d("CastManager initialized")
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to initialize CastManager")
         }
     }
 

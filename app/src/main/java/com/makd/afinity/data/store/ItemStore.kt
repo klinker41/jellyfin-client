@@ -7,6 +7,7 @@ import com.makd.afinity.data.models.media.UserDataPatch
 import com.makd.afinity.data.models.media.patchedWith
 import com.makd.afinity.data.models.media.patchedWithUserData
 import com.makd.afinity.data.models.media.withUserDataFrom
+import com.makd.afinity.util.perfTrace
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -37,6 +38,23 @@ class ItemStore @Inject constructor() {
     private val userDataStale = HashSet<UUID>()
     private val retainedByOwner = HashMap<Any, Set<UUID>>()
     private val retainCounts = HashMap<UUID, Int>()
+
+    private class VersionDelta(
+        val version: Long,
+        val ids: Set<UUID>,
+        val sourceToken: Any?,
+    )
+
+    private class PassResult<S>(
+        val state: S,
+        val touched: Set<UUID>,
+        val version: Long,
+    )
+
+    private val _revision = MutableStateFlow(0L)
+    private var storeVersion: Long = 0L
+    private var fullResetVersion: Long = 0L
+    private val versionHistory = ArrayDeque<VersionDelta>()
 
     private var loggedMilestone = 0
     private var peakSize = 0
@@ -78,8 +96,10 @@ class ItemStore @Inject constructor() {
         if (items.isEmpty()) return
         val staleNow = contentStaleSnapshot()
         val replaced = HashSet<UUID>()
+        val changedIds = HashSet<UUID>()
         _items.update { current ->
             replaced.clear()
+            changedIds.clear()
             var changed = false
             val next = current.toMutableMap()
             items.forEach { item ->
@@ -90,6 +110,7 @@ class ItemStore @Inject constructor() {
                     next.remove(item.id)
                     next[item.id] = chosen
                     changed = true
+                    changedIds += item.id
                     if (chosen === item) replaced += item.id
                 }
             }
@@ -100,15 +121,27 @@ class ItemStore @Inject constructor() {
             contentStale.removeAll(replaced)
             userDataStale.removeAll(items.mapTo(HashSet()) { it.id })
         }
+        recordChanges(changedIds)
         afterGrowth()
     }
 
     fun putLoaded(items: Collection<AfinityUserDataOwner>) {
+        putLoadedInternal(items, sourceToken = null)
+    }
+
+    private fun putLoadedInternal(
+        items: Collection<AfinityUserDataOwner>,
+        sourceToken: Any?,
+    ) {
         if (items.isEmpty()) return
         val staleNow = contentStaleSnapshot()
         val refreshed = HashSet<UUID>()
+        val changedIds = HashSet<UUID>()
+        var hasForeignMerge = false
         _items.update { current ->
             refreshed.clear()
+            changedIds.clear()
+            hasForeignMerge = false
             var changed = false
             val next = current.toMutableMap()
             items.forEach { item ->
@@ -119,6 +152,8 @@ class ItemStore @Inject constructor() {
                     next.remove(item.id)
                     next[item.id] = chosen
                     changed = true
+                    changedIds += item.id
+                    if (chosen !== item) hasForeignMerge = true
                 }
                 if (isStale && chosen === item) refreshed += item.id
             }
@@ -131,6 +166,7 @@ class ItemStore @Inject constructor() {
                 userDataStale.removeAll(refreshed)
             }
         }
+        recordChanges(changedIds, sourceToken = if (hasForeignMerge) null else sourceToken)
         afterGrowth()
     }
 
@@ -142,7 +178,9 @@ class ItemStore @Inject constructor() {
             userDataStale.removeAll(ids)
         }
         _contentIds.update { it + ids }
+        val changedIds = HashSet<UUID>()
         _items.update { current ->
+            changedIds.clear()
             var changed = false
             val next = current.toMutableMap()
             items.forEach { item ->
@@ -150,10 +188,12 @@ class ItemStore @Inject constructor() {
                     next.remove(item.id)
                     next[item.id] = item
                     changed = true
+                    changedIds += item.id
                 }
             }
             if (changed) next else current
         }
+        recordChanges(changedIds)
         afterGrowth()
     }
 
@@ -247,7 +287,9 @@ class ItemStore @Inject constructor() {
 
     fun putUserDataFrom(items: Collection<AfinityItem>) {
         if (items.isEmpty()) return
+        val changedIds = HashSet<UUID>()
         _items.update { current ->
+            changedIds.clear()
             var changed = false
             val next = current.toMutableMap()
             items.forEach { item ->
@@ -262,48 +304,70 @@ class ItemStore @Inject constructor() {
                     next.remove(item.id)
                     next[item.id] = updated
                     changed = true
+                    changedIds += item.id
                 }
             }
             if (changed) next else current
         }
         synchronized(lock) { userDataStale.removeAll(items.mapTo(HashSet()) { it.id }) }
+        recordChanges(changedIds)
         afterGrowth()
     }
 
     fun putIfAbsent(items: Collection<AfinityUserDataOwner>) {
         if (items.isEmpty()) return
+        val changedIds = HashSet<UUID>()
         _items.update { current ->
+            changedIds.clear()
             var changed = false
             val next = current.toMutableMap()
             items.forEach { item ->
                 if (item.id !in next) {
                     next[item.id] = item
                     changed = true
+                    changedIds += item.id
                 }
             }
             if (changed) next else current
         }
+        recordChanges(changedIds)
         afterGrowth()
     }
 
     fun applyPatch(id: UUID, patch: UserDataPatch) {
+        var changed = false
         _items.update { current ->
+            changed = false
             val existing = current[id] ?: return@update current
             val patched = existing.patchedWith(patch)
-            if (patched === existing) current else current.movedToEnd(id, patched)
+            if (patched === existing) {
+                current
+            } else {
+                changed = true
+                current.movedToEnd(id, patched)
+            }
         }
+        if (changed) recordChanges(setOf(id))
     }
 
     fun applyUserData(id: UUID, data: UserItemDataDto) {
         var applied = false
+        var changed = false
         _items.update { current ->
+            changed = false
             val existing = current[id]
             applied = existing != null
             if (existing == null) return@update current
             val patched = existing.patchedWithUserData(data)
-            if (patched === existing) current else current.movedToEnd(id, patched)
+            if (patched === existing) {
+                current
+            } else {
+                changed = true
+                current.movedToEnd(id, patched)
+            }
         }
         if (applied) synchronized(lock) { userDataStale.remove(id) }
+        if (changed) recordChanges(setOf(id))
     }
 
     fun remove(ids: Collection<UUID>) {
@@ -316,9 +380,17 @@ class ItemStore @Inject constructor() {
         _contentIds.update { current ->
             if (removed.none { it in current }) current else current - removed
         }
+        val actuallyRemoved = HashSet<UUID>()
         _items.update { current ->
-            if (removed.none { it in current }) current else current - removed
+            actuallyRemoved.clear()
+            if (removed.none { it in current }) {
+                current
+            } else {
+                removed.forEach { if (it in current) actuallyRemoved += it }
+                current - removed
+            }
         }
+        recordChanges(actuallyRemoved)
     }
 
     fun clear() {
@@ -333,6 +405,9 @@ class ItemStore @Inject constructor() {
         }
         _contentIds.value = emptySet()
         _items.value = emptyMap()
+        if (size > 0) {
+            recordChanges(emptySet(), fullReset = true)
+        }
     }
 
     fun <S> project(
@@ -342,12 +417,27 @@ class ItemStore @Inject constructor() {
     ): StateFlow<S> {
         val projection = ItemProjection()
         val token = Any()
-        val output = MutableStateFlow(runPass(projection, token, base.value, transform))
+        var lastBase = base.value
+        val initialPass = runPass(projection, token, lastBase, transform)
+        var lastTouched = initialPass.touched
+        var lastVersion = initialPass.version
+        val output = MutableStateFlow(initialPass.state)
         scope.launch {
             try {
-                combine(base, _items) { state, _ -> state }
+                combine(base, _revision) { state, _ -> state }
                     .collect { state ->
-                        output.value = runPass(projection, token, state, transform)
+                        val checkedVersion =
+                            if (state !== lastBase) -1L
+                            else shouldReproject(token, lastVersion, lastTouched)
+                        if (checkedVersion < 0L) {
+                            val passResult = runPass(projection, token, state, transform)
+                            lastBase = state
+                            lastTouched = passResult.touched
+                            lastVersion = passResult.version
+                            output.value = passResult.state
+                        } else {
+                            lastVersion = checkedVersion
+                        }
                     }
             } finally {
                 release(token)
@@ -361,13 +451,62 @@ class ItemStore @Inject constructor() {
         token: Any,
         state: S,
         transform: ItemProjection.(S) -> S,
-    ): S {
-        projection.begin(_items.value, contentStaleSnapshot(), _contentIds.value)
-        val result = projection.transform(state)
-        val pass = projection.end()
-        retain(token, pass.touched)
-        if (pass.fresh.isNotEmpty()) putLoaded(pass.fresh)
-        return result
+    ): PassResult<S> =
+        perfTrace("ItemStore.project") {
+            val startVersion = synchronized(lock) { storeVersion }
+            projection.begin(_items.value, contentStaleSnapshot(), _contentIds.value)
+            val result = projection.transform(state)
+            val pass = projection.end()
+            retain(token, pass.touched)
+            if (pass.fresh.isNotEmpty()) putLoadedInternal(pass.fresh, sourceToken = token)
+            PassResult(result, pass.touched, startVersion)
+        }
+
+    private fun recordChanges(
+        changedIds: Set<UUID>,
+        fullReset: Boolean = false,
+        sourceToken: Any? = null,
+    ) {
+        if (!fullReset && changedIds.isEmpty()) return
+        synchronized(lock) {
+            storeVersion += 1L
+            if (fullReset) {
+                fullResetVersion = storeVersion
+                versionHistory.clear()
+            } else {
+                versionHistory.addLast(
+                    VersionDelta(
+                        version = storeVersion,
+                        ids = if (changedIds.size == 1) changedIds else HashSet(changedIds),
+                        sourceToken = sourceToken,
+                    ),
+                )
+                while (versionHistory.size > VERSION_HISTORY_CAPACITY) {
+                    versionHistory.removeFirst()
+                }
+            }
+            _revision.value = storeVersion
+        }
+    }
+
+    /** Returns `-1L` if reprojection is needed, or the verified `storeVersion` when skipping. */
+    private fun shouldReproject(
+        owner: Any,
+        sinceVersion: Long,
+        touched: Set<UUID>,
+    ): Long {
+        synchronized(lock) {
+            if (storeVersion == sinceVersion) return storeVersion
+            if (fullResetVersion > sinceVersion) return -1L
+            val first = versionHistory.firstOrNull() ?: return -1L
+            if (first.version > sinceVersion + 1L) return -1L
+            for (delta in versionHistory) {
+                if (delta.version <= sinceVersion) continue
+                if (delta.sourceToken === owner) continue
+                if (delta.ids.any { it in touched }) return -1L
+            }
+            return storeVersion
+        }
     }
 
     private fun retain(owner: Any, ids: Set<UUID>) {
@@ -434,6 +573,7 @@ class ItemStore @Inject constructor() {
         const val SIZE_LOG_INTERVAL = 100
         const val MAX_SIZE = 2_000
         const val TRIM_TARGET = 1_500
+        const val VERSION_HISTORY_CAPACITY = 128
     }
 }
 

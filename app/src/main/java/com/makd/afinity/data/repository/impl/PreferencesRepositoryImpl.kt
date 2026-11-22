@@ -34,6 +34,7 @@ import com.makd.afinity.player.common.TrackSelection
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
@@ -427,9 +428,9 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
     }
 
     override fun getCombineLibrarySectionsFlow(): Flow<Boolean> {
-        return dataStore.data.map { preferences ->
-            preferences[Keys.COMBINE_LIBRARY_SECTIONS] ?: false
-        }
+        return dataStore.data
+            .map { preferences -> preferences[Keys.COMBINE_LIBRARY_SECTIONS] ?: false }
+            .distinctUntilChanged()
     }
 
     override suspend fun setHomeSortByDateAdded(sortByDateAdded: Boolean) {
@@ -443,9 +444,9 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
     }
 
     override fun getHomeSortByDateAddedFlow(): Flow<Boolean> {
-        return dataStore.data.map { preferences ->
-            preferences[Keys.HOME_SORT_BY_DATE_ADDED] ?: true
-        }
+        return dataStore.data
+            .map { preferences -> preferences[Keys.HOME_SORT_BY_DATE_ADDED] ?: true }
+            .distinctUntilChanged()
     }
 
     override suspend fun setMergeContinueWatchingNextUp(merge: Boolean) {
@@ -457,9 +458,9 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
     }
 
     override fun getMergeContinueWatchingNextUpFlow(): Flow<Boolean> {
-        return dataStore.data.map { preferences ->
-            preferences[Keys.MERGE_CONTINUE_WATCHING_NEXT_UP] ?: false
-        }
+        return dataStore.data
+            .map { preferences -> preferences[Keys.MERGE_CONTINUE_WATCHING_NEXT_UP] ?: false }
+            .distinctUntilChanged()
     }
 
     override suspend fun setNextUpMaxDays(days: Int) {
@@ -473,9 +474,9 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
     }
 
     override fun getNextUpMaxDaysFlow(): Flow<Int> {
-        return dataStore.data.map { preferences ->
-            (preferences[Keys.NEXT_UP_MAX_DAYS] ?: 0).coerceIn(0, 9999)
-        }
+        return dataStore.data
+            .map { preferences -> (preferences[Keys.NEXT_UP_MAX_DAYS] ?: 0).coerceIn(0, 9999) }
+            .distinctUntilChanged()
     }
 
     override suspend fun setNavigationDrawerEnabled(enabled: Boolean) {
@@ -488,9 +489,11 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
     }
 
     override fun getNavigationDrawerEnabledFlow(): Flow<Boolean> {
-        return dataStore.data.map { preferences ->
-            preferences[Keys.NAVIGATION_DRAWER_ENABLED] ?: DEFAULT_NAVIGATION_DRAWER_ENABLED
-        }
+        return dataStore.data
+            .map { preferences ->
+                preferences[Keys.NAVIGATION_DRAWER_ENABLED] ?: DEFAULT_NAVIGATION_DRAWER_ENABLED
+            }
+            .distinctUntilChanged()
     }
 
     override suspend fun setSideSheetEnabled(enabled: Boolean) {
@@ -502,7 +505,9 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
     }
 
     override fun getSideSheetEnabledFlow(): Flow<Boolean> {
-        return dataStore.data.map { preferences -> preferences[Keys.SIDE_SHEET_ENABLED] ?: true }
+        return dataStore.data
+            .map { preferences -> preferences[Keys.SIDE_SHEET_ENABLED] ?: true }
+            .distinctUntilChanged()
     }
 
     override suspend fun setOnboardingFirstRunDone(done: Boolean) {
@@ -521,12 +526,14 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
     }
 
     override fun getDrawerLibrariesModeFlow(): Flow<DrawerLibrariesMode> {
-        return dataStore.data.map { preferences ->
-            resolveDrawerLibrariesMode(
-                librariesInDrawer = preferences[Keys.LIBRARIES_IN_DRAWER],
-                individualLibrariesInDrawer = preferences[Keys.INDIVIDUAL_LIBRARIES_IN_DRAWER],
-            )
-        }
+        return dataStore.data
+            .map { preferences ->
+                resolveDrawerLibrariesMode(
+                    librariesInDrawer = preferences[Keys.LIBRARIES_IN_DRAWER],
+                    individualLibrariesInDrawer = preferences[Keys.INDIVIDUAL_LIBRARIES_IN_DRAWER],
+                )
+            }
+            .distinctUntilChanged()
     }
 
     override suspend fun setLiveTvViewOptions(options: LiveTvViewOptions) {
@@ -608,11 +615,13 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
     }
 
     override fun getThemeModeFlow(): Flow<String> {
-        return dataStore.data.map { preferences -> preferences[Keys.THEME_MODE] ?: "SYSTEM" }
+        return dataStore.data
+            .map { preferences -> preferences[Keys.THEME_MODE] ?: "SYSTEM" }
+            .distinctUntilChanged()
     }
 
     override fun getDynamicColorsFlow(): Flow<Boolean> =
-        dataStore.data.map { it[Keys.DYNAMIC_COLORS] ?: true }
+        dataStore.data.map { it[Keys.DYNAMIC_COLORS] ?: true }.distinctUntilChanged()
 
     override fun getAutoPlayFlow(): Flow<Boolean> =
         dataStore.data.map { it[Keys.AUTO_PLAY] ?: true }
@@ -801,7 +810,9 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
     }
 
     override fun getOfflineModeFlow(): Flow<Boolean> {
-        return dataStore.data.map { preferences -> preferences[Keys.OFFLINE_MODE] ?: false }
+        return dataStore.data
+            .map { preferences -> preferences[Keys.OFFLINE_MODE] ?: false }
+            .distinctUntilChanged()
     }
 
     override suspend fun setNotificationPermissionDeclined(declined: Boolean) {
@@ -1127,10 +1138,12 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
     }
 
     override fun getEpisodeLayoutFlow(): Flow<EpisodeLayout> {
-        return dataStore.data.map { preferences ->
-            preferences[Keys.EPISODE_LAYOUT]?.let { EpisodeLayout.fromValue(it) }
-                ?: EpisodeLayout.HORIZONTAL
-        }
+        return dataStore.data
+            .map { preferences ->
+                preferences[Keys.EPISODE_LAYOUT]?.let { EpisodeLayout.fromValue(it) }
+                    ?: EpisodeLayout.HORIZONTAL
+            }
+            .distinctUntilChanged()
     }
 
     override suspend fun setDetailLayout(layout: DetailLayout) {
@@ -1138,10 +1151,12 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
     }
 
     override fun getDetailLayoutFlow(): Flow<DetailLayout> {
-        return dataStore.data.map { preferences ->
-            preferences[Keys.DETAIL_LAYOUT]?.let { DetailLayout.fromValue(it) }
-                ?: DetailLayout.CLASSIC
-        }
+        return dataStore.data
+            .map { preferences ->
+                preferences[Keys.DETAIL_LAYOUT]?.let { DetailLayout.fromValue(it) }
+                    ?: DetailLayout.CLASSIC
+            }
+            .distinctUntilChanged()
     }
 
     override suspend fun setCardSize(size: CardSize) {
@@ -1149,9 +1164,11 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
     }
 
     override fun getCardSizeFlow(): Flow<CardSize> {
-        return dataStore.data.map { preferences ->
-            preferences[Keys.CARD_SIZE]?.let { CardSize.fromValue(it) } ?: CardSize.DEFAULT
-        }
+        return dataStore.data
+            .map { preferences ->
+                preferences[Keys.CARD_SIZE]?.let { CardSize.fromValue(it) } ?: CardSize.DEFAULT
+            }
+            .distinctUntilChanged()
     }
 
     override suspend fun setHeroStyle(style: HeroStyle) {
@@ -1159,9 +1176,12 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
     }
 
     override fun getHeroStyleFlow(): Flow<HeroStyle> {
-        return dataStore.data.map { preferences ->
-            preferences[Keys.HERO_STYLE]?.let { HeroStyle.fromValue(it) } ?: HeroStyle.FULL_BLEED
-        }
+        return dataStore.data
+            .map { preferences ->
+                preferences[Keys.HERO_STYLE]?.let { HeroStyle.fromValue(it) }
+                    ?: HeroStyle.FULL_BLEED
+            }
+            .distinctUntilChanged()
     }
 
     override suspend fun setShowRatings(enabled: Boolean) {
@@ -1189,7 +1209,9 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
     }
 
     override fun getShowAwardsFlow(): Flow<Boolean> {
-        return dataStore.data.map { preferences -> preferences[Keys.SHOW_AWARDS] ?: true }
+        return dataStore.data
+            .map { preferences -> preferences[Keys.SHOW_AWARDS] ?: true }
+            .distinctUntilChanged()
     }
 
     override suspend fun setOriginalImages(enabled: Boolean) {
@@ -1197,7 +1219,9 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
     }
 
     override fun getOriginalImagesFlow(): Flow<Boolean> {
-        return dataStore.data.map { preferences -> preferences[Keys.ORIGINAL_IMAGES] ?: false }
+        return dataStore.data
+            .map { preferences -> preferences[Keys.ORIGINAL_IMAGES] ?: false }
+            .distinctUntilChanged()
     }
 
     override suspend fun setThemeMusicEnabled(enabled: Boolean) {
@@ -1279,13 +1303,15 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
         dataStore.data.map { it[seerrWatchlistSyncKey(serverId, userId)] ?: true }
 
     override fun getShowRatingsFlow(): Flow<Boolean> {
-        return dataStore.data.map { preferences -> preferences[Keys.SHOW_RATINGS] ?: true }
+        return dataStore.data
+            .map { preferences -> preferences[Keys.SHOW_RATINGS] ?: true }
+            .distinctUntilChanged()
     }
 
     override fun getBlurUnwatchedEpisodesFlow(): Flow<Boolean> {
-        return dataStore.data.map { preferences ->
-            preferences[Keys.BLUR_UNWATCHED_EPISODES] ?: false
-        }
+        return dataStore.data
+            .map { preferences -> preferences[Keys.BLUR_UNWATCHED_EPISODES] ?: false }
+            .distinctUntilChanged()
     }
 
     override suspend fun setImageCacheEnabled(enabled: Boolean) {
@@ -1351,7 +1377,9 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
         serverId: String,
         userId: String,
     ): Flow<HeroContentSource> =
-        dataStore.data.map { decodeHeroContentSource(it[heroContentSourceKey(serverId, userId)]) }
+        dataStore.data
+            .map { decodeHeroContentSource(it[heroContentSourceKey(serverId, userId)]) }
+            .distinctUntilChanged()
 
     override suspend fun setHeroContentSource(
         serverId: String,
@@ -1380,6 +1408,8 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
     }
 
     override fun getAppFontFlow(): Flow<String> {
-        return dataStore.data.map { preferences -> preferences[Keys.APP_FONT] ?: "DEFAULT" }
+        return dataStore.data
+            .map { preferences -> preferences[Keys.APP_FONT] ?: "DEFAULT" }
+            .distinctUntilChanged()
     }
 }

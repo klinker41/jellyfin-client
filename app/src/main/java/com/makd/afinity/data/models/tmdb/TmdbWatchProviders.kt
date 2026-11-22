@@ -1,5 +1,6 @@
 package com.makd.afinity.data.models.tmdb
 
+import androidx.compose.runtime.Immutable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -10,12 +11,14 @@ data class TmdbDetailsResponse(
     @SerialName("watch/providers") val watchProviders: TmdbWatchProvidersResponse? = null,
 )
 
+@Immutable
 @Serializable
 data class TmdbWatchProvidersResponse(val results: Map<String, TmdbRegionProviders> = emptyMap()) {
     fun forRegion(region: String): TmdbRegionProviders? =
         results[region]?.copy(region = region)?.takeIf { it.hasAny }
 }
 
+@Immutable
 @Serializable
 data class TmdbRegionProviders(
     val region: String = "",
@@ -35,6 +38,7 @@ data class TmdbRegionProviders(
                 buy.isNotEmpty()
 }
 
+@Immutable
 @Serializable
 data class TmdbWatchProvider(
     val provider_id: Int,

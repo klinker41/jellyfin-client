@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
@@ -30,8 +31,14 @@ fun SimilarItemsSection(
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         DetailSectionTitle(text = title)
 
+        val displayedItems = remember(items) { items.take(10) }
+
         CardRow(modifier = Modifier.height(fixedRowHeight)) {
-            items(items.take(10), key = { it.id.toString() }) { item ->
+            items(
+                items = displayedItems,
+                key = { it.id.toString() },
+                contentType = { "similar_card" },
+            ) { item ->
                 SimilarItemCard(item = item, onClick = { onItemClick(item) }, cardWidth = cardWidth)
             }
         }

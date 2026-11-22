@@ -1,5 +1,6 @@
 package com.makd.afinity.data.models.tmdb
 
+import androidx.compose.runtime.Immutable
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -11,6 +12,7 @@ data class TmdbReviewResponse(
     val total_results: Int? = null,
 )
 
+@Immutable
 @Serializable
 data class TmdbReview(
     val id: String,
@@ -21,6 +23,7 @@ data class TmdbReview(
     val author_details: TmdbAuthorDetails? = null,
 )
 
+@Immutable
 @Serializable
 data class TmdbAuthorDetails(
     val name: String? = null,

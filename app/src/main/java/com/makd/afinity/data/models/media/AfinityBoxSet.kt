@@ -1,7 +1,9 @@
 package com.makd.afinity.data.models.media
 
+import androidx.compose.runtime.Immutable
 import java.util.UUID
 
+@Immutable
 data class AfinityBoxSet(
     override val id: UUID,
     override val name: String,

@@ -32,7 +32,13 @@ fun ItemsRowSection(
         HomeSectionHeader(title = title, onViewAllClick = onViewAllClick)
 
         CardRow(modifier = Modifier.height(fixedRowHeight)) {
-            items(items = items, key = { item -> "${sectionKey}_${item.id}" }) { item ->
+            items(
+                items = items,
+                key = { item -> "${sectionKey}_${item.id}" },
+                contentType = {
+                    if (isLandscape) "landscape_media_card" else "portrait_media_card"
+                },
+            ) { item ->
                 if (isLandscape) {
                     ContinueWatchingCard(
                         item = item,

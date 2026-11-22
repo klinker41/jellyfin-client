@@ -25,6 +25,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -248,8 +249,9 @@ private fun RatingsAndReviews(
     tmdbReviews: List<TmdbReview>,
     isRatingsFromCache: Boolean,
 ) {
+    val orderedRatings = remember(item, mdbRatings) { orderedRatingsFor(item, mdbRatings) }
     RatingsAndReviews(
-        orderedRatings = orderedRatingsFor(item, mdbRatings),
+        orderedRatings = orderedRatings,
         mdbRatingBadges = mdbRatingBadges,
         tmdbReviews = tmdbReviews,
         isRatingsFromCache = isRatingsFromCache,

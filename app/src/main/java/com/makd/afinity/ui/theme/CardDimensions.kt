@@ -6,7 +6,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
-import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Density
@@ -20,7 +20,7 @@ import com.makd.afinity.ui.components.windowHeightDp
 import com.makd.afinity.ui.components.windowWidthDp
 import kotlin.math.roundToInt
 
-val LocalCardSize = compositionLocalOf { CardSize.DEFAULT }
+val LocalCardSize = staticCompositionLocalOf { CardSize.DEFAULT }
 
 private fun Density.steppedCellSizes(
     availableSize: Int,

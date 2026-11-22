@@ -1,8 +1,10 @@
 package com.makd.afinity.data.models.media
 
 import android.net.Uri
+import androidx.compose.runtime.Immutable
 import androidx.core.net.toUri
 
+@Immutable
 data class AfinityImages(
     val primary: Uri? = null,
     val backdrop: Uri? = null,

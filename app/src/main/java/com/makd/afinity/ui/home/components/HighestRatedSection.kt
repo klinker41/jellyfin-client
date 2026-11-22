@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,7 +45,7 @@ import com.makd.afinity.ui.components.RankedCardFrame
 import com.makd.afinity.ui.components.rememberRatingMetadataScale
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.portraitWidth
-import java.util.Locale
+import com.makd.afinity.util.formatOneDecimal
 
 @Composable
 fun HighestRatedSection(
@@ -59,10 +60,14 @@ fun HighestRatedSection(
     Column(modifier = Modifier.padding(horizontal = CardDimensions.RowGutter)) {
         HomeSectionHeader(title = title)
 
-        val uniqueItems = items.distinctBy { it.id }
+        val uniqueItems = remember(items) { items.distinctBy { it.id } }
 
         CardRow(modifier = Modifier.height(fixedRowHeight)) {
-            itemsIndexed(items = uniqueItems, key = { _, item -> item.id }) { index, item ->
+            itemsIndexed(
+                items = uniqueItems,
+                key = { _, item -> item.id },
+                contentType = { _, _ -> "highest_rated_card" },
+            ) { index, item ->
                 HighestRatedCard(
                     item = item,
                     ranking = index + 1,
@@ -178,7 +183,7 @@ private fun HighestRatedDetails(item: AfinityItem) {
                             modifier = Modifier.size(rtIconSize),
                         )
                         Text(
-                            text = String.format(Locale.US, "%.1f", rating),
+                            text = formatOneDecimal(rating),
                             style =
                                 MaterialTheme.typography.bodySmall.copy(
                                     fontSize = metadataFontSize,

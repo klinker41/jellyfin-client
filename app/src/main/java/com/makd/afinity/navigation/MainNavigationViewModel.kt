@@ -7,7 +7,9 @@ import com.makd.afinity.data.manager.OfflineModeManager
 import com.makd.afinity.data.manager.PendingNavigationManager
 import com.makd.afinity.data.manager.SessionManager
 import com.makd.afinity.data.models.common.CardSize
+import com.makd.afinity.data.models.common.DetailLayout
 import com.makd.afinity.data.models.common.DrawerLibrariesMode
+import com.makd.afinity.data.models.common.EpisodeLayout
 import com.makd.afinity.data.models.common.HeroStyle
 import com.makd.afinity.data.models.media.AfinityItem
 import com.makd.afinity.data.models.media.AfinityShow
@@ -31,6 +33,7 @@ import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -160,6 +163,38 @@ constructor(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
                 initialValue = DrawerLibrariesMode.EACH,
+            )
+
+    val detailLayout =
+        preferencesRepository
+            .getDetailLayoutFlow()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = DetailLayout.CLASSIC,
+            )
+
+    val episodeLayout =
+        preferencesRepository
+            .getEpisodeLayoutFlow()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = EpisodeLayout.HORIZONTAL,
+            )
+
+    val hasActiveAudioPlayback =
+        combine(
+                audiobookshelfPlaybackManager.playbackState.map { it.sessionId != null },
+                musicPlaybackManager.state.map { it.currentTrack != null },
+            ) { hasAbs, hasMusic ->
+                hasAbs || hasMusic
+            }
+            .distinctUntilChanged()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = false,
             )
 
     val libraries = appDataRepository.libraries

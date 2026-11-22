@@ -1,6 +1,7 @@
 package com.makd.afinity.ui.item
 
 import android.content.Context
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -87,6 +88,8 @@ import com.makd.afinity.ui.item.components.shared.peopleOfKind
 import com.makd.afinity.ui.item.delegates.ItemDownloadDelegate
 import com.makd.afinity.ui.item.delegates.ItemUserDataDelegate
 import com.makd.afinity.util.NetworkConnectivityMonitor
+import com.makd.afinity.util.perfTrace
+import com.makd.afinity.util.perfTraceAsync
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.UUID
@@ -266,21 +269,26 @@ constructor(
     }
 
     init {
-        viewModelScope.launch {
-            _uiState.first { it.item != null || it.error != null }
-            val loaded = _uiState.value.item
-            if (loaded == null || loaded is AfinityBoxSet) return@launch
-            try {
-                val boxSets =
-                    mediaRepository.getBoxSetsContaining(
-                        itemId = itemId,
-                        fields = FieldSets.MEDIA_ITEM_CARDS,
-                    )
-                _uiState.update { it.copy(containingBoxSets = boxSets) }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to load containing BoxSets in init")
+        if (
+            itemType?.equals("BoxSet", ignoreCase = true) != true &&
+                itemStore.getAs<AfinityItem>(itemId) !is AfinityBoxSet
+        ) {
+            viewModelScope.launch {
+                try {
+                    if (offlineModeManager.isCurrentlyOffline()) return@launch
+                    val boxSets =
+                        mediaRepository.getBoxSetsContaining(
+                            itemId = itemId,
+                            fields = FieldSets.MEDIA_ITEM_CARDS,
+                        )
+                    if (_uiState.value.item !is AfinityBoxSet) {
+                        _uiState.update { it.copy(containingBoxSets = boxSets) }
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to load containing BoxSets in init")
+                }
             }
         }
 
@@ -861,224 +869,302 @@ constructor(
 
     fun loadItem() {
         viewModelScope.launch {
-            try {
-                _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-                val isOffline = offlineModeManager.isCurrentlyOffline()
-                val hasInternet = offlineModeManager.isInternetAvailable()
+            perfTraceAsync("ItemDetail.loadItem") {
+                try {
+                    val seededItem =
+                        perfTrace("ItemDetail.seedFromStore") {
+                            itemStore.getAs<AfinityItem>(itemId)
+                        }
+                    val existingItem = _uiState.value.item ?: seededItem
+                    _uiState.update { state ->
+                        state.copy(
+                            item = existingItem,
+                            isLoading = existingItem == null,
+                            isDetailLoading = true,
+                            error = null,
+                        )
+                    }
+                    val isOffline = offlineModeManager.isCurrentlyOffline()
+                    val hasInternet = offlineModeManager.isInternetAvailable()
 
-                if (!isOffline && itemType?.uppercase() in setOf("SERIES", "SEASON")) {
-                    fetchNextUp()
-                }
-                if (!isOffline && itemType?.uppercase() == "SERIES") {
-                    fetchSeasons()
-                }
+                    if (!isOffline && itemType?.uppercase() in setOf("SERIES", "SEASON")) {
+                        fetchNextUp()
+                    }
+                    if (!isOffline && itemType?.uppercase() == "SERIES") {
+                        fetchSeasons()
+                    }
+                    val shouldFetchSimilarInParallel =
+                        !isOffline &&
+                            (itemType?.uppercase() in setOf("MOVIE", "SERIES") ||
+                                existingItem is AfinityMovie ||
+                                existingItem is AfinityShow)
+                    if (shouldFetchSimilarInParallel) {
+                        fetchSimilarItems()
+                    }
 
-                var specialFeatureCount = 0
-                var freshUserData: UserItemDataDto? = null
-                val item =
-                    if (isOffline) {
-                        loadItemFromDatabase()
-                    } else {
-                        itemLastServerFetchAt = System.currentTimeMillis()
-                        mediaRepository.getItemDetail(itemId)?.let { baseItemDto ->
-                            specialFeatureCount = baseItemDto.specialFeatureCount ?: 0
-                            freshUserData = baseItemDto.userData?.copy(itemId = baseItemDto.id)
-                            when (baseItemDto.type) {
-                                BaseItemKind.MOVIE ->
-                                    baseItemDto.toAfinityMovie(mediaRepository.getBaseUrl(), null)
-                                BaseItemKind.SERIES ->
-                                    baseItemDto.toAfinityShow(mediaRepository.getBaseUrl())
-                                BaseItemKind.EPISODE ->
-                                    baseItemDto.toAfinityEpisode(mediaRepository.getBaseUrl(), null)
-                                BaseItemKind.BOX_SET ->
-                                    baseItemDto.toAfinityBoxSet(mediaRepository.getBaseUrl())
-                                BaseItemKind.PLAYLIST ->
-                                    baseItemDto.toAfinityVideoPlaylist(mediaRepository.getBaseUrl())
-                                BaseItemKind.VIDEO ->
-                                    baseItemDto.toAfinityVideo(mediaRepository.getBaseUrl())
-                                BaseItemKind.MUSIC_VIDEO ->
-                                    baseItemDto.toAfinityMusicVideo(mediaRepository.getBaseUrl())
-                                BaseItemKind.SEASON -> {
-                                    val season =
-                                        baseItemDto.toAfinitySeason(mediaRepository.getBaseUrl())
-                                    if (season.runtimeTicks == 0L) {
-                                        try {
-                                            val series =
-                                                mediaRepository.getItem(
-                                                    season.seriesId,
-                                                    fields = FieldSets.REFRESH_USER_DATA,
+                    var specialFeatureCount = 0
+                    var freshUserData: UserItemDataDto? = null
+                    val item =
+                        if (isOffline) {
+                            loadItemFromDatabase()
+                        } else {
+                            itemLastServerFetchAt = System.currentTimeMillis()
+                            mediaRepository.getItemDetail(itemId)?.let { baseItemDto ->
+                                specialFeatureCount = baseItemDto.specialFeatureCount ?: 0
+                                freshUserData = baseItemDto.userData?.copy(itemId = baseItemDto.id)
+                                when (baseItemDto.type) {
+                                    BaseItemKind.MOVIE ->
+                                        baseItemDto.toAfinityMovie(
+                                            mediaRepository.getBaseUrl(),
+                                            null,
+                                        )
+                                    BaseItemKind.SERIES ->
+                                        baseItemDto.toAfinityShow(mediaRepository.getBaseUrl())
+                                    BaseItemKind.EPISODE ->
+                                        baseItemDto.toAfinityEpisode(
+                                            mediaRepository.getBaseUrl(),
+                                            null,
+                                        )
+                                    BaseItemKind.BOX_SET ->
+                                        baseItemDto.toAfinityBoxSet(mediaRepository.getBaseUrl())
+                                    BaseItemKind.PLAYLIST ->
+                                        baseItemDto.toAfinityVideoPlaylist(
+                                            mediaRepository.getBaseUrl(),
+                                        )
+                                    BaseItemKind.VIDEO ->
+                                        baseItemDto.toAfinityVideo(mediaRepository.getBaseUrl())
+                                    BaseItemKind.MUSIC_VIDEO ->
+                                        baseItemDto.toAfinityMusicVideo(
+                                            mediaRepository.getBaseUrl(),
+                                        )
+                                    BaseItemKind.SEASON -> {
+                                        val season =
+                                            baseItemDto.toAfinitySeason(
+                                                mediaRepository.getBaseUrl(),
+                                            )
+                                        if (season.runtimeTicks == 0L) {
+                                            try {
+                                                val series =
+                                                    mediaRepository.getItem(
+                                                        season.seriesId,
+                                                        fields = FieldSets.REFRESH_USER_DATA,
+                                                    )
+                                                season.copy(
+                                                    runtimeTicks = series?.runTimeTicks ?: 0L,
                                                 )
-                                            season.copy(runtimeTicks = series?.runTimeTicks ?: 0L)
-                                        } catch (_: Exception) {
-                                            season
-                                        }
-                                    } else season
+                                            } catch (e: CancellationException) {
+                                                throw e
+                                            } catch (_: Exception) {
+                                                season
+                                            }
+                                        } else season
+                                    }
+                                    else -> null
                                 }
-                                else -> null
+                            }
+                        }
+
+                    if (item == null) {
+                        if (_uiState.value.item != null) {
+                            Timber.w("Detail fetch returned null; keeping seeded item for $itemId")
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    isDetailLoading = false,
+                                    hasInternet = hasInternet,
+                                )
+                            }
+                        } else {
+                            _uiState.update { state ->
+                                state.copy(
+                                    isLoading = false,
+                                    isDetailLoading = false,
+                                    themeResolved = true,
+                                    error =
+                                        when {
+                                            offlineModeManager.connectivity.value
+                                                .let { it as? Connectivity.ServerUnreachable }
+                                                ?.reason == UnreachableReason.NO_ROUTE ->
+                                                context.getString(R.string.item_error_no_route)
+                                            isOffline ->
+                                                context.getString(R.string.item_error_offline)
+                                            !hasInternet ->
+                                                context.getString(R.string.item_error_connection)
+                                            else -> context.getString(R.string.item_error_not_found)
+                                        },
+                                )
+                            }
+                        }
+                        return@perfTraceAsync
+                    }
+
+                    _uiState.update { state ->
+                        state.copy(
+                            item = item,
+                            isLoading = false,
+                            isDetailLoading = false,
+                            hasInternet = hasInternet,
+                        )
+                    }
+                    itemLastLoadedAt = System.currentTimeMillis()
+                    freshUserData?.let { launch { mediaChangeManager.reconcileUserData(it) } }
+                    if (!isOffline) {
+                        launch { backfillOfflineFields(item) }
+                    }
+                    if (!themeLookupStarted) {
+                        themeLookupStarted = true
+                        launch {
+                            val song =
+                                if (isOffline) {
+                                    null
+                                } else {
+                                    try {
+                                        themeMusicPlayer.resolve(item)
+                                    } catch (e: CancellationException) {
+                                        throw e
+                                    } catch (e: Exception) {
+                                        Timber.w(e, "Theme song lookup failed")
+                                        null
+                                    }
+                                }
+                            _uiState.update { it.copy(themeSong = song, themeResolved = true) }
+                        }
+                    }
+
+                    if (!isOffline) {
+                        launchParallelFetches(
+                            item = item,
+                            specialFeatureCount = specialFeatureCount,
+                            similarAlreadyLaunched = shouldFetchSimilarInParallel,
+                        )
+                    }
+
+                    if (!isOffline) {
+                        val nextEpisodeFetchCovered =
+                            when (item) {
+                                is AfinityShow -> itemType?.uppercase() == "SERIES"
+                                is AfinitySeason ->
+                                    itemType?.uppercase() == "SEASON" && seriesId != null
+                                else -> true
+                            }
+                        if (!nextEpisodeFetchCovered) {
+                            fetchNextEpisodeFor(item)
+                        }
+                    }
+                    if (item is AfinityMovie || item is AfinityShow || item is AfinitySeason) {
+                        launch { loadWikidataAwards(item, hasInternet) }
+                    }
+                    if (!isOffline && (item is AfinityMovie || item is AfinityShow)) {
+                        launch { loadRelatedRows(item) }
+                    }
+                    if (item is AfinityMovie || item is AfinityShow) {
+                        if (hasInternet) {
+                            launch { loadReviewsAndRatings(item) }
+                        } else {
+                            val offlineSession = sessionManager.currentSession.value
+                            val cachedMetadata =
+                                if (offlineSession != null) {
+                                    databaseRepository.getItemMetadata(
+                                        item.id,
+                                        offlineSession.serverId,
+                                        offlineSession.userId.toString(),
+                                    )
+                                } else null
+                            if (cachedMetadata != null) {
+                                _uiState.update { state ->
+                                    state.copy(
+                                        tmdbReviews = cachedMetadata.tmdbReviews,
+                                        mdbRatings = cachedMetadata.mdbRatings,
+                                        mdbRatingBadges = cachedMetadata.mdbRatingBadges,
+                                        omdbAwards = cachedMetadata.omdbAwards,
+                                        watchProviders = cachedMetadata.watchProviders,
+                                        isRatingsFromCache = true,
+                                    )
+                                }
                             }
                         }
                     }
 
-                if (item == null) {
-                    _uiState.value =
-                        _uiState.value.copy(
-                            isLoading = false,
-                            themeResolved = true,
-                            error =
-                                when {
-                                    offlineModeManager.connectivity.value
-                                        .let { it as? Connectivity.ServerUnreachable }
-                                        ?.reason == UnreachableReason.NO_ROUTE ->
-                                        context.getString(R.string.item_error_no_route)
-                                    isOffline -> context.getString(R.string.item_error_offline)
-                                    !hasInternet ->
-                                        context.getString(R.string.item_error_connection)
-                                    else -> context.getString(R.string.item_error_not_found)
-                                },
-                        )
-                    return@launch
-                }
-
-                _uiState.value =
-                    _uiState.value.copy(item = item, isLoading = false, hasInternet = hasInternet)
-                itemLastLoadedAt = System.currentTimeMillis()
-                freshUserData?.let { launch { mediaChangeManager.reconcileUserData(it) } }
-                if (!isOffline) {
-                    launch { backfillOfflineFields(item) }
-                }
-                if (!themeLookupStarted) {
-                    themeLookupStarted = true
-                    launch {
-                        val song =
-                            if (isOffline) {
-                                null
-                            } else {
+                    if (!isOffline) {
+                        if (item is AfinityBoxSet) {
+                            loadBoxSetItems(item.id)
+                            launch { loadCollectionParts(item) }
+                        }
+                        if (item is AfinityMovie && (item.partCount ?: 0) > 1) {
+                            launch {
                                 try {
-                                    themeMusicPlayer.resolve(item)
+                                    val parts = mediaRepository.getAdditionalParts(item.id)
+                                    if (parts.isNotEmpty()) {
+                                        _uiState.update { it.copy(movieParts = parts) }
+                                    }
                                 } catch (e: CancellationException) {
                                     throw e
                                 } catch (e: Exception) {
-                                    Timber.w(e, "Theme song lookup failed")
-                                    null
+                                    Timber.e(e, "Failed to fetch movie parts")
                                 }
                             }
-                        _uiState.update { it.copy(themeSong = song, themeResolved = true) }
-                    }
-                }
-
-                if (!isOffline) {
-                    launchParallelFetches(item, specialFeatureCount)
-                }
-
-                if (!isOffline) {
-                    val nextEpisodeFetchCovered =
-                        when (item) {
-                            is AfinityShow -> itemType?.uppercase() == "SERIES"
-                            is AfinitySeason ->
-                                itemType?.uppercase() == "SEASON" && seriesId != null
-                            else -> true
                         }
-                    if (!nextEpisodeFetchCovered) {
-                        fetchNextEpisodeFor(item)
-                    }
-                }
-                if (item is AfinityMovie || item is AfinityShow || item is AfinitySeason) {
-                    launch { loadWikidataAwards(item, hasInternet) }
-                }
-                if (!isOffline && (item is AfinityMovie || item is AfinityShow)) {
-                    launch { loadRelatedRows(item) }
-                }
-                if (item is AfinityMovie || item is AfinityShow) {
-                    if (hasInternet) {
-                        launch { loadReviewsAndRatings(item) }
                     } else {
-                        val offlineSession = sessionManager.currentSession.value
-                        val cachedMetadata =
-                            if (offlineSession != null) {
-                                databaseRepository.getItemMetadata(
-                                    item.id,
-                                    offlineSession.serverId,
-                                    offlineSession.userId.toString(),
-                                )
-                            } else null
-                        if (cachedMetadata != null) {
-                            _uiState.value =
-                                _uiState.value.copy(
-                                    tmdbReviews = cachedMetadata.tmdbReviews,
-                                    mdbRatings = cachedMetadata.mdbRatings,
-                                    mdbRatingBadges = cachedMetadata.mdbRatingBadges,
-                                    omdbAwards = cachedMetadata.omdbAwards,
-                                    watchProviders = cachedMetadata.watchProviders,
-                                    isRatingsFromCache = true,
-                                )
-                        }
-                    }
-                }
-
-                if (!isOffline) {
-                    if (item is AfinityBoxSet) {
-                        loadBoxSetItems(item.id)
-                        launch { loadCollectionParts(item) }
-                    }
-                    if (item is AfinityMovie && (item.partCount ?: 0) > 1) {
-                        launch {
-                            try {
-                                val parts = mediaRepository.getAdditionalParts(item.id)
-                                if (parts.isNotEmpty()) {
-                                    _uiState.update { it.copy(movieParts = parts) }
+                        when (item) {
+                            is AfinityShow -> {
+                                if (item.seasons.isNotEmpty()) {
+                                    val nextEpisode = getNextEpisodeOffline(item)
+                                    _uiState.update { state ->
+                                        state.copy(
+                                            seasons = item.seasons,
+                                            nextEpisode = nextEpisode,
+                                        )
+                                    }
                                 }
-                            } catch (e: CancellationException) {
-                                throw e
-                            } catch (e: Exception) {
-                                Timber.e(e, "Failed to fetch movie parts")
+                            }
+                            is AfinitySeason -> {
+                                if (item.episodes.isNotEmpty()) {
+                                    val pagingData =
+                                        kotlinx.coroutines.flow.flowOf(
+                                            PagingData.from(item.episodes.toList()),
+                                        )
+                                    _episodesPagingData.value = pagingData
+                                    val nextEpisode = getNextEpisodeForSeasonOffline(item)
+                                    _uiState.update { state ->
+                                        state.copy(
+                                            episodesPagingData = pagingData,
+                                            nextEpisode = nextEpisode,
+                                        )
+                                    }
+                                } else {
+                                    val emptyPagingData =
+                                        kotlinx.coroutines.flow.flowOf(
+                                            PagingData.empty<AfinityEpisode>(),
+                                        )
+                                    _episodesPagingData.value = emptyPagingData
+                                    _uiState.update { state ->
+                                        state.copy(episodesPagingData = emptyPagingData)
+                                    }
+                                }
                             }
                         }
                     }
-                } else {
-                    when (item) {
-                        is AfinityShow -> {
-                            if (item.seasons.isNotEmpty()) {
-                                _uiState.value =
-                                    _uiState.value.copy(
-                                        seasons = item.seasons,
-                                        nextEpisode = getNextEpisodeOffline(item),
-                                    )
-                            }
-                        }
-                        is AfinitySeason -> {
-                            if (item.episodes.isNotEmpty()) {
-                                val pagingData =
-                                    kotlinx.coroutines.flow.flowOf(
-                                        PagingData.from(item.episodes.toList()),
-                                    )
-                                _episodesPagingData.value = pagingData
-                                _uiState.value =
-                                    _uiState.value.copy(
-                                        episodesPagingData = pagingData,
-                                        nextEpisode = getNextEpisodeForSeasonOffline(item),
-                                    )
-                            } else {
-                                val emptyPagingData =
-                                    kotlinx.coroutines.flow.flowOf(
-                                        PagingData.empty<AfinityEpisode>(),
-                                    )
-                                _episodesPagingData.value = emptyPagingData
-                                _uiState.value =
-                                    _uiState.value.copy(episodesPagingData = emptyPagingData)
-                            }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    if (_uiState.value.item != null) {
+                        Timber.w(e, "Failed to refresh item details; keeping seeded item")
+                        _uiState.update { it.copy(isLoading = false, isDetailLoading = false) }
+                    } else {
+                        _uiState.update { state ->
+                            state.copy(
+                                isLoading = false,
+                                isDetailLoading = false,
+                                themeResolved = true,
+                                error =
+                                    context.getString(
+                                        R.string.error_failed_load_item_fmt,
+                                        e.message ?: "",
+                                    ),
+                            )
                         }
                     }
                 }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _uiState.value =
-                    _uiState.value.copy(
-                        isLoading = false,
-                        themeResolved = true,
-                        error =
-                            context.getString(R.string.error_failed_load_item_fmt, e.message ?: ""),
-                    )
             }
         }
     }
@@ -1121,18 +1207,28 @@ constructor(
         _uiState.update { state -> state.copy(relatedRows = rows) }
     }
 
-    private fun launchParallelFetches(item: AfinityItem, specialFeatureCount: Int) {
+    private fun fetchSimilarItems() {
+        viewModelScope.launch {
+            try {
+                val similar = mediaRepository.getSimilarItems(itemId)
+                _uiState.update { it.copy(similarItems = similar) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to get similar items")
+            }
+        }
+    }
+
+    private fun launchParallelFetches(
+        item: AfinityItem,
+        specialFeatureCount: Int,
+        similarAlreadyLaunched: Boolean = false,
+    ) {
         when (itemType?.uppercase()) {
             "SERIES" -> {
-                viewModelScope.launch {
-                    try {
-                        val similar = mediaRepository.getSimilarItems(itemId)
-                        _uiState.update { it.copy(similarItems = similar) }
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        Timber.e(e, "Failed to get similar items")
-                    }
+                if (!similarAlreadyLaunched) {
+                    fetchSimilarItems()
                 }
                 if (specialFeatureCount > 0) {
                     viewModelScope.launch {
@@ -1197,17 +1293,10 @@ constructor(
             }
             "PLAYLIST" -> {}
             else -> {
-                if (item !is AfinityBoxSet && item !is AfinityMusicVideo) {
-                    viewModelScope.launch {
-                        try {
-                            val similar = mediaRepository.getSimilarItems(itemId)
-                            _uiState.update { it.copy(similarItems = similar) }
-                        } catch (e: CancellationException) {
-                            throw e
-                        } catch (e: Exception) {
-                            Timber.e(e, "Failed to get similar items")
-                        }
-                    }
+                if (
+                    !similarAlreadyLaunched && item !is AfinityBoxSet && item !is AfinityMusicVideo
+                ) {
+                    fetchSimilarItems()
                 }
                 if (specialFeatureCount > 0) {
                     viewModelScope.launch {
@@ -1333,8 +1422,20 @@ constructor(
     private suspend fun loadItemFromDatabase(): AfinityItem? {
         return try {
             val userId = authRepository.currentUser.value?.id ?: return null
+            val preferred =
+                when (itemType?.uppercase()) {
+                    "MOVIE" -> databaseRepository.getMovie(itemId, userId)
+                    "SERIES" -> databaseRepository.getShow(itemId, userId)
+                    "SEASON" -> databaseRepository.getSeason(itemId, userId)
+                    "EPISODE" -> databaseRepository.getEpisode(itemId, userId)
+                    "VIDEO" -> databaseRepository.getVideo(itemId, userId)
+                    "MUSICVIDEO",
+                    "MUSIC_VIDEO" -> databaseRepository.getMusicVideo(itemId, userId)
+                    else -> null
+                }
             val item =
-                databaseRepository.getMovie(itemId, userId)
+                preferred
+                    ?: databaseRepository.getMovie(itemId, userId)
                     ?: databaseRepository.getShow(itemId, userId)
                     ?: databaseRepository.getSeason(itemId, userId)
                     ?: databaseRepository.getEpisode(itemId, userId)
@@ -1346,6 +1447,8 @@ constructor(
                     databaseRepository.getShow(item.seriesId, userId)?.runtimeTicks ?: 0L
                 if (seriesRuntime > 0L) item.copy(runtimeTicks = seriesRuntime) else item
             } else item
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: Exception) {
             null
         }
@@ -2082,6 +2185,7 @@ sealed interface CollectionPlaybackEvent {
     data object Failed : CollectionPlaybackEvent
 }
 
+@Immutable
 data class RelatedRow(val kind: Kind, val subject: String, val items: List<AfinityItem>) {
     enum class Kind {
         STARRING,
@@ -2089,6 +2193,7 @@ data class RelatedRow(val kind: Kind, val subject: String, val items: List<Afini
     }
 }
 
+@Immutable
 data class ItemDetailUiState(
     val item: AfinityItem? = null,
     val seasons: List<AfinitySeason> = emptyList(),
@@ -2124,6 +2229,7 @@ data class ItemDetailUiState(
     val movieParts: List<AfinityItem> = emptyList(),
     val themeSong: ThemeSong? = null,
     val themeResolved: Boolean = false,
+    val isDetailLoading: Boolean = false,
 ) {
     val hasPlayableItems: Boolean
         get() =

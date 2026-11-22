@@ -1,5 +1,6 @@
 package com.makd.afinity.data.models
 
+import androidx.compose.runtime.Immutable
 import androidx.core.net.toUri
 import com.makd.afinity.data.models.media.AfinityItem
 import com.makd.afinity.data.models.media.AfinityMovie
@@ -19,6 +20,7 @@ data class CachedPersonWithCount(
     val imageTag: String? = null,
 )
 
+@Immutable
 data class PersonWithCount(val person: AfinityPerson, val appearanceCount: Int) {
     fun toCached(): CachedPersonWithCount {
         return CachedPersonWithCount(
@@ -70,6 +72,7 @@ enum class PersonSectionType {
         }
 }
 
+@Immutable
 data class PersonSection(
     val person: AfinityPerson,
     val appearanceCount: Int,
@@ -83,12 +86,14 @@ enum class MovieSectionType {
     STARRING_ACTOR_FROM,
 }
 
+@Immutable
 data class MovieSection(
     val referenceMovie: AfinityMovie,
     val recommendedItems: List<AfinityMovie>,
     val sectionType: MovieSectionType,
 )
 
+@Immutable
 data class PersonFromMovieSection(
     val person: AfinityPerson,
     val referenceMovie: AfinityMovie,

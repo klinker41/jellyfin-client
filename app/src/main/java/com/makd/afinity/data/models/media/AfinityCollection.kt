@@ -1,11 +1,13 @@
 package com.makd.afinity.data.models.media
 
+import androidx.compose.runtime.Immutable
 import com.makd.afinity.data.models.common.CollectionType
 import com.makd.afinity.data.models.extensions.toAfinityImages
 import java.util.UUID
 import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.api.BaseItemKind
 
+@Immutable
 data class AfinityCollection(
     override val id: UUID,
     override val name: String,

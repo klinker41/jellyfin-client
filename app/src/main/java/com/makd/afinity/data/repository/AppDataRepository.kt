@@ -60,6 +60,7 @@ import com.makd.afinity.data.store.ItemStore
 import com.makd.afinity.di.ApplicationScope
 import com.makd.afinity.util.ItemIds
 import com.makd.afinity.util.JellyfinImageUrlBuilder
+import com.makd.afinity.util.perfTraceAsync
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.UUID
 import javax.inject.Inject
@@ -629,25 +630,37 @@ constructor(
         }
     }
 
-    private suspend fun restoreBookShelves(cacheKey: String) {
-        val serializer = ListSerializer(CachedBookShelf.serializer())
-        fun decode(raw: String?): List<CachedBookShelf>? = raw?.let {
-            try {
-                bookShelfJson.decodeFromString(serializer, it)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Timber.w(e, "Unreadable cached book row")
-                null
-            }
+    private fun decodeCachedShelf(raw: String?): List<CachedBookShelf>? = raw?.let {
+        try {
+            bookShelfJson.decodeFromString(ListSerializer(CachedBookShelf.serializer()), it)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Timber.w(e, "Unreadable cached shelf row")
+            null
         }
-        val hidden = homeLayoutPreferencesRepository.getHiddenRows()
-        val books =
-            if (HomeRow.LATEST_BOOKS in hidden) null
-            else decode(homeCacheRepository.getRaw("latest_books_$cacheKey"))
-        val audiobooks =
-            if (HomeRow.LATEST_AUDIOBOOKS in hidden) null
-            else decode(homeCacheRepository.getRaw("latest_audiobooks_$cacheKey"))
+    }
+
+    private suspend fun restoreBookShelves(
+        cacheKey: String,
+        hiddenRows: Set<HomeRow>? = null,
+    ) {
+        val hidden = hiddenRows ?: homeLayoutPreferencesRepository.getHiddenRows()
+        val (books, audiobooks) =
+            coroutineScope {
+                val booksDeferred = async {
+                    if (HomeRow.LATEST_BOOKS in hidden) null
+                    else decodeCachedShelf(homeCacheRepository.getRaw("latest_books_$cacheKey"))
+                }
+                val audiobooksDeferred = async {
+                    if (HomeRow.LATEST_AUDIOBOOKS in hidden) null
+                    else
+                        decodeCachedShelf(
+                            homeCacheRepository.getRaw("latest_audiobooks_$cacheKey"),
+                        )
+                }
+                booksDeferred.await() to audiobooksDeferred.await()
+            }
         applyBookShelves(books, audiobooks)
     }
 
@@ -756,25 +769,29 @@ constructor(
         }
     }
 
-    private suspend fun restoreVideoShelves(cacheKey: String) {
-        val serializer = ListSerializer(CachedBookShelf.serializer())
-        fun decode(raw: String?): List<CachedBookShelf>? = raw?.let {
-            try {
-                bookShelfJson.decodeFromString(serializer, it)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Timber.w(e, "Unreadable cached video row")
-                null
+    private suspend fun restoreVideoShelves(
+        cacheKey: String,
+        hiddenRows: Set<HomeRow>? = null,
+    ) {
+        val hidden = hiddenRows ?: homeLayoutPreferencesRepository.getHiddenRows()
+        val (home, music) =
+            coroutineScope {
+                val homeDeferred = async {
+                    if (HomeRow.LATEST_HOME_VIDEOS in hidden) null
+                    else
+                        decodeCachedShelf(
+                            homeCacheRepository.getRaw("latest_home_videos_$cacheKey"),
+                        )
+                }
+                val musicDeferred = async {
+                    if (HomeRow.LATEST_MUSIC_VIDEOS in hidden) null
+                    else
+                        decodeCachedShelf(
+                            homeCacheRepository.getRaw("latest_music_videos_$cacheKey"),
+                        )
+                }
+                homeDeferred.await() to musicDeferred.await()
             }
-        }
-        val hidden = homeLayoutPreferencesRepository.getHiddenRows()
-        val home =
-            if (HomeRow.LATEST_HOME_VIDEOS in hidden) null
-            else decode(homeCacheRepository.getRaw("latest_home_videos_$cacheKey"))
-        val music =
-            if (HomeRow.LATEST_MUSIC_VIDEOS in hidden) null
-            else decode(homeCacheRepository.getRaw("latest_music_videos_$cacheKey"))
         applyVideoShelves(home, music)
     }
 
@@ -858,121 +875,141 @@ constructor(
         }
     }
 
-    private suspend fun performInitialDataLoad() {
-        if (_isInitialDataLoaded.value) return
-        _initialLoadFailed.value = false
+    private suspend fun performInitialDataLoad() =
+        perfTraceAsync("AppData.initialLoad") {
+            if (_isInitialDataLoaded.value) return@perfTraceAsync
+            _initialLoadFailed.value = false
 
-        val session = sessionManager.currentSession.value
-        val cacheKey = "${session?.serverId}_${session?.userId}"
-        val hasSession = session != null && session.serverId.isNotBlank()
+            val session = sessionManager.currentSession.value
+            val cacheKey = "${session?.serverId}_${session?.userId}"
+            val hasSession = session != null && session.serverId.isNotBlank()
 
-        if (hasSession) {
-            seedNavCounts(session.serverId, session.userId.toString())
-            mediaRepository.seedHasLiveTvLibrary()
-            val currentBaseUrl = mediaRepository.getBaseUrl()
-            val cachedMovies =
-                homeCacheRepository.getLatestMovies("latest_movies_$cacheKey", currentBaseUrl)
-            val latestMoviesHidden =
-                HomeRow.LATEST_MOVIES in homeLayoutPreferencesRepository.getHiddenRows()
-            if (cachedMovies != null || latestMoviesHidden) {
-                Timber.d("Cache hit — rendering immediately, refreshing in the background")
-                _latestMovies.value = cachedMovies.orEmpty()
-                _latestTvSeries.value =
-                    homeCacheRepository.getLatestShows("latest_shows_$cacheKey", currentBaseUrl)
-                        ?: emptyList()
-                mediaRepository.restoreCachedLibraries()?.let { _libraries.value = it }
-                restoreBookShelves(cacheKey)
-                restoreVideoShelves(cacheKey)
-
-                startLiveDataCollectors()
-                updateProgress(1f, context.getString(R.string.loading_phase_ready))
-                _isInitialDataLoaded.value = true
-
-                scope.launch {
-                    try {
-                        _heroCarouselItems.value = loadHeroCarousel()
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        Timber.e(e, "Carousel fetch failed on cache-hit path")
-                    } finally {
-                        _heroLoaded.value = true
+            if (hasSession) {
+                val currentBaseUrl = mediaRepository.getBaseUrl()
+                val (hiddenRows, cachedMovies) =
+                    coroutineScope {
+                        launch { seedNavCounts(session.serverId, session.userId.toString()) }
+                        launch { mediaRepository.seedHasLiveTvLibrary() }
+                        val hiddenDeferred = async {
+                            homeLayoutPreferencesRepository.getHiddenRows()
+                        }
+                        val cachedMoviesDeferred = async {
+                            homeCacheRepository.getLatestMovies(
+                                "latest_movies_$cacheKey",
+                                currentBaseUrl,
+                            )
+                        }
+                        hiddenDeferred.await() to cachedMoviesDeferred.await()
                     }
-                }
-
-                backgroundRefreshJob?.cancel()
-                backgroundRefreshJob = scope.launch {
-                    try {
-                        performBackgroundNetworkRefresh(cacheKey)
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        Timber.e(e, "Background refresh failed after cache-hit render")
+                val latestMoviesHidden = HomeRow.LATEST_MOVIES in hiddenRows
+                if (cachedMovies != null || latestMoviesHidden) {
+                    Timber.d("Cache hit — rendering immediately, refreshing in the background")
+                    _latestMovies.value = cachedMovies.orEmpty()
+                    coroutineScope {
+                        val showsDeferred = async {
+                            homeCacheRepository.getLatestShows(
+                                "latest_shows_$cacheKey",
+                                currentBaseUrl,
+                            ) ?: emptyList()
+                        }
+                        val libsDeferred = async { mediaRepository.restoreCachedLibraries() }
+                        launch { restoreBookShelves(cacheKey, hiddenRows) }
+                        launch { restoreVideoShelves(cacheKey, hiddenRows) }
+                        _latestTvSeries.value = showsDeferred.await()
+                        libsDeferred.await()?.let { _libraries.value = it }
                     }
-                    _homeEssentialsReady.value = true
-                    launchNavCountsRefresh()
+
+                    startLiveDataCollectors()
+                    updateProgress(1f, context.getString(R.string.loading_phase_ready))
+                    _isInitialDataLoaded.value = true
+
+                    scope.launch {
+                        try {
+                            _heroCarouselItems.value = loadHeroCarousel()
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            Timber.e(e, "Carousel fetch failed on cache-hit path")
+                        } finally {
+                            _heroLoaded.value = true
+                        }
+                    }
+
+                    backgroundRefreshJob?.cancel()
+                    backgroundRefreshJob = scope.launch {
+                        try {
+                            performBackgroundNetworkRefresh(cacheKey)
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            Timber.e(e, "Background refresh failed after cache-hit render")
+                        }
+                        _homeEssentialsReady.value = true
+                        launchNavCountsRefresh()
+                    }
+                    return@perfTraceAsync
                 }
-                return
             }
-        }
 
-        try {
-            coroutineScope {
-                updateProgress(0.1f, context.getString(R.string.loading_phase_connecting))
+            try {
+                coroutineScope {
+                    updateProgress(0.1f, context.getString(R.string.loading_phase_connecting))
 
-                val continueWatchingDeferred = async {
-                    refreshPlaybackRow(HomeRow.CONTINUE_WATCHING) {
-                        mediaRepository.invalidateContinueWatchingCache()
+                    val continueWatchingDeferred = async {
+                        refreshPlaybackRow(HomeRow.CONTINUE_WATCHING) {
+                            mediaRepository.invalidateContinueWatchingCache()
+                        }
                     }
-                }
-                val nextUpDeferred = async {
-                    refreshPlaybackRow(HomeRow.NEXT_UP) { mediaRepository.invalidateNextUpCache() }
-                }
-                val continueBookRowsDeferred = async { refreshContinueBookRows() }
-                val heroCarouselDeferred = async { loadHeroCarousel() }
-                val librariesDeferred = async { loadLibraries(reportFailure = true) }
-
-                updateProgress(0.3f, context.getString(R.string.loading_phase_fetching))
-
-                continueWatchingDeferred.await()
-                nextUpDeferred.await()
-                continueBookRowsDeferred.await()
-
-                startLiveDataCollectors()
-                updateProgress(1f, context.getString(R.string.loading_phase_ready))
-                _isInitialDataLoaded.value = true
-
-                launch {
-                    try {
-                        _heroCarouselItems.value = heroCarouselDeferred.await()
-                    } finally {
-                        _heroLoaded.value = true
+                    val nextUpDeferred = async {
+                        refreshPlaybackRow(HomeRow.NEXT_UP) {
+                            mediaRepository.invalidateNextUpCache()
+                        }
                     }
+                    val continueBookRowsDeferred = async { refreshContinueBookRows() }
+                    val heroCarouselDeferred = async { loadHeroCarousel() }
+                    val librariesDeferred = async { loadLibraries(reportFailure = true) }
+
+                    updateProgress(0.3f, context.getString(R.string.loading_phase_fetching))
+
+                    continueWatchingDeferred.await()
+                    nextUpDeferred.await()
+                    continueBookRowsDeferred.await()
+
+                    startLiveDataCollectors()
+                    updateProgress(1f, context.getString(R.string.loading_phase_ready))
+                    _isInitialDataLoaded.value = true
+
+                    launch {
+                        try {
+                            _heroCarouselItems.value = heroCarouselDeferred.await()
+                        } finally {
+                            _heroLoaded.value = true
+                        }
+                    }
+
+                    val libraries = librariesDeferred.await()
+                    _libraries.value = libraries
+
+                    val (latestMovies, latestTvSeries) = loadHomeSpecificData(libraries)
+                    _latestMovies.value = latestMovies
+                    _latestTvSeries.value = latestTvSeries
+
+                    if (hasSession) {
+                        persistHomeCache(cacheKey, latestMovies, latestTvSeries)
+                    }
+                    launch { refreshBookShelves(libraries, cacheKey.takeIf { hasSession }) }
+                    launch { refreshVideoShelves(libraries, cacheKey.takeIf { hasSession }) }
                 }
-
-                val libraries = librariesDeferred.await()
-                _libraries.value = libraries
-
-                val (latestMovies, latestTvSeries) = loadHomeSpecificData(libraries)
-                _latestMovies.value = latestMovies
-                _latestTvSeries.value = latestTvSeries
-
-                if (hasSession) {
-                    persistHomeCache(cacheKey, latestMovies, latestTvSeries)
-                }
-                launch { refreshBookShelves(libraries, cacheKey.takeIf { hasSession }) }
-                launch { refreshVideoShelves(libraries, cacheKey.takeIf { hasSession }) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load initial app data")
+                throw e
+            } finally {
+                _homeEssentialsReady.value = true
             }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to load initial app data")
-            throw e
-        } finally {
-            _homeEssentialsReady.value = true
+            launchNavCountsRefresh()
         }
-        launchNavCountsRefresh()
-    }
 
     private suspend fun performBackgroundNetworkRefresh(
         cacheKey: String,

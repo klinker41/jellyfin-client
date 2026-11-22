@@ -28,8 +28,10 @@ fun PrimaryPlaybackButton(
 
     val isUnplayable = targetItem == null || (targetItem as? AfinityEpisode)?.missing == true
 
-    if (isUnplayable) {
-        if (isLoading && targetItem == null) {
+    val isWaitingForSources = isLoading && targetItem != null && targetItem.sources.isEmpty()
+
+    if (isUnplayable || isWaitingForSources) {
+        if (isLoading && (targetItem == null || isWaitingForSources)) {
             DetailPrimaryButton(
                 text = stringResource(R.string.status_loading),
                 onClick = {},

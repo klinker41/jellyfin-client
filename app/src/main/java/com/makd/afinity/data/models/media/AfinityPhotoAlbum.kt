@@ -1,8 +1,10 @@
 package com.makd.afinity.data.models.media
 
+import androidx.compose.runtime.Immutable
 import java.time.LocalDateTime
 import java.util.UUID
 
+@Immutable
 data class AfinityPhotoAlbum(
     override val id: UUID,
     override val name: String,

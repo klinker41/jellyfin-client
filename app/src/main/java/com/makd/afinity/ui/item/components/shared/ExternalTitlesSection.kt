@@ -69,7 +69,11 @@ fun ExternalTitlesSection(
         }
 
         CardRow(modifier = Modifier.height(fixedRowHeight)) {
-            items(titles.items, key = { "${it.mediaType}_${it.id}" }) { item ->
+            items(
+                items = titles.items,
+                key = { "${it.mediaType}_${it.id}" },
+                contentType = { "external_title_card" },
+            ) { item ->
                 DiscoverMediaCard(
                     item = item,
                     onClick = {

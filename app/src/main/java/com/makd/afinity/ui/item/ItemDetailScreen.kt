@@ -25,7 +25,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -121,7 +120,7 @@ import com.makd.afinity.ui.music.components.AddToPlaylistDialog
 import com.makd.afinity.ui.player.PlayerLauncher
 import com.makd.afinity.ui.utils.IntentUtils
 import com.makd.afinity.ui.utils.rememberTopBarOpacity
-import com.makd.afinity.util.rememberPreferencesRepository
+import com.makd.afinity.util.ReportDrawnAfterFirstFrame
 import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.flow.Flow
@@ -144,13 +143,14 @@ fun ItemDetailScreen(
     onIdentifyClick: (itemId: String, itemType: String) -> Unit,
     onItemDeleted: () -> Unit,
     onHomeClick: () -> Unit,
+    widthSizeClass: WindowWidthSizeClass,
     modifier: Modifier = Modifier,
     onShowSnackbar: (String) -> Unit = {},
     onCollectionCreated: (collectionId: String, message: String) -> Unit = { _, message ->
         onShowSnackbar(message)
     },
     viewModel: ItemDetailViewModel = hiltViewModel(),
-    widthSizeClass: WindowWidthSizeClass,
+    episodeLayout: EpisodeLayout = EpisodeLayout.HORIZONTAL,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val selectedEpisode by viewModel.selectedEpisode.collectAsStateWithLifecycle()
@@ -167,14 +167,12 @@ fun ItemDetailScreen(
     val isOffline by viewModel.isOffline.collectAsStateWithLifecycle()
     val mayDeleteMedia by viewModel.mayDeleteMedia.collectAsStateWithLifecycle()
     val deletableItemIds by viewModel.deletableItemIds.collectAsStateWithLifecycle()
+    val canManageCollections by viewModel.canManageCollections.collectAsStateWithLifecycle()
+    val selectedMediaSource by viewModel.selectedMediaSource.collectAsStateWithLifecycle()
     var showEpisodeRefreshDialog by remember { mutableStateOf(false) }
     var showEpisodeDeleteDialog by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
-    val preferencesRepository = rememberPreferencesRepository()
-    val detailLayoutFlow =
-        remember(preferencesRepository) { preferencesRepository.getDetailLayoutFlow() }
-    val detailLayout by
-        detailLayoutFlow.collectAsStateWithLifecycle<DetailLayout?>(initialValue = null)
+    val detailLayout = LocalDetailLayout.current
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -266,7 +264,6 @@ fun ItemDetailScreen(
         }
 
     Box(modifier = modifier.fillMaxSize()) {
-        val resolvedLayout = detailLayout
         when {
             uiState.isLoading -> {
                 FullScreenLoading()
@@ -278,10 +275,12 @@ fun ItemDetailScreen(
                     onActionClick = { viewModel.loadItem() },
                 )
             }
-            uiState.item != null && resolvedLayout != null -> {
+            uiState.item != null -> {
+                ReportDrawnAfterFirstFrame()
                 CompositionLocalProvider(LocalHeroImageLoaded provides onHeroLoaded) {
                     ItemDetailContent(
-                        detailLayout = resolvedLayout,
+                        detailLayout = detailLayout,
+                        episodeLayoutPreference = episodeLayout,
                         item = uiState.item!!,
                         hasPlayableItems = uiState.hasPlayableItems,
                         seasons = uiState.seasons,
@@ -303,6 +302,19 @@ fun ItemDetailScreen(
                         wikidataAwards = uiState.wikidataAwards,
                         isRatingsFromCache = uiState.isRatingsFromCache,
                         movieParts = uiState.movieParts,
+                        isPlayLoading = uiState.isLoading || uiState.isDetailLoading,
+                        isStartingCollectionPlayback = uiState.isStartingCollectionPlayback,
+                        downloadUnavailable = uiState.downloadUnavailable,
+                        watchProviders = uiState.watchProviders,
+                        hasInternet = uiState.hasInternet,
+                        isDownloadAllowedByServer = isDownloadAllowedByServer,
+                        canDownloadOnNetwork = canDownloadOnNetwork,
+                        isAdmin = isAdmin,
+                        isOffline = isOffline,
+                        mayDeleteMedia = mayDeleteMedia,
+                        deletableItemIds = deletableItemIds,
+                        canManageCollections = canManageCollections,
+                        selectedMediaSource = selectedMediaSource,
                         onPlayClick = { item, selection -> interceptPlayClick(item, selection) },
                         onBoxSetItemClick = { item ->
                             if (item is AfinityEpisode) {
@@ -525,6 +537,7 @@ fun ItemDetailScreen(
 @Composable
 private fun ItemDetailContent(
     detailLayout: DetailLayout,
+    episodeLayoutPreference: EpisodeLayout,
     item: AfinityItem,
     hasPlayableItems: Boolean,
     seasons: List<AfinitySeason>,
@@ -546,6 +559,19 @@ private fun ItemDetailContent(
     wikidataAwards: WikidataAwards?,
     isRatingsFromCache: Boolean,
     movieParts: List<AfinityItem>,
+    isPlayLoading: Boolean,
+    isStartingCollectionPlayback: Boolean,
+    downloadUnavailable: Boolean,
+    watchProviders: com.makd.afinity.data.models.tmdb.TmdbRegionProviders?,
+    hasInternet: Boolean,
+    isDownloadAllowedByServer: Boolean,
+    canDownloadOnNetwork: Boolean,
+    isAdmin: Boolean,
+    isOffline: Boolean,
+    mayDeleteMedia: Boolean,
+    deletableItemIds: Set<UUID>,
+    canManageCollections: Boolean,
+    selectedMediaSource: MediaSourceOption?,
     onPlayClick: (AfinityItem, PlaybackSelection?) -> Unit,
     onBoxSetItemClick: (AfinityItem) -> Unit,
     onSpecialFeatureClick: (AfinityItem) -> Unit,
@@ -566,7 +592,6 @@ private fun ItemDetailContent(
     viewModel: ItemDetailViewModel,
     widthSizeClass: WindowWidthSizeClass,
 ) {
-    val context = LocalContext.current
     val isLandscape = isLandscapeWindow()
 
     val lazyListState = rememberLazyListState()
@@ -583,98 +608,122 @@ private fun ItemDetailContent(
         mode = AfinityScreenMode.Hero,
         scrollOpacity = { topBarOpacity },
     ) {
-        CompositionLocalProvider(LocalDetailLayout provides detailLayout) {
-            if (isLandscape) {
-                LandscapeItemDetailContent(
-                    item = item,
-                    hasPlayableItems = hasPlayableItems,
-                    seasons = seasons,
-                    boxSetItems = boxSetItems,
-                    containingBoxSets = containingBoxSets,
-                    similarItems = similarItems,
-                    relatedRows = relatedRows,
-                    missingCollectionParts = missingCollectionParts,
-                    nextEpisode = nextEpisode,
-                    baseUrl = baseUrl,
-                    specialFeatures = specialFeatures,
-                    isInWatchlist = isInWatchlist,
-                    episodesPagingData = episodesPagingData,
-                    downloadInfo = downloadInfo,
-                    tmdbReviews = tmdbReviews,
-                    mdbRatings = mdbRatings,
-                    mdbRatingBadges = mdbRatingBadges,
-                    omdbAwards = omdbAwards,
-                    wikidataAwards = wikidataAwards,
-                    isRatingsFromCache = isRatingsFromCache,
-                    movieParts = movieParts,
-                    onPlayClick = onPlayClick,
-                    onBoxSetItemClick = onBoxSetItemClick,
-                    onSpecialFeatureClick = onSpecialFeatureClick,
-                    onItemClick = onItemClick,
-                    onSeriesClick = onSeriesClick,
-                    onSeasonClick = onSeasonClick,
-                    onPersonClick = onPersonClick,
-                    onNavigateToSeerrMedia = onNavigateToSeerrMedia,
-                    onMusicArtistClick = onMusicArtistClick,
-                    onMusicAlbumClick = onMusicAlbumClick,
-                    onEditMetadataClick = onEditMetadataClick,
-                    onEditImagesClick = onEditImagesClick,
-                    onIdentifyClick = onIdentifyClick,
-                    onItemDeleted = onItemDeleted,
-                    onShowSnackbar = onShowSnackbar,
-                    onCollectionCreated = onCollectionCreated,
-                    viewModel = viewModel,
-                    context = context,
-                    widthSizeClass = widthSizeClass,
-                    detailLayout = detailLayout,
-                    lazyListState = lazyListState,
-                )
-            } else {
-                PortraitItemDetailContent(
-                    item = item,
-                    hasPlayableItems = hasPlayableItems,
-                    seasons = seasons,
-                    boxSetItems = boxSetItems,
-                    containingBoxSets = containingBoxSets,
-                    similarItems = similarItems,
-                    relatedRows = relatedRows,
-                    missingCollectionParts = missingCollectionParts,
-                    nextEpisode = nextEpisode,
-                    baseUrl = baseUrl,
-                    specialFeatures = specialFeatures,
-                    isInWatchlist = isInWatchlist,
-                    episodesPagingData = episodesPagingData,
-                    downloadInfo = downloadInfo,
-                    tmdbReviews = tmdbReviews,
-                    mdbRatings = mdbRatings,
-                    mdbRatingBadges = mdbRatingBadges,
-                    omdbAwards = omdbAwards,
-                    wikidataAwards = wikidataAwards,
-                    isRatingsFromCache = isRatingsFromCache,
-                    movieParts = movieParts,
-                    onPlayClick = onPlayClick,
-                    onBoxSetItemClick = onBoxSetItemClick,
-                    onSpecialFeatureClick = onSpecialFeatureClick,
-                    onItemClick = onItemClick,
-                    onSeriesClick = onSeriesClick,
-                    onSeasonClick = onSeasonClick,
-                    onPersonClick = onPersonClick,
-                    onNavigateToSeerrMedia = onNavigateToSeerrMedia,
-                    onMusicArtistClick = onMusicArtistClick,
-                    onMusicAlbumClick = onMusicAlbumClick,
-                    onEditMetadataClick = onEditMetadataClick,
-                    onEditImagesClick = onEditImagesClick,
-                    onIdentifyClick = onIdentifyClick,
-                    onItemDeleted = onItemDeleted,
-                    onShowSnackbar = onShowSnackbar,
-                    onCollectionCreated = onCollectionCreated,
-                    viewModel = viewModel,
-                    context = context,
-                    widthSizeClass = widthSizeClass,
-                    detailLayout = detailLayout,
-                    lazyListState = lazyListState,
-                )
-            }
+        if (isLandscape) {
+            LandscapeItemDetailContent(
+                item = item,
+                hasPlayableItems = hasPlayableItems,
+                seasons = seasons,
+                boxSetItems = boxSetItems,
+                containingBoxSets = containingBoxSets,
+                similarItems = similarItems,
+                relatedRows = relatedRows,
+                missingCollectionParts = missingCollectionParts,
+                nextEpisode = nextEpisode,
+                baseUrl = baseUrl,
+                specialFeatures = specialFeatures,
+                isInWatchlist = isInWatchlist,
+                episodesPagingData = episodesPagingData,
+                downloadInfo = downloadInfo,
+                tmdbReviews = tmdbReviews,
+                mdbRatings = mdbRatings,
+                mdbRatingBadges = mdbRatingBadges,
+                omdbAwards = omdbAwards,
+                wikidataAwards = wikidataAwards,
+                isRatingsFromCache = isRatingsFromCache,
+                movieParts = movieParts,
+                isPlayLoading = isPlayLoading,
+                isStartingCollectionPlayback = isStartingCollectionPlayback,
+                downloadUnavailable = downloadUnavailable,
+                watchProviders = watchProviders,
+                hasInternet = hasInternet,
+                isDownloadAllowedByServer = isDownloadAllowedByServer,
+                canDownloadOnNetwork = canDownloadOnNetwork,
+                isAdmin = isAdmin,
+                isOffline = isOffline,
+                mayDeleteMedia = mayDeleteMedia,
+                deletableItemIds = deletableItemIds,
+                canManageCollections = canManageCollections,
+                selectedMediaSource = selectedMediaSource,
+                onPlayClick = onPlayClick,
+                onBoxSetItemClick = onBoxSetItemClick,
+                onSpecialFeatureClick = onSpecialFeatureClick,
+                onItemClick = onItemClick,
+                onSeriesClick = onSeriesClick,
+                onSeasonClick = onSeasonClick,
+                onPersonClick = onPersonClick,
+                onNavigateToSeerrMedia = onNavigateToSeerrMedia,
+                onMusicArtistClick = onMusicArtistClick,
+                onMusicAlbumClick = onMusicAlbumClick,
+                onEditMetadataClick = onEditMetadataClick,
+                onEditImagesClick = onEditImagesClick,
+                onIdentifyClick = onIdentifyClick,
+                onItemDeleted = onItemDeleted,
+                onShowSnackbar = onShowSnackbar,
+                onCollectionCreated = onCollectionCreated,
+                viewModel = viewModel,
+                widthSizeClass = widthSizeClass,
+                detailLayout = detailLayout,
+                episodeLayoutPreference = episodeLayoutPreference,
+                lazyListState = lazyListState,
+            )
+        } else {
+            PortraitItemDetailContent(
+                item = item,
+                hasPlayableItems = hasPlayableItems,
+                seasons = seasons,
+                boxSetItems = boxSetItems,
+                containingBoxSets = containingBoxSets,
+                similarItems = similarItems,
+                relatedRows = relatedRows,
+                missingCollectionParts = missingCollectionParts,
+                nextEpisode = nextEpisode,
+                baseUrl = baseUrl,
+                specialFeatures = specialFeatures,
+                isInWatchlist = isInWatchlist,
+                episodesPagingData = episodesPagingData,
+                downloadInfo = downloadInfo,
+                tmdbReviews = tmdbReviews,
+                mdbRatings = mdbRatings,
+                mdbRatingBadges = mdbRatingBadges,
+                omdbAwards = omdbAwards,
+                wikidataAwards = wikidataAwards,
+                isRatingsFromCache = isRatingsFromCache,
+                movieParts = movieParts,
+                isPlayLoading = isPlayLoading,
+                isStartingCollectionPlayback = isStartingCollectionPlayback,
+                downloadUnavailable = downloadUnavailable,
+                watchProviders = watchProviders,
+                hasInternet = hasInternet,
+                isDownloadAllowedByServer = isDownloadAllowedByServer,
+                canDownloadOnNetwork = canDownloadOnNetwork,
+                isAdmin = isAdmin,
+                isOffline = isOffline,
+                mayDeleteMedia = mayDeleteMedia,
+                deletableItemIds = deletableItemIds,
+                canManageCollections = canManageCollections,
+                selectedMediaSource = selectedMediaSource,
+                onPlayClick = onPlayClick,
+                onBoxSetItemClick = onBoxSetItemClick,
+                onSpecialFeatureClick = onSpecialFeatureClick,
+                onItemClick = onItemClick,
+                onSeriesClick = onSeriesClick,
+                onSeasonClick = onSeasonClick,
+                onPersonClick = onPersonClick,
+                onNavigateToSeerrMedia = onNavigateToSeerrMedia,
+                onMusicArtistClick = onMusicArtistClick,
+                onMusicAlbumClick = onMusicAlbumClick,
+                onEditMetadataClick = onEditMetadataClick,
+                onEditImagesClick = onEditImagesClick,
+                onIdentifyClick = onIdentifyClick,
+                onItemDeleted = onItemDeleted,
+                onShowSnackbar = onShowSnackbar,
+                onCollectionCreated = onCollectionCreated,
+                viewModel = viewModel,
+                widthSizeClass = widthSizeClass,
+                detailLayout = detailLayout,
+                episodeLayoutPreference = episodeLayoutPreference,
+                lazyListState = lazyListState,
+            )
         }
     }
 }
@@ -702,6 +751,19 @@ private fun LandscapeItemDetailContent(
     wikidataAwards: WikidataAwards?,
     isRatingsFromCache: Boolean,
     movieParts: List<AfinityItem>,
+    isPlayLoading: Boolean,
+    isStartingCollectionPlayback: Boolean,
+    downloadUnavailable: Boolean,
+    watchProviders: com.makd.afinity.data.models.tmdb.TmdbRegionProviders?,
+    hasInternet: Boolean,
+    isDownloadAllowedByServer: Boolean,
+    canDownloadOnNetwork: Boolean,
+    isAdmin: Boolean,
+    isOffline: Boolean,
+    mayDeleteMedia: Boolean,
+    deletableItemIds: Set<UUID>,
+    canManageCollections: Boolean,
+    selectedMediaSource: MediaSourceOption?,
     onPlayClick: (AfinityItem, PlaybackSelection?) -> Unit,
     onBoxSetItemClick: (AfinityItem) -> Unit,
     onSpecialFeatureClick: (AfinityItem) -> Unit,
@@ -719,38 +781,24 @@ private fun LandscapeItemDetailContent(
     onShowSnackbar: (String) -> Unit,
     onCollectionCreated: (collectionId: String, message: String) -> Unit,
     viewModel: ItemDetailViewModel,
-    context: Context,
     widthSizeClass: WindowWidthSizeClass,
     detailLayout: DetailLayout,
+    episodeLayoutPreference: EpisodeLayout,
     lazyListState: LazyListState = rememberLazyListState(),
 ) {
-    val preferencesRepository = rememberPreferencesRepository()
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val isDownloadAllowedByServer by
-        viewModel.isDownloadAllowedByServer.collectAsStateWithLifecycle()
-    val canDownloadOnNetwork by viewModel.canDownloadOnNetwork.collectAsStateWithLifecycle()
-    val isAdmin by viewModel.isAdmin.collectAsStateWithLifecycle()
-    val isOffline by viewModel.isOffline.collectAsStateWithLifecycle()
-    val mayDeleteMedia by viewModel.mayDeleteMedia.collectAsStateWithLifecycle()
-    val deletableItemIds by viewModel.deletableItemIds.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     LaunchedEffect(item.id, mayDeleteMedia) {
         if (mayDeleteMedia) viewModel.checkCanDelete(item.id)
     }
     var showRefreshDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showAddToPlaylist by remember { mutableStateOf(false) }
-    val canManageCollections by viewModel.canManageCollections.collectAsStateWithLifecycle()
     var collectionDialog by remember { mutableStateOf<CollectionDialog?>(null) }
     val collectionActions =
         collectionMenuActions(item, containingBoxSets, canManageCollections && !isOffline) {
             collectionDialog = it
         }
     val mediaSourceOptions = rememberMediaSourceOptions(item)
-    val selectedMediaSource by viewModel.selectedMediaSource.collectAsStateWithLifecycle()
-    val episodeLayoutFlow =
-        remember(preferencesRepository) { preferencesRepository.getEpisodeLayoutFlow() }
-    val episodeLayoutPreference by
-        episodeLayoutFlow.collectAsState(initial = EpisodeLayout.HORIZONTAL)
     val episodeLayout =
         if (detailLayout == DetailLayout.MODERN) EpisodeLayout.VERTICAL else episodeLayoutPreference
     val isModernSeason = detailLayout == DetailLayout.MODERN && item is AfinitySeason
@@ -803,7 +851,7 @@ private fun LandscapeItemDetailContent(
                         if (item is AfinityBoxSet) {
                             Box(modifier = Modifier.widthIn(max = 200.dp)) {
                                 CollectionPlayButton(
-                                    isLoading = uiState.isStartingCollectionPlayback,
+                                    isLoading = isStartingCollectionPlayback,
                                     onClick = { viewModel.playCollection() },
                                 )
                             }
@@ -813,11 +861,7 @@ private fun LandscapeItemDetailContent(
                                     item = item,
                                     nextEpisode = nextEpisode,
                                     selectedMediaSource = selectedMediaSource,
-                                    isLoading =
-                                        viewModel.uiState
-                                            .collectAsStateWithLifecycle()
-                                            .value
-                                            .isLoading,
+                                    isLoading = isPlayLoading,
                                     onPlayRequested = { targetPlayItem, selection ->
                                         handlePlayRequest(
                                             item,
@@ -852,7 +896,7 @@ private fun LandscapeItemDetailContent(
                             isDownloadAllowedByServer = isDownloadAllowedByServer,
                             canDownloadOnNetwork = canDownloadOnNetwork,
                             isLandscape = true,
-                            downloadUnavailable = uiState.downloadUnavailable,
+                            downloadUnavailable = downloadUnavailable,
                             isAdmin = isAdmin && !isOffline,
                             canIdentify = identifyItemType(item) != null,
                             canDelete = !isOffline && item.id in deletableItemIds,
@@ -933,9 +977,8 @@ private fun LandscapeItemDetailContent(
                         }
                     }
 
-                    val providers = uiState.watchProviders
-                    if (detailLayout == DetailLayout.MODERN && providers != null) {
-                        WhereToWatchStrip(providers = providers)
+                    if (detailLayout == DetailLayout.MODERN && watchProviders != null) {
+                        WhereToWatchStrip(providers = watchProviders)
                     }
 
                     VideoQualitySelection(
@@ -981,8 +1024,8 @@ private fun LandscapeItemDetailContent(
                 widthSizeClass = widthSizeClass,
                 horizontalPadding = 0.dp,
                 detailLayout = detailLayout,
-                watchProviders = uiState.watchProviders,
-                showExternalLinks = !isOffline || uiState.hasInternet,
+                watchProviders = watchProviders,
+                showExternalLinks = !isOffline || hasInternet,
             )
         },
     )
@@ -1011,6 +1054,19 @@ private fun PortraitItemDetailContent(
     wikidataAwards: WikidataAwards?,
     isRatingsFromCache: Boolean,
     movieParts: List<AfinityItem>,
+    isPlayLoading: Boolean,
+    isStartingCollectionPlayback: Boolean,
+    downloadUnavailable: Boolean,
+    watchProviders: com.makd.afinity.data.models.tmdb.TmdbRegionProviders?,
+    hasInternet: Boolean,
+    isDownloadAllowedByServer: Boolean,
+    canDownloadOnNetwork: Boolean,
+    isAdmin: Boolean,
+    isOffline: Boolean,
+    mayDeleteMedia: Boolean,
+    deletableItemIds: Set<UUID>,
+    canManageCollections: Boolean,
+    selectedMediaSource: MediaSourceOption?,
     onPlayClick: (AfinityItem, PlaybackSelection?) -> Unit,
     onBoxSetItemClick: (AfinityItem) -> Unit,
     onSpecialFeatureClick: (AfinityItem) -> Unit,
@@ -1028,38 +1084,24 @@ private fun PortraitItemDetailContent(
     onShowSnackbar: (String) -> Unit,
     onCollectionCreated: (collectionId: String, message: String) -> Unit,
     viewModel: ItemDetailViewModel,
-    context: Context,
     widthSizeClass: WindowWidthSizeClass,
     detailLayout: DetailLayout,
+    episodeLayoutPreference: EpisodeLayout,
     lazyListState: LazyListState = rememberLazyListState(),
 ) {
-    val preferencesRepository = rememberPreferencesRepository()
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val isDownloadAllowedByServer by
-        viewModel.isDownloadAllowedByServer.collectAsStateWithLifecycle()
-    val canDownloadOnNetwork by viewModel.canDownloadOnNetwork.collectAsStateWithLifecycle()
-    val isAdmin by viewModel.isAdmin.collectAsStateWithLifecycle()
-    val isOffline by viewModel.isOffline.collectAsStateWithLifecycle()
-    val mayDeleteMedia by viewModel.mayDeleteMedia.collectAsStateWithLifecycle()
-    val deletableItemIds by viewModel.deletableItemIds.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     LaunchedEffect(item.id, mayDeleteMedia) {
         if (mayDeleteMedia) viewModel.checkCanDelete(item.id)
     }
     var showRefreshDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showAddToPlaylist by remember { mutableStateOf(false) }
-    val canManageCollections by viewModel.canManageCollections.collectAsStateWithLifecycle()
     var collectionDialog by remember { mutableStateOf<CollectionDialog?>(null) }
     val collectionActions =
         collectionMenuActions(item, containingBoxSets, canManageCollections && !isOffline) {
             collectionDialog = it
         }
     val mediaSourceOptions = rememberMediaSourceOptions(item)
-    val selectedMediaSource by viewModel.selectedMediaSource.collectAsStateWithLifecycle()
-    val episodeLayoutFlow =
-        remember(preferencesRepository) { preferencesRepository.getEpisodeLayoutFlow() }
-    val episodeLayoutPreference by
-        episodeLayoutFlow.collectAsState(initial = EpisodeLayout.HORIZONTAL)
     val episodeLayout =
         if (detailLayout == DetailLayout.MODERN) EpisodeLayout.VERTICAL else episodeLayoutPreference
     val isModernSeason = detailLayout == DetailLayout.MODERN && item is AfinitySeason
@@ -1105,7 +1147,7 @@ private fun PortraitItemDetailContent(
 
             if (item is AfinityBoxSet) {
                 CollectionPlayButton(
-                    isLoading = uiState.isStartingCollectionPlayback,
+                    isLoading = isStartingCollectionPlayback,
                     onClick = { viewModel.playCollection() },
                 )
             } else if (item !is AfinityVideoPlaylist && item.canPlay) {
@@ -1113,7 +1155,7 @@ private fun PortraitItemDetailContent(
                     item = item,
                     nextEpisode = nextEpisode,
                     selectedMediaSource = selectedMediaSource,
-                    isLoading = viewModel.uiState.collectAsStateWithLifecycle().value.isLoading,
+                    isLoading = isPlayLoading,
                     onPlayRequested = { targetPlayItem, selection ->
                         handlePlayRequest(item, targetPlayItem, selection, context, onPlayClick)
                     },
@@ -1141,7 +1183,7 @@ private fun PortraitItemDetailContent(
                 isDownloadAllowedByServer = isDownloadAllowedByServer,
                 canDownloadOnNetwork = canDownloadOnNetwork,
                 isLandscape = false,
-                downloadUnavailable = uiState.downloadUnavailable,
+                downloadUnavailable = downloadUnavailable,
                 isAdmin = isAdmin && !isOffline,
                 canIdentify = identifyItemType(item) != null,
                 canDelete = !isOffline && item.id in deletableItemIds,
@@ -1219,9 +1261,8 @@ private fun PortraitItemDetailContent(
                 )
             }
 
-            val providers = uiState.watchProviders
-            if (detailLayout == DetailLayout.MODERN && providers != null) {
-                WhereToWatchStrip(providers = providers)
+            if (detailLayout == DetailLayout.MODERN && watchProviders != null) {
+                WhereToWatchStrip(providers = watchProviders)
             }
 
             VideoQualitySelection(
@@ -1266,8 +1307,8 @@ private fun PortraitItemDetailContent(
                 widthSizeClass = widthSizeClass,
                 horizontalPadding = DetailGutter,
                 detailLayout = detailLayout,
-                watchProviders = uiState.watchProviders,
-                showExternalLinks = !isOffline || uiState.hasInternet,
+                watchProviders = watchProviders,
+                showExternalLinks = !isOffline || hasInternet,
             )
         },
     )

@@ -62,7 +62,7 @@ import com.makd.afinity.ui.preview.PreviewHost
 import com.makd.afinity.ui.preview.StressPreviews
 import com.makd.afinity.ui.preview.WidthPreviews
 import com.makd.afinity.ui.theme.CardDimensions
-import java.util.Locale
+import com.makd.afinity.util.formatOneDecimal
 
 @Composable
 fun ContinueWatchingCard(
@@ -224,7 +224,7 @@ fun ContinueWatchingCard(
                                             modifier = Modifier.size(ratingScale.rtIconSize),
                                         )
                                         Text(
-                                            text = String.format(Locale.US, "%.1f", imdbRating),
+                                            text = formatOneDecimal(imdbRating),
                                             style =
                                                 MaterialTheme.typography.bodySmall.copy(
                                                     fontSize =
@@ -326,7 +326,7 @@ fun ContinueWatchingCard(
                                             modifier = Modifier.size(ratingScale.rtIconSize),
                                         )
                                         Text(
-                                            text = String.format(Locale.US, "%.1f", imdbRating),
+                                            text = formatOneDecimal(imdbRating),
                                             style =
                                                 MaterialTheme.typography.bodySmall.copy(
                                                     fontSize =
@@ -371,7 +371,7 @@ fun ContinueWatchingCard(
                                         modifier = Modifier.size(ratingScale.rtIconSize),
                                     )
                                     Text(
-                                        text = String.format(Locale.US, "%.1f", rating),
+                                        text = formatOneDecimal(rating),
                                         style =
                                             MaterialTheme.typography.bodySmall.copy(
                                                 fontSize =

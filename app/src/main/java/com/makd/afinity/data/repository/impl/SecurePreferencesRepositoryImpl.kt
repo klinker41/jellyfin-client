@@ -13,6 +13,7 @@ import com.google.crypto.tink.aead.AeadConfig
 import com.google.crypto.tink.aead.PredefinedAeadParameters
 import com.google.crypto.tink.integration.android.AndroidKeysetManager
 import com.makd.afinity.data.repository.AudiobookshelfAuthData
+import com.makd.afinity.data.repository.SavedAuthSnapshot
 import com.makd.afinity.data.repository.SecurePreferencesRepository
 import com.makd.afinity.data.repository.ServerUserToken
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -180,11 +181,33 @@ constructor(@param:ApplicationContext private val context: Context) : SecurePref
         Timber.d("Cleared authentication data")
     }
 
-    override suspend fun hasValidAuthData(): Boolean {
-        val token = getAccessToken()
-        val url = getSavedServerUrl()
-        return !token.isNullOrBlank() && !url.isNullOrBlank()
-    }
+    override suspend fun hasValidAuthData(): Boolean =
+        withContext(Dispatchers.IO) {
+            val prefs = context.dataStore.data.first()
+            val token = decrypt(prefs[KEY_ACCESS_TOKEN])
+            val url = decrypt(prefs[KEY_SERVER_URL])
+            !token.isNullOrBlank() && !url.isNullOrBlank()
+        }
+
+    override suspend fun getSavedAuthSnapshot(): SavedAuthSnapshot =
+        withContext(Dispatchers.IO) {
+            val prefs = context.dataStore.data.first()
+            val token = decrypt(prefs[KEY_ACCESS_TOKEN])
+            val serverUrl = decrypt(prefs[KEY_SERVER_URL])
+            if (cachedJellyfinToken == null && !token.isNullOrBlank()) {
+                cachedJellyfinToken = token
+            }
+            if (cachedJellyfinServerUrl == null && !serverUrl.isNullOrBlank()) {
+                cachedJellyfinServerUrl = serverUrl
+            }
+            SavedAuthSnapshot(
+                accessToken = token,
+                userId = decrypt(prefs[KEY_USER_ID]),
+                serverId = decrypt(prefs[KEY_SERVER_ID]),
+                serverUrl = serverUrl,
+                username = decrypt(prefs[KEY_USERNAME]),
+            )
+        }
 
     override fun getAuthenticationStateFlow(): Flow<Boolean> = _authenticationState.asStateFlow()
 
@@ -709,6 +732,11 @@ constructor(@param:ApplicationContext private val context: Context) : SecurePref
     override fun getCachedJellyfinToken(): String? = cachedJellyfinToken
 
     override fun getCachedJellyfinServerUrl(): String? = cachedJellyfinServerUrl
+
+    override fun setCachedJellyfinAuth(accessToken: String, serverUrl: String) {
+        cachedJellyfinToken = accessToken
+        cachedJellyfinServerUrl = serverUrl
+    }
 
     override suspend fun saveActiveSession(serverId: String, userId: UUID, serverUrl: String) {
         context.dataStore.edit { prefs ->

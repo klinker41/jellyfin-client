@@ -1,9 +1,11 @@
 package com.makd.afinity.data.models.media
 
+import androidx.compose.runtime.Immutable
 import java.util.UUID
 import kotlinx.serialization.Serializable
 import org.jellyfin.sdk.model.api.BaseItemDto
 
+@Immutable
 @Serializable
 data class AfinityChapter(
     val startPosition: Long,

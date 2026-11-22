@@ -52,7 +52,7 @@ import com.makd.afinity.ui.components.rememberRatingMetadataScale
 import com.makd.afinity.ui.components.windowHeightDp
 import com.makd.afinity.ui.components.windowWidthDp
 import com.makd.afinity.ui.theme.CardDimensions
-import java.util.Locale
+import com.makd.afinity.util.formatOneDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -194,7 +194,7 @@ fun SpotlightCarousel(
                                             modifier = Modifier.size(ratingScale.rtIconSize),
                                         )
                                         Text(
-                                            text = String.format(Locale.US, "%.1f", rating),
+                                            text = formatOneDecimal(rating),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = Color.White,
                                         )

@@ -32,6 +32,7 @@ import com.makd.afinity.data.store.ItemStore
 import com.makd.afinity.data.store.QueryInvalidator
 import com.makd.afinity.data.store.QueryKey
 import com.makd.afinity.testutil.MainDispatcherRule
+import com.makd.afinity.testutil.TestMediaFixtures.testEpisode
 import com.makd.afinity.testutil.TestMediaFixtures.testMovie
 import com.makd.afinity.testutil.TestMediaFixtures.testUuid
 import com.makd.afinity.ui.item.components.shared.MediaSourceOption
@@ -42,6 +43,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import java.util.UUID
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -325,4 +327,79 @@ class ItemDetailViewModelTest {
         assertNotNull(viewModel.uiState.value.downloadInfo)
         assertEquals(dl.id, viewModel.uiState.value.downloadInfo?.id)
     }
+
+    @Test
+    fun `store seed renders immediately during detail fetch and survives null server response`() =
+        runTest {
+            val movieId = testUuid(50)
+            val seeded = testMovie(id = movieId, name = "Seeded Movie")
+            val harness = Harness(itemId = movieId, offline = false)
+            harness.itemStore.put(seeded)
+
+            val detailGate = CompletableDeferred<Unit>()
+            coEvery { harness.mediaRepository.getItemDetail(movieId) } coAnswers
+                {
+                    detailGate.await()
+                    null
+                }
+
+            val viewModel = harness.createViewModel()
+            assertEquals(seeded, viewModel.uiState.value.item)
+            assertFalse(viewModel.uiState.value.isLoading)
+            assertTrue(viewModel.uiState.value.isDetailLoading)
+
+            detailGate.complete(Unit)
+            advanceUntilIdle()
+
+            assertEquals(seeded, viewModel.uiState.value.item)
+            assertFalse(viewModel.uiState.value.isLoading)
+            assertFalse(viewModel.uiState.value.isDetailLoading)
+            assertNull(viewModel.uiState.value.error)
+        }
+
+    @Test
+    fun `online movie launches similar and boxset queries while BoxSet type skips containing query`() =
+        runTest {
+            val movieId = testUuid(51)
+            val seeded = testMovie(id = movieId, name = "Parallel Movie")
+            val movieHarness = Harness(itemId = movieId, itemType = "Movie", offline = false)
+            movieHarness.itemStore.put(seeded)
+            movieHarness.createViewModel()
+            advanceUntilIdle()
+
+            coVerify(atLeast = 1) {
+                movieHarness.mediaRepository.getSimilarItems(movieId, any(), any())
+            }
+            coVerify(atLeast = 1) {
+                movieHarness.mediaRepository.getBoxSetsContaining(movieId, any())
+            }
+
+            val boxSetId = testUuid(52)
+            val boxSetHarness = Harness(itemId = boxSetId, itemType = "BoxSet", offline = false)
+            boxSetHarness.createViewModel()
+            advanceUntilIdle()
+
+            coVerify(exactly = 0) {
+                boxSetHarness.mediaRepository.getBoxSetsContaining(any(), any())
+            }
+        }
+
+    @Test
+    fun `offline episode load uses itemType fast path without querying unrelated tables`() =
+        runTest {
+            val episodeId = testUuid(53)
+            val ep = testEpisode(id = episodeId, seriesId = testUuid(54))
+            val harness = Harness(itemId = episodeId, itemType = "Episode", offline = true)
+            coEvery { harness.databaseRepository.getEpisode(episodeId, harness.userId) } returns ep
+
+            val viewModel = harness.createViewModel()
+            advanceUntilIdle()
+
+            assertEquals(ep, viewModel.uiState.value.item)
+            coVerify(exactly = 1) {
+                harness.databaseRepository.getEpisode(episodeId, harness.userId)
+            }
+            coVerify(exactly = 0) { harness.databaseRepository.getMovie(any(), any()) }
+            coVerify(exactly = 0) { harness.databaseRepository.getShow(any(), any()) }
+        }
 }

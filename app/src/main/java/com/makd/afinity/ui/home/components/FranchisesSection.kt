@@ -73,7 +73,11 @@ fun FranchisesSection(
         HomeSectionHeader(title = stringResource(R.string.home_franchises))
 
         CardRow(modifier = Modifier.height(fixedRowHeight)) {
-            items(items = franchises, key = { it.franchise.id }) { card ->
+            items(
+                items = franchises,
+                key = { it.franchise.id },
+                contentType = { "franchise_card" },
+            ) { card ->
                 FranchiseCardItem(
                     card = card,
                     onClick = { onFranchiseClick(card.franchise) },

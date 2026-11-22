@@ -1,7 +1,9 @@
 package com.makd.afinity.data.models.mdblist
 
+import androidx.compose.runtime.Immutable
 import kotlinx.serialization.Serializable
 
+@Immutable
 @Serializable
 data class MdbListApiResult(
     val title: String? = null,
@@ -12,6 +14,7 @@ data class MdbListApiResult(
     val keyword: List<MdbListKeyword> = emptyList(),
 )
 
+@Immutable
 @Serializable
 data class MdbListRating(
     val source: String,
@@ -29,6 +32,7 @@ data class MdbListKeyword(
 )
 
 @Serializable
+@Immutable
 data class MdbListRatingBadges(
     val certifiedFresh: Boolean = false,
     val verifiedHot: Boolean = false,

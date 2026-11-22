@@ -1,6 +1,7 @@
 package com.makd.afinity.data.models
 
 import androidx.annotation.StringRes
+import androidx.compose.runtime.Immutable
 import com.makd.afinity.R
 import com.makd.afinity.data.models.media.LibraryFilters
 import java.util.UUID
@@ -40,6 +41,7 @@ enum class HeroIndicator(@param:StringRes val labelRes: Int) {
     HIDDEN(R.string.hero_indicator_hidden),
 }
 
+@Immutable
 @Serializable
 data class HeroContentSource(
     val mode: HeroContentMode = HeroContentMode.RANDOM,

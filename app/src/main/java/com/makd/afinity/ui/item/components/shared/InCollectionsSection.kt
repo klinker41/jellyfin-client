@@ -31,7 +31,11 @@ fun InCollectionsSection(
         DetailSectionTitle(text = stringResource(R.string.collections_included_in))
 
         CardRow(modifier = Modifier.height(fixedRowHeight)) {
-            items(boxSets, key = { it.id.toString() }) { boxSet ->
+            items(
+                items = boxSets,
+                key = { it.id.toString() },
+                contentType = { "collection_card" },
+            ) { boxSet ->
                 MediaItemCard(
                     item = boxSet,
                     onClick = { onBoxSetClick(boxSet) },

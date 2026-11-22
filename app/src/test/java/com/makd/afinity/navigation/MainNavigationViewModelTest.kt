@@ -6,9 +6,12 @@ import com.makd.afinity.data.manager.PendingNavigationManager
 import com.makd.afinity.data.manager.Session
 import com.makd.afinity.data.manager.SessionManager
 import com.makd.afinity.data.models.common.CardSize
+import com.makd.afinity.data.models.common.DetailLayout
 import com.makd.afinity.data.models.common.DrawerLibrariesMode
+import com.makd.afinity.data.models.common.EpisodeLayout
 import com.makd.afinity.data.models.common.HeroStyle
 import com.makd.afinity.data.models.media.AfinityCollection
+import com.makd.afinity.data.models.music.MusicPlaybackState
 import com.makd.afinity.data.models.server.Server
 import com.makd.afinity.data.repository.AppDataRepository
 import com.makd.afinity.data.repository.AudiobookshelfRepository
@@ -20,10 +23,12 @@ import com.makd.afinity.data.repository.livetv.LiveTvRepository
 import com.makd.afinity.data.repository.media.MediaRepository
 import com.makd.afinity.data.repository.server.ServerRepository
 import com.makd.afinity.data.repository.watchlist.WatchlistRepository
+import com.makd.afinity.player.audiobookshelf.AudiobookshelfPlaybackState
 import com.makd.afinity.testutil.MainDispatcherRule
 import com.makd.afinity.testutil.TestMediaFixtures.testEpisode
 import com.makd.afinity.testutil.TestMediaFixtures.testMovie
 import com.makd.afinity.testutil.TestMediaFixtures.testShow
+import com.makd.afinity.testutil.TestMediaFixtures.testTrack
 import com.makd.afinity.testutil.TestMediaFixtures.testUuid
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -76,6 +81,10 @@ class MainNavigationViewModelTest {
         val absAuthFlow = MutableStateFlow(false)
         val unsupportedServerVersionFlow = MutableStateFlow<String?>(null)
         val pendingRouteFlow = MutableStateFlow<String?>("downloads")
+        val detailLayoutFlow = MutableStateFlow(DetailLayout.CLASSIC)
+        val episodeLayoutFlow = MutableStateFlow(EpisodeLayout.HORIZONTAL)
+        val absPlaybackStateFlow = MutableStateFlow(AudiobookshelfPlaybackState())
+        val musicPlaybackStateFlow = MutableStateFlow(MusicPlaybackState())
 
         var offlineOnStart = initialOffline
 
@@ -125,6 +134,8 @@ class MainNavigationViewModelTest {
             every { getSideSheetEnabledFlow() } returns MutableStateFlow(true)
             every { getNavigationDrawerEnabledFlow() } returns MutableStateFlow(false)
             every { getDrawerLibrariesModeFlow() } returns MutableStateFlow(DrawerLibrariesMode.OFF)
+            every { getDetailLayoutFlow() } returns detailLayoutFlow
+            every { getEpisodeLayoutFlow() } returns episodeLayoutFlow
             coEvery { getOnboardingFirstRunDone() } returns true
         }
         val pendingNavigationManager: PendingNavigationManager =
@@ -143,8 +154,10 @@ class MainNavigationViewModelTest {
                 jellyseerrRepository = jellyseerrRepository,
                 audiobookshelfRepository = audiobookshelfRepository,
                 audiobookshelfPlayer = mockk(relaxed = true),
-                audiobookshelfPlaybackManager = mockk(relaxed = true),
-                musicPlaybackManager = mockk(relaxed = true),
+                audiobookshelfPlaybackManager =
+                    mockk(relaxed = true) { every { playbackState } returns absPlaybackStateFlow },
+                musicPlaybackManager =
+                    mockk(relaxed = true) { every { state } returns musicPlaybackStateFlow },
                 themeMusicPlayer = mockk(relaxed = true),
                 castManager = mockk(relaxed = true),
                 liveTvRepository = liveTvRepository,
@@ -262,5 +275,44 @@ class MainNavigationViewModelTest {
             coEvery { h.mediaRepository.getEpisodeToPlay(show.id) } throws
                 IllegalStateException("fail")
             assertNull(vm.resolvePlayableItem(show))
+        }
+
+    @Test
+    fun detailEpisodeLayoutAndActiveAudioPlaybackFlowsTrackUpdates() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val h = Harness()
+            val vm = h.createViewModel()
+
+            vm.detailLayout.test {
+                assertEquals(DetailLayout.CLASSIC, awaitItem())
+                h.detailLayoutFlow.value = DetailLayout.MODERN
+                assertEquals(DetailLayout.MODERN, awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            vm.episodeLayout.test {
+                assertEquals(EpisodeLayout.HORIZONTAL, awaitItem())
+                h.episodeLayoutFlow.value = EpisodeLayout.VERTICAL
+                assertEquals(EpisodeLayout.VERTICAL, awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            vm.hasActiveAudioPlayback.test {
+                assertFalse(awaitItem())
+
+                h.absPlaybackStateFlow.value = AudiobookshelfPlaybackState(sessionId = "abs-1")
+                assertTrue(awaitItem())
+
+                h.absPlaybackStateFlow.value = AudiobookshelfPlaybackState(sessionId = null)
+                assertFalse(awaitItem())
+
+                h.musicPlaybackStateFlow.value =
+                    MusicPlaybackState(currentTrack = testTrack(id = testUuid(9)))
+                assertTrue(awaitItem())
+
+                h.musicPlaybackStateFlow.value = MusicPlaybackState(currentTrack = null)
+                assertFalse(awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
         }
 }

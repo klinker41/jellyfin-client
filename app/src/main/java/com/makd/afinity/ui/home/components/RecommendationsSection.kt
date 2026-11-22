@@ -49,6 +49,7 @@ fun PersonSection(
                 key = { movie ->
                     "person_${section.sectionType.name}_${section.person.id}_${movie.id}"
                 },
+                contentType = { "person_card" },
             ) { item ->
                 MediaItemCard(item = item, onClick = { onItemClick(item) }, cardWidth = cardWidth)
             }
@@ -88,6 +89,7 @@ fun MovieRecommendationSection(
                 key = { movie ->
                     "recommend_${section.sectionType.name}_${section.referenceMovie.id}_${movie.id}"
                 },
+                contentType = { "recommend_card" },
             ) { movie ->
                 MediaItemCard(item = movie, onClick = { onItemClick(movie) }, cardWidth = cardWidth)
             }
@@ -122,6 +124,7 @@ fun PersonFromMovieSection(
                 key = { movie ->
                     "person_recent_${section.sectionType.name}_${section.person.id}_${section.referenceMovie.id}_${movie.id}"
                 },
+                contentType = { "person_recent_card" },
             ) { item ->
                 MediaItemCard(item = item, onClick = { onItemClick(item) }, cardWidth = cardWidth)
             }

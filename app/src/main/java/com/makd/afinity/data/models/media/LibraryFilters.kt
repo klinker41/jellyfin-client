@@ -1,5 +1,6 @@
 package com.makd.afinity.data.models.media
 
+import androidx.compose.runtime.Immutable
 import kotlinx.serialization.Serializable
 
 enum class LibraryFeature {
@@ -59,6 +60,7 @@ enum class BookLibraryComposition {
                 LibraryFormatFilter.AUDIOBOOKS in filters.formats)
 }
 
+@Immutable
 @Serializable
 data class LibraryFilters(
     val played: Boolean = false,
@@ -97,8 +99,9 @@ data class LibraryFilters(
         get() = activeCount == 0
 }
 
-data class LibraryLanguageOption(val name: String, val code: String)
+@Immutable data class LibraryLanguageOption(val name: String, val code: String)
 
+@Immutable
 data class LibraryFilterOptions(
     val genres: List<String> = emptyList(),
     val tags: List<String> = emptyList(),
