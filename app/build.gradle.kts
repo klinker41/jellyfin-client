@@ -213,11 +213,14 @@ kotlin {
     }
 }
 
-tasks.withType<Test>().configureEach {
-    maxHeapSize = "2048m"
-    extensions.findByType(JacocoTaskExtension::class.java)?.apply {
-        isIncludeNoLocationClasses = true
-        excludes = listOf("jdk.internal.*")
+tasks.withType<Test>().configureEach { maxHeapSize = "2048m" }
+
+plugins.withId("jacoco") {
+    tasks.withType<Test>().configureEach {
+        extensions.configure(JacocoTaskExtension::class.java) {
+            isIncludeNoLocationClasses = true
+            excludes = listOf("jdk.internal.*")
+        }
     }
 }
 
@@ -338,6 +341,7 @@ dependencies {
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(libs.androidx.test.core.ktx)
+    testImplementation(libs.androidx.work.testing)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)

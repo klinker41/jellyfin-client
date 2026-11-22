@@ -28,14 +28,19 @@ import com.makd.afinity.data.repository.admin.AdminRepository
 import com.makd.afinity.data.repository.download.DownloadRepository
 import com.makd.afinity.data.repository.media.MediaRepository
 import com.makd.afinity.data.repository.userdata.UserDataRepository
+import com.makd.afinity.data.storage.StorageLocationProvider
 import com.makd.afinity.data.store.ItemStore
 import com.makd.afinity.data.store.QueryInvalidator
 import com.makd.afinity.data.store.QueryKey
 import com.makd.afinity.testutil.MainDispatcherRule
 import com.makd.afinity.testutil.TestMediaFixtures.testEpisode
 import com.makd.afinity.testutil.TestMediaFixtures.testMovie
+import com.makd.afinity.testutil.TestMediaFixtures.testSeason
+import com.makd.afinity.testutil.TestMediaFixtures.testShow
+import com.makd.afinity.testutil.TestMediaFixtures.testSource
 import com.makd.afinity.testutil.TestMediaFixtures.testUuid
 import com.makd.afinity.ui.item.components.shared.MediaSourceOption
+import com.makd.afinity.ui.item.delegates.ItemDownloadDelegate
 import com.makd.afinity.ui.item.delegates.ItemUserDataDelegate
 import com.makd.afinity.util.NetworkConnectivityMonitor
 import io.mockk.coEvery
@@ -159,6 +164,13 @@ class ItemDetailViewModelTest {
         }
         val preferencesRepository: PreferencesRepository =
             mockk(relaxed = true) { coEvery { getVideoDownloadQuality() } returns 0 }
+        val storageLocationProvider: StorageLocationProvider = mockk(relaxed = true)
+        val itemDownloadDelegate =
+            ItemDownloadDelegate(
+                downloadRepository = downloadRepository,
+                storageLocationProvider = storageLocationProvider,
+                preferencesRepository = preferencesRepository,
+            )
         val itemUserDataDelegate =
             ItemUserDataDelegate(
                 userDataRepository = userDataRepository,
@@ -197,10 +209,10 @@ class ItemDetailViewModelTest {
                 adminRepository = adminRepository,
                 mediaChangeManager = mediaChangeManager,
                 serverRepository = mockk(relaxed = true),
-                itemDownloadDelegate = mockk(relaxed = true),
+                itemDownloadDelegate = itemDownloadDelegate,
                 itemUserDataDelegate = itemUserDataDelegate,
                 preferencesRepository = preferencesRepository,
-                storageLocationProvider = mockk(relaxed = true),
+                storageLocationProvider = storageLocationProvider,
                 networkMonitor = networkMonitor,
                 downloadPermissions = downloadPermissions,
                 itemStore = itemStore,
@@ -401,5 +413,105 @@ class ItemDetailViewModelTest {
             }
             coVerify(exactly = 0) { harness.databaseRepository.getMovie(any(), any()) }
             coVerify(exactly = 0) { harness.databaseRepository.getShow(any(), any()) }
+        }
+
+    @Test
+    fun `online show load populates seasons and nextEpisode, and triggers series bulk download`() =
+        runTest {
+            val showId = testUuid(60)
+            val seasonId = testUuid(61)
+            val epId = testUuid(62)
+            val harness = Harness(itemId = showId, itemType = "SERIES", offline = false)
+
+            val show = testShow(id = showId, name = "Andor")
+            val season = testSeason(id = seasonId, seriesId = showId, name = "Season 1")
+            val nextEp =
+                testEpisode(id = epId, seriesId = showId, seasonId = seasonId, name = "Kassa")
+            harness.itemStore.put(show)
+            coEvery { harness.mediaRepository.getSeasons(showId, any()) } returns listOf(season)
+            coEvery { harness.mediaRepository.getEpisodeToPlay(showId) } returns nextEp
+            coEvery { harness.mediaRepository.getSeriesNextEpisode(showId) } returns nextEp
+            coEvery { harness.downloadRepository.startSeriesDownload(showId, any(), any()) } returns
+                Result.success(4)
+
+            val viewModel = harness.createViewModel()
+            advanceUntilIdle()
+
+            assertTrue(
+                viewModel.uiState.value.item is com.makd.afinity.data.models.media.AfinityShow,
+            )
+            assertEquals(1, viewModel.uiState.value.seasons.size)
+            assertEquals(nextEp.id, viewModel.uiState.value.nextEpisode?.id)
+
+            viewModel.onDownloadClick()
+            advanceUntilIdle()
+            coVerify { harness.downloadRepository.startSeriesDownload(showId, any(), any()) }
+        }
+
+    @Test
+    fun `episode selection, movie download actions, and admin delete outcomes update state`() =
+        runTest {
+            val movieId = testUuid(70)
+            val epId = testUuid(71)
+            val showId = testUuid(72)
+            val movie =
+                testMovie(
+                    id = movieId,
+                    name = "Dune",
+                    sources = listOf(testSource(id = "src-1")),
+                )
+            val harness =
+                Harness(
+                    itemId = movieId,
+                    itemType = "MOVIE",
+                    offline = false,
+                    isAdmin = true,
+                    canDeleteMedia = true,
+                )
+            harness.itemStore.put(movie)
+            coEvery {
+                harness.downloadRepository.startDownload(movieId, "src-1", any(), any(), any())
+            } returns Result.success(testUuid(73))
+            coEvery { harness.adminRepository.canDeleteItem(movieId.toString()) } returns true
+            coEvery {
+                harness.adminRepository.deleteItem(movieId.toString(), any(), any())
+            } returnsMany
+                listOf(
+                    Result.success(Unit),
+                    Result.failure(AdminPermissionDeniedException(SecurityException("denied"))),
+                )
+
+            val viewModel = harness.createViewModel()
+            advanceUntilIdle()
+
+            // Episode selection + clear
+            val ep = testEpisode(id = epId, seriesId = showId, name = "Selected Ep")
+            viewModel.selectEpisode(ep)
+            assertEquals(epId, viewModel.selectedEpisode.value?.id)
+            viewModel.clearSelectedEpisode()
+            assertNull(viewModel.selectedEpisode.value)
+
+            // Download movie via onDownloadClick -> starts download for sole source
+            viewModel.onDownloadClick()
+            advanceUntilIdle()
+            coVerify {
+                harness.downloadRepository.startDownload(movieId, "src-1", any(), any(), any())
+            }
+
+            // Admin canDelete + deleteItem outcomes
+            viewModel.checkCanDelete(movieId)
+            advanceUntilIdle()
+            assertTrue(movieId in viewModel.deletableItemIds.value)
+
+            var deletedOutcome: DeleteOutcome? = null
+            viewModel.deleteItem(movieId) { deletedOutcome = it }
+            advanceUntilIdle()
+            assertEquals(DeleteOutcome.DELETED, deletedOutcome)
+            assertFalse(movieId in viewModel.deletableItemIds.value)
+
+            var deniedOutcome: DeleteOutcome? = null
+            viewModel.deleteItem(movieId) { deniedOutcome = it }
+            advanceUntilIdle()
+            assertEquals(DeleteOutcome.NOT_ALLOWED, deniedOutcome)
         }
 }

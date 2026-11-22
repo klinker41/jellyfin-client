@@ -155,16 +155,6 @@ class MusicQueueManagerTest {
             )
     }
 
-    private suspend fun awaitQueueCondition(predicate: () -> Boolean) {
-        withContext(Dispatchers.Default) {
-            withTimeout(2_000L) {
-                while (!predicate()) {
-                    kotlinx.coroutines.delay(10L)
-                }
-            }
-        }
-    }
-
     @Test
     fun `loadQueue, addNext, addLast, removeAt, and moveTrack keep queue and currentIndex consistent`() =
         runTest {
@@ -263,7 +253,7 @@ class MusicQueueManagerTest {
 
             // neverTranscode bypasses server stream resolution
             h.neverTranscodeFlow.value = true
-            awaitQueueCondition { h.manager.neverTranscode.value }
+            h.manager.neverTranscode.first { it }
             val originalTrack = track(12)
             assertFalse(h.manager.ensureResolved(originalTrack))
             coVerify(exactly = 0) {
@@ -301,7 +291,7 @@ class MusicQueueManagerTest {
 
         // Switching to a different user session clears the queue
         h.sessionFlow.value = Session("srv-2", testUuid(9), "https://other.example.com")
-        awaitQueueCondition { h.manager.queue.value.isEmpty() }
+        h.manager.queue.first { it.isEmpty() }
         withContext(Dispatchers.Default) { withTimeout(2_000L) { h.clearSignal.await() } }
         assertNull(h.manager.currentTrack)
         coVerify(atLeast = 1) { h.musicQueueDao.clearQueue() }
