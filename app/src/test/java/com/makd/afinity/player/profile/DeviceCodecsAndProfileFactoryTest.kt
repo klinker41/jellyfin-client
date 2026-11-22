@@ -123,19 +123,9 @@ class DeviceCodecsAndProfileFactoryTest {
     }
 
     @Test
-    fun `createMpvProfile, createDownloadProfile, and createMusicProfile set expected profiles`() {
+    fun `createDownloadProfile and createMusicProfile set expected profiles`() {
         every { DeviceCodecs.detect() } returns sampleCapabilities()
         val factory = AndroidDeviceProfileFactory()
-
-        val mpv =
-            factory.createMpvProfile(
-                quality = VideoQuality(40_000_000, 3840),
-                maxAudioChannels = 8,
-                allowHdrPassthrough = true,
-                allowTranscoding = true,
-            )
-        assertEquals(2, mpv.directPlayProfiles.size)
-        assertTrue(mpv.subtitleProfiles.any { it.format == "ass" })
 
         val download =
             factory.createDownloadProfile(

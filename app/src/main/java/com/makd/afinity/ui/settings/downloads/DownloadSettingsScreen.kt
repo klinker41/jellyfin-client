@@ -1725,7 +1725,6 @@ private fun CacheSection.labelRes(): Int =
         CacheSection.IMAGES -> R.string.cache_kind_images
         CacheSection.VIDEO -> R.string.cache_store_video
         CacheSection.NETWORK -> R.string.cache_store_network
-        CacheSection.PLAYER -> R.string.cache_store_player
         CacheSection.JELLYFIN_METADATA -> R.string.cache_section_jellyfin_metadata
         CacheSection.JELLYSEERR -> R.string.cache_section_jellyseerr
         CacheSection.AUDIOBOOKSHELF -> R.string.cache_section_audiobookshelf

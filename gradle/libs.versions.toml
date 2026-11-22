@@ -32,7 +32,6 @@ ksp = "2.3.14"
 leakcanary = "2.14"
 ktfmt = "0.28.0"
 libarchive = "1.1.7"
-libmpv = "1.2.0"
 lifecycleRuntimeCompose = "2.11.1"
 lifecycleRuntimeKtx = "2.11.1"
 lottieCompose = "6.7.1"
@@ -46,7 +45,6 @@ okhttp-logging = "5.5.1"
 paging = "3.5.3"
 paletteKtx = "1.1.0"
 playServicesCastFramework = "23.0.0"
-preference = "1.2.1"
 readium = "3.4.0"
 reorderable = "3.1.0"
 richtext = "1.0.0-alpha05"
@@ -80,6 +78,7 @@ androidx-compose-material3-adaptive-navigation-suite = { module = "androidx.comp
 androidx-compose-material3-window-size-class1 = { module = "androidx.compose.material3:material3-window-size-class" }
 androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+androidx-compose-ui-text-google-fonts = { group = "androidx.compose.ui", name = "ui-text-google-fonts" }
 androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
@@ -107,7 +106,6 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 androidx-paging-compose = { group = "androidx.paging", name = "paging-compose", version.ref = "paging" }
 androidx-paging-runtime = { group = "androidx.paging", name = "paging-runtime", version.ref = "paging" }
 androidx-palette-ktx = { module = "androidx.palette:palette-ktx", version.ref = "paletteKtx" }
-androidx-preference-ktx = { group = "androidx.preference", name = "preference-ktx", version.ref = "preference" }
 androidx-profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version.ref = "androidx-profileinstaller" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
@@ -135,7 +133,6 @@ kotlin-metadata-jvm = { module = "org.jetbrains.kotlin:kotlin-metadata-jvm", ver
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 libarchive = { module = "me.zhanghai.android.libarchive:library", version.ref = "libarchive" }
-libmpv = { group = "io.github.makd", name = "libmpv", version.ref = "libmpv" }
 lottie-compose = { module = "com.airbnb.android:lottie-compose", version.ref = "lottieCompose" }
 media3-ffmpeg-decoder = { group = "org.jellyfin.media3", name = "media3-ffmpeg-decoder", version.ref = "media3-ffmpeg-decoder" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }

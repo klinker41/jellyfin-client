@@ -197,7 +197,6 @@
     <string name="cache_kind_images">Images</string>
     <string name="cache_store_video">Video cache</string>
     <string name="cache_store_network">Network cache</string>
-    <string name="cache_store_player">Player data</string>
     <plurals name="cache_entries_fmt">
         <item quantity="one">%1$d entry</item>
         <item quantity="other">%1$d entries</item>
@@ -873,40 +872,6 @@
     <string name="playback_stats_label_audio_bitrate">Audio bitrate</string>
     <string name="playback_stats_value_hdr_output">playing as HDR</string>
     <string name="playback_stats_value_hdr_tonemapped">tone-mapped to SDR</string>
-    <string name="pref_mpv_gpu_api_title">GPU API</string>
-    <string name="pref_mpv_hdr_output_title">HDR output</string>
-    <string name="pref_mpv_hdr_output_hint">Passthrough needs Vulkan on most devices; otherwise HDR is tone-mapped</string>
-    <string name="pref_mpv_tone_mapping_title">Tone mapping</string>
-    <string name="pref_mpv_hwdec_disabled">Disabled</string>
-    <string name="pref_mpv_gpu_api_opengl">OpenGL (default)</string>
-    <string name="pref_mpv_gpu_api_vulkan">Vulkan (experimental)</string>
-    <string name="pref_mpv_hdr_auto">Auto (HDR passthrough)</string>
-    <string name="pref_mpv_hdr_tone_map">Always tone-map to SDR</string>
-    <string name="pref_mpv_tone_auto">Auto</string>
-    <string name="pref_mpv_hwdec_mediacodec" translatable="false">mediacodec</string>
-    <string name="pref_mpv_hwdec_mediacodec_copy" translatable="false">mediacodec-copy</string>
-    <string name="pref_mpv_vo_gpu" translatable="false">gpu</string>
-    <string name="pref_mpv_vo_gpu_next" translatable="false">gpu-next</string>
-    <string name="pref_mpv_ao_audiotrack" translatable="false">AudioTrack</string>
-    <string name="pref_mpv_ao_opensles" translatable="false">OpenSL ES</string>
-    <string name="pref_mpv_ao_aaudio" translatable="false">AAudio</string>
-    <string name="pref_mpv_tone_bt2446a" translatable="false">BT.2446a</string>
-    <string name="pref_mpv_tone_spline" translatable="false">Spline</string>
-    <string name="pref_mpv_tone_hable" translatable="false">Hable</string>
-    <string name="pref_mpv_tone_mobius" translatable="false">Mobius</string>
-    <string name="pref_mpv_tone_clip" translatable="false">Clip</string>
-    <string name="pref_mpv_tone_mapping_hint">Applies when HDR is converted to SDR</string>
-    <string name="pref_mpv_hdr_peak_title">HDR peak detection</string>
-    <string name="pref_mpv_hdr_peak_summary">Measures scene brightness when HDR is tone-mapped to SDR (uses more GPU)</string>
-    <string name="pref_mpv_device_check_title">Vulkan compatibility</string>
-    <string name="pref_mpv_device_check_summary">Tap to verify Vulkan and HDR support</string>
-    <string name="mpv_device_check_vulkan_missing">not available</string>
-    <string name="mpv_device_check_vulkan_needs">(needs %1$s+)</string>
-    <string name="mpv_device_check_hdr_none">not an HDR display</string>
-    <string name="mpv_device_check_status_checking">checking device…</string>
-    <string name="mpv_device_check_status_supported">HDR passthrough available. Select Vulkan as GPU API.</string>
-    <string name="mpv_device_check_status_limited">Vulkan works, but this display can\'t show HDR. HDR is tone-mapped to SDR.</string>
-    <string name="mpv_device_check_status_unsupported">Vulkan %1$s isn\'t supported. HDR is tone-mapped to SDR.</string>
     <string name="cd_speed_decrease">Decrease speed</string>
     <string name="cd_speed_increase">Increase speed</string>
 
@@ -1132,8 +1097,6 @@
     <string name="player_error_live_channel_unavailable">This channel isn\'t available right now. Its source may be offline.</string>
     <string name="player_error_stream_failed">The server couldn\'t start this video.</string>
     <string name="player_error_server_reason_fmt">%1$s\n\nServer: %2$s</string>
-    <string name="player_error_video_output">Video output failed to start. Try GPU API: OpenGL in the player settings.</string>
-    <string name="player_error_audio_output">Audio output failed to start. Try a different Audio Output in the player settings.</string>
     <string name="error_load_live_channel">Failed to load live channel.</string>
 
     <string name="skip_intro">Skip Intro</string>
@@ -1411,21 +1374,14 @@
     <string name="playback_section_controls_summary">Gestures, skip buttons, pause screen and zoom</string>
     <string name="playback_section_cast_summary">Quality and codecs when casting</string>
     <string name="playback_section_advanced">Advanced</string>
-    <string name="playback_section_advanced_summary">Playback engine, buffering and MPV config</string>
+    <string name="playback_section_advanced_summary">Video buffer size</string>
 
-    <string name="pref_group_engine">Engine &amp; Behavior</string>
-    <string name="pref_use_exoplayer_title">Use ExoPlayer</string>
-    <string name="pref_use_exoplayer_summary">Uses LibMPV when disabled</string>
-    <string name="pref_group_exoplayer">ExoPlayer Options</string>
+    <string name="pref_group_engine">Buffering</string>
     <string name="pref_ass_render_mode_title">ASS subtitle rendering</string>
     <string name="pref_ass_render_mode_hint">Native rendering of ASS/SSA subtitle styling via libass. Smooth mode draws animations on a GPU overlay.</string>
     <string name="pref_ass_render_off">Off (plain text)</string>
     <string name="pref_ass_render_cues">Standard</string>
     <string name="pref_ass_render_overlay">Smooth animations (experimental)</string>
-    <string name="pref_group_mpv">MPV Options</string>
-    <string name="pref_mpv_hwdec_title">Hardware Decoding</string>
-    <string name="pref_mpv_video_output_title">Video Output</string>
-    <string name="pref_mpv_audio_output_title">Audio Output</string>
     <string name="pref_group_language">Language</string>
     <string name="pref_preferred_audio_language_title">Preferred Audio Language</string>
     <string name="pref_preferred_audio_language_summary">Auto-select audio track by language</string>
@@ -1491,11 +1447,6 @@
     <string name="pref_chapter_skip_gesture_summary">Long-press the left or right edge to skip chapters (middle keeps 2× speed)</string>
     <string name="pref_swap_gesture_indicators_title">Swap gesture indicators</string>
     <string name="pref_swap_gesture_indicators_summary">Show brightness and volume levels on the opposite side from your finger</string>
-    <string name="pref_edit_mpv_conf_title">Edit mpv.conf</string>
-    <string name="pref_edit_input_conf_title">Edit input.conf</string>
-    <string name="pref_edit_config_summary">Advanced MPV configuration</string>
-    <string name="pref_edit_input_conf_summary">Bind commands to gestures</string>
-    <string name="mpv_conf_editor_note">Changes apply the next time you start playback</string>
     <string name="pref_default_zoom_title">Default Zoom</string>
 
     <string name="pref_group_subtitles">Subtitles</string>
@@ -1503,17 +1454,10 @@
     <string name="pref_sub_text_size">Text Size</string>
     <string name="pref_sub_bold">Bold Text</string>
     <string name="pref_sub_bold_summary">Make subtitles thicker</string>
-    <string name="pref_sub_italic">Italic Text</string>
-    <string name="pref_sub_italic_summary">Slant text style</string>
     <string name="pref_sub_outline_style">Outline Style</string>
     <string name="pref_sub_shadow_color">Shadow Color</string>
     <string name="pref_sub_outline_color">Outline Color</string>
-    <string name="pref_sub_shadow_size">Shadow Size</string>
-    <string name="pref_sub_outline_size">Outline Size</string>
-    <string name="pref_sub_background_color">Background Color</string>
     <string name="pref_sub_window_color">Window Color</string>
-    <string name="pref_sub_vertical_pos">Vertical Position</string>
-    <string name="pref_sub_horizontal_align">Horizontal Alignment</string>
     <string name="action_reset_defaults">Reset Defaults</string>
     <string name="subtitle_preview_text">Subtitle Preview</string>
 
@@ -1553,12 +1497,6 @@
     <string name="outline_drop_shadow">Drop Shadow</string>
     <string name="outline_raised">Raised</string>
     <string name="outline_depressed">Depressed</string>
-    <string name="outline_background">Background Box</string>
-    <string name="align_left">Left</string>
-    <string name="align_center">Center</string>
-    <string name="align_right">Right</string>
-    <string name="align_top">Top</string>
-    <string name="align_bottom">Bottom</string>
 
     <string name="title_add_server">Add Server</string>
     <string name="title_edit_server">Edit Server</string>

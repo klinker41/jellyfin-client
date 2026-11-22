@@ -5,7 +5,6 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -22,29 +21,19 @@ import com.makd.afinity.data.models.livetv.LiveTvViewOptions
 import com.makd.afinity.data.models.livetv.ProgramCategory
 import com.makd.afinity.data.models.media.AfinitySegmentType
 import com.makd.afinity.data.models.player.AssRenderMode
-import com.makd.afinity.data.models.player.MpvAudioOutput
-import com.makd.afinity.data.models.player.MpvGpuApi
-import com.makd.afinity.data.models.player.MpvHdrOutput
-import com.makd.afinity.data.models.player.MpvHwDec
-import com.makd.afinity.data.models.player.MpvToneMapping
-import com.makd.afinity.data.models.player.MpvVideoOutput
 import com.makd.afinity.data.models.player.MusicQuality
 import com.makd.afinity.data.models.player.SeekStep
 import com.makd.afinity.data.models.player.SkipMode
-import com.makd.afinity.data.models.player.SubtitleHorizontalAlignment
 import com.makd.afinity.data.models.player.SubtitleOutlineStyle
 import com.makd.afinity.data.models.player.SubtitlePreferences
-import com.makd.afinity.data.models.player.SubtitleVerticalPosition
 import com.makd.afinity.data.models.player.VideoQuality
 import com.makd.afinity.data.models.player.VideoZoomMode
 import com.makd.afinity.data.repository.PreferencesRepository
 import com.makd.afinity.di.AppPreferences
 import com.makd.afinity.player.common.TrackSelection
-import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
@@ -89,7 +78,6 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
         val SKIP_RECAP_MODE = stringPreferencesKey("skip_recap_mode")
         val SKIP_PREVIEW_MODE = stringPreferencesKey("skip_preview_mode")
         val SKIP_COMMERCIAL_MODE = stringPreferencesKey("skip_commercial_mode")
-        val USE_EXO_PLAYER = booleanPreferencesKey("use_exo_player")
         val THEME_MODE = stringPreferencesKey("theme_mode")
 
         val APP_FONT = stringPreferencesKey("app_font")
@@ -146,14 +134,9 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
         val SUBTITLE_TEXT_COLOR = intPreferencesKey("subtitle_text_color")
         val SUBTITLE_TEXT_SIZE = stringPreferencesKey("subtitle_text_size")
         val SUBTITLE_BOLD = booleanPreferencesKey("subtitle_bold")
-        val SUBTITLE_ITALIC = booleanPreferencesKey("subtitle_italic")
         val SUBTITLE_OUTLINE_STYLE = stringPreferencesKey("subtitle_outline_style")
         val SUBTITLE_OUTLINE_COLOR = intPreferencesKey("subtitle_outline_color")
-        val SUBTITLE_OUTLINE_SIZE = stringPreferencesKey("subtitle_outline_size")
-        val SUBTITLE_BACKGROUND_COLOR = intPreferencesKey("subtitle_background_color")
         val SUBTITLE_WINDOW_COLOR = intPreferencesKey("subtitle_window_color")
-        val SUBTITLE_VERTICAL_POSITION = stringPreferencesKey("subtitle_vertical_position")
-        val SUBTITLE_HORIZONTAL_ALIGNMENT = stringPreferencesKey("subtitle_horizontal_alignment")
 
         val LOGO_AUTO_HIDE = booleanPreferencesKey("logo_auto_hide")
 
@@ -169,14 +152,6 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
         val SWAP_GESTURE_INDICATORS = booleanPreferencesKey("swap_gesture_indicators")
 
         val ASS_RENDER_MODE = stringPreferencesKey("ass_render_mode")
-        val MPV_HW_DEC = stringPreferencesKey("mpv_hw_dec")
-        val MPV_GPU_API = stringPreferencesKey("mpv_gpu_api")
-        val MPV_HDR_OUTPUT = stringPreferencesKey("mpv_hdr_output")
-        val MPV_TONE_MAPPING = stringPreferencesKey("mpv_tone_mapping")
-        val MPV_HDR_PEAK_DETECTION = booleanPreferencesKey("mpv_hdr_peak_detection")
-        val MPV_DEVICE_CHECK_SIGNATURE = stringPreferencesKey("mpv_device_check_signature")
-        val MPV_VIDEO_OUTPUT = stringPreferencesKey("mpv_video_output")
-        val MPV_AUDIO_OUTPUT = stringPreferencesKey("mpv_audio_output")
 
         val PREFERRED_AUDIO_LANGUAGE = stringPreferencesKey("preferred_audio_language")
         val PREFERRED_SUBTITLE_LANGUAGE = stringPreferencesKey("preferred_subtitle_language")
@@ -894,83 +869,6 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
         }
     }
 
-    override val useExoPlayer: Flow<Boolean> =
-        dataStore.data
-            .catch { exception ->
-                if (exception is IOException) {
-                    emit(emptyPreferences())
-                } else {
-                    throw exception
-                }
-            }
-            .map { preferences -> preferences[Keys.USE_EXO_PLAYER] ?: false }
-
-    override suspend fun setUseExoPlayer(value: Boolean) {
-        dataStore.edit { preferences -> preferences[Keys.USE_EXO_PLAYER] = value }
-    }
-
-    override suspend fun setMpvHwDec(hwDec: MpvHwDec) {
-        dataStore.edit { preferences -> preferences[Keys.MPV_HW_DEC] = hwDec.value }
-    }
-
-    override suspend fun getMpvHwDec(): MpvHwDec {
-        return dataStore.data.first()[Keys.MPV_HW_DEC]?.let { MpvHwDec.fromValue(it) }
-            ?: MpvHwDec.default
-    }
-
-    override fun getMpvHwDecFlow(): Flow<MpvHwDec> {
-        return dataStore.data.map { preferences ->
-            preferences[Keys.MPV_HW_DEC]?.let { MpvHwDec.fromValue(it) } ?: MpvHwDec.default
-        }
-    }
-
-    override suspend fun setMpvVideoOutput(videoOutput: MpvVideoOutput) {
-        dataStore.edit { preferences -> preferences[Keys.MPV_VIDEO_OUTPUT] = videoOutput.value }
-    }
-
-    override suspend fun getMpvVideoOutput(): MpvVideoOutput {
-        return dataStore.data.first()[Keys.MPV_VIDEO_OUTPUT]?.let { MpvVideoOutput.fromValue(it) }
-            ?: MpvVideoOutput.default
-    }
-
-    override fun getMpvVideoOutputFlow(): Flow<MpvVideoOutput> {
-        return dataStore.data.map { preferences ->
-            preferences[Keys.MPV_VIDEO_OUTPUT]?.let { MpvVideoOutput.fromValue(it) }
-                ?: MpvVideoOutput.default
-        }
-    }
-
-    override suspend fun setMpvAudioOutput(audioOutput: MpvAudioOutput) {
-        dataStore.edit { preferences -> preferences[Keys.MPV_AUDIO_OUTPUT] = audioOutput.value }
-    }
-
-    override suspend fun getMpvAudioOutput(): MpvAudioOutput {
-        return dataStore.data.first()[Keys.MPV_AUDIO_OUTPUT]?.let { MpvAudioOutput.fromValue(it) }
-            ?: MpvAudioOutput.default
-    }
-
-    override fun getMpvAudioOutputFlow(): Flow<MpvAudioOutput> {
-        return dataStore.data.map { preferences ->
-            preferences[Keys.MPV_AUDIO_OUTPUT]?.let { MpvAudioOutput.fromValue(it) }
-                ?: MpvAudioOutput.default
-        }
-    }
-
-    override suspend fun setMpvGpuApi(gpuApi: MpvGpuApi) {
-        dataStore.edit { preferences -> preferences[Keys.MPV_GPU_API] = gpuApi.value }
-    }
-
-    override suspend fun getMpvGpuApi(): MpvGpuApi {
-        return dataStore.data.first()[Keys.MPV_GPU_API]?.let { MpvGpuApi.fromValue(it) }
-            ?: MpvGpuApi.default
-    }
-
-    override fun getMpvGpuApiFlow(): Flow<MpvGpuApi> {
-        return dataStore.data.map { preferences ->
-            preferences[Keys.MPV_GPU_API]?.let { MpvGpuApi.fromValue(it) } ?: MpvGpuApi.default
-        }
-    }
-
     override suspend fun setAssRenderMode(mode: AssRenderMode) {
         dataStore.edit { preferences -> preferences[Keys.ASS_RENDER_MODE] = mode.value }
     }
@@ -985,64 +883,6 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
             preferences[Keys.ASS_RENDER_MODE]?.let { AssRenderMode.fromValue(it) }
                 ?: AssRenderMode.default
         }
-    }
-
-    override suspend fun setMpvHdrOutput(hdrOutput: MpvHdrOutput) {
-        dataStore.edit { preferences -> preferences[Keys.MPV_HDR_OUTPUT] = hdrOutput.value }
-    }
-
-    override suspend fun getMpvHdrOutput(): MpvHdrOutput {
-        return dataStore.data.first()[Keys.MPV_HDR_OUTPUT]?.let { MpvHdrOutput.fromValue(it) }
-            ?: MpvHdrOutput.default
-    }
-
-    override fun getMpvHdrOutputFlow(): Flow<MpvHdrOutput> {
-        return dataStore.data.map { preferences ->
-            preferences[Keys.MPV_HDR_OUTPUT]?.let { MpvHdrOutput.fromValue(it) }
-                ?: MpvHdrOutput.default
-        }
-    }
-
-    override suspend fun setMpvToneMapping(toneMapping: MpvToneMapping) {
-        dataStore.edit { preferences -> preferences[Keys.MPV_TONE_MAPPING] = toneMapping.value }
-    }
-
-    override suspend fun getMpvToneMapping(): MpvToneMapping {
-        return dataStore.data.first()[Keys.MPV_TONE_MAPPING]?.let { MpvToneMapping.fromValue(it) }
-            ?: MpvToneMapping.default
-    }
-
-    override fun getMpvToneMappingFlow(): Flow<MpvToneMapping> {
-        return dataStore.data.map { preferences ->
-            preferences[Keys.MPV_TONE_MAPPING]?.let { MpvToneMapping.fromValue(it) }
-                ?: MpvToneMapping.default
-        }
-    }
-
-    override suspend fun setMpvHdrPeakDetection(enabled: Boolean) {
-        dataStore.edit { preferences -> preferences[Keys.MPV_HDR_PEAK_DETECTION] = enabled }
-    }
-
-    override suspend fun getMpvHdrPeakDetection(): Boolean {
-        return dataStore.data.first()[Keys.MPV_HDR_PEAK_DETECTION] ?: true
-    }
-
-    override fun getMpvHdrPeakDetectionFlow(): Flow<Boolean> {
-        return dataStore.data.map { preferences ->
-            preferences[Keys.MPV_HDR_PEAK_DETECTION] ?: true
-        }
-    }
-
-    override suspend fun setMpvDeviceCheckSignature(signature: String) {
-        dataStore.edit { preferences -> preferences[Keys.MPV_DEVICE_CHECK_SIGNATURE] = signature }
-    }
-
-    override suspend fun getMpvDeviceCheckSignature(): String? {
-        return dataStore.data.first()[Keys.MPV_DEVICE_CHECK_SIGNATURE]
-    }
-
-    override fun getMpvDeviceCheckSignatureFlow(): Flow<String?> {
-        return dataStore.data.map { preferences -> preferences[Keys.MPV_DEVICE_CHECK_SIGNATURE] }
     }
 
     override suspend fun setPreferredAudioLanguage(language: String) {
@@ -1136,14 +976,9 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
             prefs[Keys.SUBTITLE_TEXT_COLOR] = preferences.textColor
             prefs[Keys.SUBTITLE_TEXT_SIZE] = preferences.textSize.toString()
             prefs[Keys.SUBTITLE_BOLD] = preferences.bold
-            prefs[Keys.SUBTITLE_ITALIC] = preferences.italic
             prefs[Keys.SUBTITLE_OUTLINE_STYLE] = preferences.outlineStyle.name
             prefs[Keys.SUBTITLE_OUTLINE_COLOR] = preferences.outlineColor
-            prefs[Keys.SUBTITLE_OUTLINE_SIZE] = preferences.outlineSize.toString()
-            prefs[Keys.SUBTITLE_BACKGROUND_COLOR] = preferences.backgroundColor
             prefs[Keys.SUBTITLE_WINDOW_COLOR] = preferences.windowColor
-            prefs[Keys.SUBTITLE_VERTICAL_POSITION] = preferences.verticalPosition.name
-            prefs[Keys.SUBTITLE_HORIZONTAL_ALIGNMENT] = preferences.horizontalAlignment.name
         }
     }
 
@@ -1153,22 +988,11 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
             textColor = prefs[Keys.SUBTITLE_TEXT_COLOR] ?: Color.WHITE,
             textSize = prefs[Keys.SUBTITLE_TEXT_SIZE]?.toFloatOrNull() ?: 1.0f,
             bold = prefs[Keys.SUBTITLE_BOLD] ?: false,
-            italic = prefs[Keys.SUBTITLE_ITALIC] ?: false,
             outlineStyle =
                 prefs[Keys.SUBTITLE_OUTLINE_STYLE]?.let { SubtitleOutlineStyle.fromString(it) }
                     ?: SubtitleOutlineStyle.NONE,
             outlineColor = prefs[Keys.SUBTITLE_OUTLINE_COLOR] ?: Color.BLACK,
-            outlineSize = prefs[Keys.SUBTITLE_OUTLINE_SIZE]?.toFloatOrNull() ?: 0f,
-            backgroundColor = prefs[Keys.SUBTITLE_BACKGROUND_COLOR] ?: Color.TRANSPARENT,
             windowColor = prefs[Keys.SUBTITLE_WINDOW_COLOR] ?: Color.TRANSPARENT,
-            verticalPosition =
-                prefs[Keys.SUBTITLE_VERTICAL_POSITION]?.let {
-                    SubtitleVerticalPosition.fromString(it)
-                } ?: SubtitleVerticalPosition.BOTTOM,
-            horizontalAlignment =
-                prefs[Keys.SUBTITLE_HORIZONTAL_ALIGNMENT]?.let {
-                    SubtitleHorizontalAlignment.fromString(it)
-                } ?: SubtitleHorizontalAlignment.CENTER,
         )
     }
 
@@ -1178,22 +1002,11 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
                 textColor = prefs[Keys.SUBTITLE_TEXT_COLOR] ?: Color.WHITE,
                 textSize = prefs[Keys.SUBTITLE_TEXT_SIZE]?.toFloatOrNull() ?: 1.0f,
                 bold = prefs[Keys.SUBTITLE_BOLD] ?: false,
-                italic = prefs[Keys.SUBTITLE_ITALIC] ?: false,
                 outlineStyle =
                     prefs[Keys.SUBTITLE_OUTLINE_STYLE]?.let { SubtitleOutlineStyle.fromString(it) }
                         ?: SubtitleOutlineStyle.NONE,
                 outlineColor = prefs[Keys.SUBTITLE_OUTLINE_COLOR] ?: Color.BLACK,
-                outlineSize = prefs[Keys.SUBTITLE_OUTLINE_SIZE]?.toFloatOrNull() ?: 0f,
-                backgroundColor = prefs[Keys.SUBTITLE_BACKGROUND_COLOR] ?: Color.TRANSPARENT,
                 windowColor = prefs[Keys.SUBTITLE_WINDOW_COLOR] ?: Color.TRANSPARENT,
-                verticalPosition =
-                    prefs[Keys.SUBTITLE_VERTICAL_POSITION]?.let {
-                        SubtitleVerticalPosition.fromString(it)
-                    } ?: SubtitleVerticalPosition.BOTTOM,
-                horizontalAlignment =
-                    prefs[Keys.SUBTITLE_HORIZONTAL_ALIGNMENT]?.let {
-                        SubtitleHorizontalAlignment.fromString(it)
-                    } ?: SubtitleHorizontalAlignment.CENTER,
             )
         }
     }

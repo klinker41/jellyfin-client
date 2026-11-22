@@ -43,7 +43,6 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -77,12 +76,7 @@ import kotlin.math.roundToInt
 
 private val PREVIEW_MAX_WIDTH = 520.dp
 
-private val WidgetFont =
-    FontFamily(
-        Font(R.font.google_sans_flex_regular, FontWeight.Normal),
-        Font(R.font.google_sans_flex_medium, FontWeight.Medium),
-        Font(R.font.google_sans_flex_bold, FontWeight.Bold),
-    )
+private val WidgetFont = FontFamily.SansSerif
 
 @Composable
 fun AudioWidgetConfigScreen(

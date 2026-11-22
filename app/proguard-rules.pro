@@ -15,8 +15,6 @@
 # Crash readability
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
--keepnames class com.makd.afinity.** { *; }
 
 # Google Cast SDK
--keep class com.google.android.gms.cast.** { *; }
 -keep class com.makd.afinity.cast.CastOptionsProvider { *; }

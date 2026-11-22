@@ -399,13 +399,6 @@
     <string name="cd_queued_tap_cancel">В очереди, нажмите для отмены</string>
     <string name="cd_delete_download">Удалить скачивание</string>
     <string name="player_options_title">Воспроизведение</string>
-    <string name="pref_group_engine">Движок и поведение</string>
-    <string name="pref_use_exoplayer_title">Использовать ExoPlayer</string>
-    <string name="pref_use_exoplayer_summary">Используется LibMPV, если отключено</string>
-    <string name="pref_group_mpv">Настройки MPV</string>
-    <string name="pref_mpv_hwdec_title">Аппаратное декодирование</string>
-    <string name="pref_mpv_video_output_title">Видеовыход</string>
-    <string name="pref_mpv_audio_output_title">Аудиовыход</string>
     <string name="pref_group_language">Язык</string>
     <string name="pref_preferred_audio_language_title">Предпочитаемый язык аудио</string>
     <string name="pref_preferred_audio_language_summary">Автоматически выбирать аудиодорожку по языку</string>
@@ -433,17 +426,10 @@
     <string name="pref_sub_text_size">Размер текста</string>
     <string name="pref_sub_bold">Жирный текст</string>
     <string name="pref_sub_bold_summary">Сделать субтитры толще</string>
-    <string name="pref_sub_italic">Курсивный текст</string>
-    <string name="pref_sub_italic_summary">Наклонный стиль текста</string>
     <string name="pref_sub_outline_style">Стиль обводки</string>
     <string name="pref_sub_shadow_color">Цвет тени</string>
     <string name="pref_sub_outline_color">Цвет контура</string>
-    <string name="pref_sub_shadow_size">Размер тени</string>
-    <string name="pref_sub_outline_size">Размер контура</string>
-    <string name="pref_sub_background_color">Цвет фона</string>
     <string name="pref_sub_window_color">Цвет окна</string>
-    <string name="pref_sub_vertical_pos">Положение по вертикали</string>
-    <string name="pref_sub_horizontal_align">Выравнивание по горизонтали</string>
     <string name="action_reset_defaults">Восстановить по умолчанию</string>
     <string name="subtitle_preview_text">Пример субтитров</string>
     <string name="color_picker_title">Выбор цвета</string>
@@ -462,12 +448,6 @@
     <string name="outline_drop_shadow">Тень</string>
     <string name="outline_raised">Приподнятая</string>
     <string name="outline_depressed">Утопленная</string>
-    <string name="outline_background">Фоновое поле</string>
-    <string name="align_left">Слева</string>
-    <string name="align_center">По центру</string>
-    <string name="align_right">Справа</string>
-    <string name="align_top">Вверху</string>
-    <string name="align_bottom">Внизу</string>
     <string name="title_add_server">Добавить сервер</string>
     <string name="title_edit_server">Редактировать сервер</string>
     <string name="server_details_subtitle">Введите данные вашего сервера Jellyfin</string>
@@ -1134,13 +1114,6 @@
     <string name="playback_stats_label_audio_bitrate">Битрейт аудио</string>
     <string name="playback_stats_value_hdr_output">воспроизводится в HDR</string>
     <string name="playback_stats_value_hdr_tonemapped">преобразовано в SDR</string>
-    <string name="pref_mpv_gpu_api_title">API видеокарты</string>
-    <string name="pref_mpv_hdr_output_title">Вывод в HDR</string>
-    <string name="pref_mpv_tone_mapping_title">Тонмаппинг</string>
-    <string name="pref_mpv_tone_mapping_hint">Применяется при конвертации HDR в SDR</string>
-    <string name="pref_mpv_hdr_peak_summary">Измеряется яркость сцены при тонмаппинге HDR в SDR (использует больше ресурсов GPU)</string>
-    <string name="pref_mpv_hdr_peak_title">Обнаружение пиковой яркости в HDR</string>
-    <string name="pref_mpv_hdr_output_hint">Для сквозной передачи на большинстве устройств требуется Vulkan, иначе для HDR будет применен тонмаппинг</string>
     <string name="playback_stats_label_color">Цветовое пространство</string>
     <string name="playback_stats_label_video_range">Диапазон видео</string>
     <string name="playback_stats_label_cached">Загружено в кэш</string>
@@ -1233,7 +1206,6 @@
     <string name="offline_empty_message">На данный момент ваш сервер недоступен. Как только вы снова подключитесь к сети, все, что вы скачаете, будет доступно здесь.</string>
     <string name="websocket_server_restarting">Перезапуск сервера, идет автоматическое переподключение…</string>
     <string name="websocket_server_shutdown">Сервер выключен</string>
-    <string name="pref_group_exoplayer">Настройки ExoPlayer</string>
     <string name="pref_ass_render_mode_title">Рендеринг ASS-субтитров</string>
     <string name="pref_ass_render_mode_hint">Нативный рендеринг стилей для ASS/SSA-субтитров через libass. Плавный режим отображает анимации через GPU-наложение.</string>
     <string name="pref_connect_services">Подключение сервисов</string>
@@ -1301,11 +1273,6 @@
     <string name="pause_screen_delay_seconds_fmt">%1$d сек</string>
     <string name="pref_chapter_skip_gesture_title">Жест для пропуска глав</string>
     <string name="pref_chapter_skip_gesture_summary">Пропуск глав по долгому нажатию на левую или правую грань экрана (посередине - скорость 2×)</string>
-    <string name="pref_edit_mpv_conf_title">Изменить mpv.conf</string>
-    <string name="pref_edit_input_conf_title">Изменить input.conf</string>
-    <string name="pref_edit_config_summary">Продвинутые настройки MPV</string>
-    <string name="pref_edit_input_conf_summary">Привязывать комманды к жестам</string>
-    <string name="mpv_conf_editor_note">Изменения применятся при следующем воспроизведении</string>
     <string name="home_directed_by_from_watched">Вы смотрели «%2$s», режиссер которого — %1$s</string>
     <string name="home_written_by_from_watched">Вы смотрели «%2$s», сценарист которого — %1$s</string>
     <string name="home_because_you_liked">Вам понравилось: %1$s</string>
@@ -1466,7 +1433,6 @@
     </plurals>
     <string name="cache_store_video">Кэш видео</string>
     <string name="cache_store_network">Сетевой кэш</string>
-    <string name="cache_store_player">Данные для плеера</string>
     <string name="pref_video_caching_title">Кэширование видео</string>
     <string name="pref_video_caching_summary">Сохранение недавнего видеопотока на диск, чтобы при перемотке и повторном просмотре данные не скачивались заново</string>
     <string name="pref_subtitle_mode_title">Режим субтитров</string>
@@ -1625,12 +1591,6 @@
         <item quantity="many">%1$d участников</item>
         <item quantity="other">%1$d участников</item>
     </plurals>
-    <string name="pref_mpv_hwdec_disabled">Отключено</string>
-    <string name="pref_mpv_gpu_api_opengl">OpenGL (по умолчанию)</string>
-    <string name="pref_mpv_gpu_api_vulkan">Vulkan (экспериментально)</string>
-    <string name="pref_mpv_hdr_auto">Авто (проброс HDR)</string>
-    <string name="pref_mpv_hdr_tone_map">Всегда преобразовывать в SDR</string>
-    <string name="pref_mpv_tone_auto">Авто</string>
     <string name="cd_flag">Флаг</string>
     <string name="cd_rating">Оценка</string>
     <string name="cd_select">Выбрать</string>
@@ -1951,7 +1911,6 @@
     <string name="playback_section_controls_summary">Жесты, кнопки пропуска, экран паузы и масштаб</string>
     <string name="playback_section_cast_summary">Качество и кодек при трансляции</string>
     <string name="playback_section_advanced">Расширенные</string>
-    <string name="playback_section_advanced_summary">Движок для воспроизведения, настройки буфера и MPV</string>
     <string name="forget_account_title">Забыть %1$s?</string>
     <string name="forget_account_message">Будет удален сохраненный логин этого аккаунта и все, что было им загружено. Сам аккаунт не удаляется с сервера.</string>
     <string name="forget_account_confirm">Забыть</string>
@@ -2867,8 +2826,6 @@
     <string name="player_error_live_channel_unavailable">Этот канал на данный момент недоступен. Его источник может быть не в сети.</string>
     <string name="player_error_stream_failed">Сервер не смог запустить это видео.</string>
     <string name="player_error_server_reason_fmt">%1$s\n\nСервер: %2$s</string>
-    <string name="player_error_video_output">Не удалось запустить вывод видеопотока. Попробуйте API видеокарты: OpenGL в настройках плеера.</string>
-    <string name="player_error_audio_output">Не удалось запустить вывод аудиопотока. Попробуйте другой аудиовыход в настройках плеера.</string>
     <string name="drawer_libraries_mode_off">Отключено</string>
     <string name="drawer_libraries_mode_screen">Страница с библиотеками</string>
     <string name="drawer_libraries_mode_each">Каждая библиотека</string>
@@ -2945,15 +2902,6 @@
     <string name="library_opt_embedded_extras_titles_summary">Доп. материалы часто имеют то же встроенное название, что и родительское. Включите параметр, чтобы все равно использовать для них встроенные заголовки.</string>
     <string name="library_opt_add_to_collection">Автоматически добавлять в коллекции</string>
     <string name="library_opt_add_to_collection_summary">Если хотя бы 2 фильма имеют одинаковое название коллекции, они будут автоматически добавлены в коллекцию.</string>
-    <string name="pref_mpv_device_check_title">Совместимость с Vulkan</string>
-    <string name="pref_mpv_device_check_summary">Нажмите для подтверждения поддержки Vulkan и HDR</string>
-    <string name="mpv_device_check_vulkan_missing">не доступно</string>
-    <string name="mpv_device_check_vulkan_needs">(нужно %1$s+)</string>
-    <string name="mpv_device_check_hdr_none">не является HDR-экраном</string>
-    <string name="mpv_device_check_status_checking">проверка устройства…</string>
-    <string name="mpv_device_check_status_supported">доступен проброс HDR. Выберите Vulkan в качества API видеокарты.</string>
-    <string name="mpv_device_check_status_limited">Vulkan работает, но экран не может показывать HDR. Он будет преобразован в SDR.</string>
-    <string name="mpv_device_check_status_unsupported">Vulkan %1$s не поддерживается. HDR будет преобразован в SDR.</string>
     <string name="section_advanced">Расширенные настройки</string>
     <string name="config_section_quick_connect">Быстрое подключение</string>
     <string name="config_resume_summary">Когда произведения считаются воспроизведенными или возобновляемыми</string>

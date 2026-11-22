@@ -10,12 +10,6 @@ import com.makd.afinity.data.models.common.SortBy
 import com.makd.afinity.data.models.livetv.LiveTvViewOptions
 import com.makd.afinity.data.models.media.AfinitySegmentType
 import com.makd.afinity.data.models.player.AssRenderMode
-import com.makd.afinity.data.models.player.MpvAudioOutput
-import com.makd.afinity.data.models.player.MpvGpuApi
-import com.makd.afinity.data.models.player.MpvHdrOutput
-import com.makd.afinity.data.models.player.MpvHwDec
-import com.makd.afinity.data.models.player.MpvToneMapping
-import com.makd.afinity.data.models.player.MpvVideoOutput
 import com.makd.afinity.data.models.player.SeekStep
 import com.makd.afinity.data.models.player.SkipMode
 import com.makd.afinity.data.models.player.SubtitlePreferences
@@ -150,63 +144,11 @@ interface PreferencesRepository {
 
     fun getSegmentSkipModeFlow(type: AfinitySegmentType): Flow<SkipMode>
 
-    val useExoPlayer: Flow<Boolean>
-
-    suspend fun setUseExoPlayer(value: Boolean)
-
     suspend fun setAssRenderMode(mode: AssRenderMode)
 
     suspend fun getAssRenderMode(): AssRenderMode
 
     fun getAssRenderModeFlow(): Flow<AssRenderMode>
-
-    suspend fun setMpvHwDec(hwDec: MpvHwDec)
-
-    suspend fun getMpvHwDec(): MpvHwDec
-
-    fun getMpvHwDecFlow(): Flow<MpvHwDec>
-
-    suspend fun setMpvVideoOutput(videoOutput: MpvVideoOutput)
-
-    suspend fun getMpvVideoOutput(): MpvVideoOutput
-
-    fun getMpvVideoOutputFlow(): Flow<MpvVideoOutput>
-
-    suspend fun setMpvAudioOutput(audioOutput: MpvAudioOutput)
-
-    suspend fun getMpvAudioOutput(): MpvAudioOutput
-
-    fun getMpvAudioOutputFlow(): Flow<MpvAudioOutput>
-
-    suspend fun setMpvGpuApi(gpuApi: MpvGpuApi)
-
-    suspend fun getMpvGpuApi(): MpvGpuApi
-
-    fun getMpvGpuApiFlow(): Flow<MpvGpuApi>
-
-    suspend fun setMpvHdrOutput(hdrOutput: MpvHdrOutput)
-
-    suspend fun getMpvHdrOutput(): MpvHdrOutput
-
-    fun getMpvHdrOutputFlow(): Flow<MpvHdrOutput>
-
-    suspend fun setMpvToneMapping(toneMapping: MpvToneMapping)
-
-    suspend fun getMpvToneMapping(): MpvToneMapping
-
-    fun getMpvToneMappingFlow(): Flow<MpvToneMapping>
-
-    suspend fun setMpvHdrPeakDetection(enabled: Boolean)
-
-    suspend fun getMpvHdrPeakDetection(): Boolean
-
-    fun getMpvHdrPeakDetectionFlow(): Flow<Boolean>
-
-    suspend fun setMpvDeviceCheckSignature(signature: String)
-
-    suspend fun getMpvDeviceCheckSignature(): String?
-
-    fun getMpvDeviceCheckSignatureFlow(): Flow<String?>
 
     suspend fun setPreferredAudioLanguage(language: String)
 

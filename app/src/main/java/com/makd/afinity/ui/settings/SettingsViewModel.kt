@@ -16,12 +16,6 @@ import com.makd.afinity.data.models.common.HeroStyle
 import com.makd.afinity.data.models.mdblist.MdbListUsage
 import com.makd.afinity.data.models.media.AfinitySegmentType
 import com.makd.afinity.data.models.player.AssRenderMode
-import com.makd.afinity.data.models.player.MpvAudioOutput
-import com.makd.afinity.data.models.player.MpvGpuApi
-import com.makd.afinity.data.models.player.MpvHdrOutput
-import com.makd.afinity.data.models.player.MpvHwDec
-import com.makd.afinity.data.models.player.MpvToneMapping
-import com.makd.afinity.data.models.player.MpvVideoOutput
 import com.makd.afinity.data.models.player.MusicQuality
 import com.makd.afinity.data.models.player.SeekStep
 import com.makd.afinity.data.models.player.SkipMode
@@ -594,12 +588,6 @@ constructor(
         }
 
         viewModelScope.launch {
-            preferencesRepository.useExoPlayer.collect {
-                _uiState.value = _uiState.value.copy(useExoPlayer = it)
-            }
-        }
-
-        viewModelScope.launch {
             preferencesRepository.getPipGestureEnabledFlow().collect {
                 _uiState.value = _uiState.value.copy(pipGestureEnabled = it)
             }
@@ -671,50 +659,8 @@ constructor(
         }
 
         viewModelScope.launch {
-            preferencesRepository.getMpvHwDecFlow().collect { hwDec ->
-                _uiState.value = _uiState.value.copy(mpvHwDec = hwDec)
-            }
-        }
-
-        viewModelScope.launch {
-            preferencesRepository.getMpvVideoOutputFlow().collect { vo ->
-                _uiState.value = _uiState.value.copy(mpvVideoOutput = vo)
-            }
-        }
-
-        viewModelScope.launch {
-            preferencesRepository.getMpvAudioOutputFlow().collect { ao ->
-                _uiState.value = _uiState.value.copy(mpvAudioOutput = ao)
-            }
-        }
-
-        viewModelScope.launch {
-            preferencesRepository.getMpvGpuApiFlow().collect { gpuApi ->
-                _uiState.value = _uiState.value.copy(mpvGpuApi = gpuApi)
-            }
-        }
-
-        viewModelScope.launch {
-            preferencesRepository.getMpvHdrOutputFlow().collect { hdrOutput ->
-                _uiState.value = _uiState.value.copy(mpvHdrOutput = hdrOutput)
-            }
-        }
-
-        viewModelScope.launch {
             preferencesRepository.getAssRenderModeFlow().collect { mode ->
                 _uiState.value = _uiState.value.copy(assRenderMode = mode)
-            }
-        }
-
-        viewModelScope.launch {
-            preferencesRepository.getMpvToneMappingFlow().collect { toneMapping ->
-                _uiState.value = _uiState.value.copy(mpvToneMapping = toneMapping)
-            }
-        }
-
-        viewModelScope.launch {
-            preferencesRepository.getMpvHdrPeakDetectionFlow().collect { enabled ->
-                _uiState.value = _uiState.value.copy(mpvHdrPeakDetection = enabled)
             }
         }
 
@@ -929,55 +875,6 @@ constructor(
         }
     }
 
-    fun toggleUseExoPlayer(enabled: Boolean) {
-        viewModelScope.launch {
-            try {
-                val currentSubtitlePrefs = preferencesRepository.getSubtitlePreferences()
-
-                val updatedPrefs =
-                    when {
-                        enabled &&
-                            currentSubtitlePrefs.outlineStyle ==
-                                com.makd.afinity.data.models.player.SubtitleOutlineStyle
-                                    .BACKGROUND_BOX -> {
-                            Timber.d("Switching to ExoPlayer: Resetting BACKGROUND_BOX to NONE")
-                            currentSubtitlePrefs.copy(
-                                outlineStyle =
-                                    com.makd.afinity.data.models.player.SubtitleOutlineStyle.NONE,
-                                outlineSize = 0f,
-                            )
-                        }
-
-                        !enabled &&
-                            (currentSubtitlePrefs.outlineStyle ==
-                                com.makd.afinity.data.models.player.SubtitleOutlineStyle.RAISED ||
-                                currentSubtitlePrefs.outlineStyle ==
-                                    com.makd.afinity.data.models.player.SubtitleOutlineStyle
-                                        .DEPRESSED) -> {
-                            Timber.d(
-                                "Switching to MPV: Resetting ${currentSubtitlePrefs.outlineStyle} to NONE",
-                            )
-                            currentSubtitlePrefs.copy(
-                                outlineStyle =
-                                    com.makd.afinity.data.models.player.SubtitleOutlineStyle.NONE,
-                            )
-                        }
-
-                        else -> null
-                    }
-
-                updatedPrefs?.let { preferencesRepository.setSubtitlePreferences(it) }
-
-                preferencesRepository.setUseExoPlayer(enabled)
-                Timber.d("Use ExoPlayer set to: $enabled")
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to toggle use exoplayer")
-            }
-        }
-    }
-
     fun setSkipIntroMode(mode: SkipMode) {
         viewModelScope.launch {
             try {
@@ -1131,32 +1028,6 @@ constructor(
         }
     }
 
-    fun setMpvGpuApi(gpuApi: MpvGpuApi) {
-        viewModelScope.launch {
-            try {
-                preferencesRepository.setMpvGpuApi(gpuApi)
-                Timber.d("MPV GPU API set to: ${gpuApi.value}")
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to set MPV GPU API")
-            }
-        }
-    }
-
-    fun setMpvHdrOutput(hdrOutput: MpvHdrOutput) {
-        viewModelScope.launch {
-            try {
-                preferencesRepository.setMpvHdrOutput(hdrOutput)
-                Timber.d("MPV HDR output set to: ${hdrOutput.value}")
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to set MPV HDR output")
-            }
-        }
-    }
-
     fun setAssRenderMode(mode: AssRenderMode) {
         viewModelScope.launch {
             try {
@@ -1166,71 +1037,6 @@ constructor(
                 throw e
             } catch (e: Exception) {
                 Timber.e(e, "Failed to set ASS render mode")
-            }
-        }
-    }
-
-    fun setMpvToneMapping(toneMapping: MpvToneMapping) {
-        viewModelScope.launch {
-            try {
-                preferencesRepository.setMpvToneMapping(toneMapping)
-                Timber.d("MPV tone mapping set to: ${toneMapping.value}")
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to set MPV tone mapping")
-            }
-        }
-    }
-
-    fun setMpvHdrPeakDetection(enabled: Boolean) {
-        viewModelScope.launch {
-            try {
-                preferencesRepository.setMpvHdrPeakDetection(enabled)
-                Timber.d("MPV HDR peak detection set to: $enabled")
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to set MPV HDR peak detection")
-            }
-        }
-    }
-
-    fun setMpvHwDec(hwDec: MpvHwDec) {
-        viewModelScope.launch {
-            try {
-                preferencesRepository.setMpvHwDec(hwDec)
-                Timber.d("MPV hardware decoding set to: ${hwDec.value}")
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to set MPV hardware decoding")
-            }
-        }
-    }
-
-    fun setMpvVideoOutput(videoOutput: MpvVideoOutput) {
-        viewModelScope.launch {
-            try {
-                preferencesRepository.setMpvVideoOutput(videoOutput)
-                Timber.d("MPV video output set to: ${videoOutput.value}")
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to set MPV video output")
-            }
-        }
-    }
-
-    fun setMpvAudioOutput(audioOutput: MpvAudioOutput) {
-        viewModelScope.launch {
-            try {
-                preferencesRepository.setMpvAudioOutput(audioOutput)
-                Timber.d("MPV audio output set to: ${audioOutput.value}")
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to set MPV audio output")
             }
         }
     }
@@ -1968,7 +1774,6 @@ data class SettingsUiState(
     val skipRecapMode: SkipMode = SkipMode.DISABLED,
     val skipPreviewMode: SkipMode = SkipMode.DISABLED,
     val skipCommercialMode: SkipMode = SkipMode.DISABLED,
-    val useExoPlayer: Boolean = true,
     val logoAutoHide: Boolean = false,
     val pauseScreenEnabled: Boolean = false,
     val pauseScreenDelaySeconds: Int = 0,
@@ -1977,14 +1782,7 @@ data class SettingsUiState(
     val chapterSkipGesture: Boolean = true,
     val swapGestureIndicators: Boolean = false,
     val defaultVideoZoomMode: VideoZoomMode = VideoZoomMode.FIT,
-    val mpvHwDec: MpvHwDec = MpvHwDec.default,
-    val mpvVideoOutput: MpvVideoOutput = MpvVideoOutput.default,
-    val mpvAudioOutput: MpvAudioOutput = MpvAudioOutput.default,
-    val mpvGpuApi: MpvGpuApi = MpvGpuApi.default,
-    val mpvHdrOutput: MpvHdrOutput = MpvHdrOutput.default,
     val assRenderMode: AssRenderMode = AssRenderMode.default,
-    val mpvToneMapping: MpvToneMapping = MpvToneMapping.default,
-    val mpvHdrPeakDetection: Boolean = true,
     val preferredAudioLanguage: String = "",
     val preferredSubtitleLanguage: String = "",
     val subtitleModeOverride: String = "",

@@ -12,7 +12,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import org.jellyfin.sdk.api.client.exception.ApiClientException
 import org.jellyfin.sdk.api.operations.AudioApi
@@ -52,21 +51,12 @@ constructor(
     ): DeviceProfile {
         val maxAudioChannels = preferencesRepository.getTranscodeMaxAudioChannels()
         val allowHdrPassthrough = preferencesRepository.getAllowHdrPassthrough()
-        return if (preferencesRepository.useExoPlayer.first()) {
-            deviceProfileFactory.createExoPlayerProfile(
-                quality = quality,
-                maxAudioChannels = maxAudioChannels,
-                allowHdrPassthrough = allowHdrPassthrough,
-                allowTranscoding = allowTranscoding,
-            )
-        } else {
-            deviceProfileFactory.createMpvProfile(
-                quality = quality,
-                maxAudioChannels = maxAudioChannels,
-                allowHdrPassthrough = allowHdrPassthrough,
-                allowTranscoding = allowTranscoding,
-            )
-        }
+        return deviceProfileFactory.createExoPlayerProfile(
+            quality = quality,
+            maxAudioChannels = maxAudioChannels,
+            allowHdrPassthrough = allowHdrPassthrough,
+            allowTranscoding = allowTranscoding,
+        )
     }
 
     override suspend fun getPlaybackInfo(

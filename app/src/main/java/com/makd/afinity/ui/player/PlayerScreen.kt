@@ -38,15 +38,12 @@ import com.makd.afinity.data.models.livetv.LiveTvPlaybackInfo
 import com.makd.afinity.data.models.media.AfinityItem
 import com.makd.afinity.data.models.player.PlayerEvent
 import com.makd.afinity.data.models.player.SubtitlePreferences
-import com.makd.afinity.data.models.player.VideoZoomMode
-import com.makd.afinity.player.mpv.MPVPlayer
 import com.makd.afinity.ui.components.rememberCastChooserLauncher
 import com.makd.afinity.ui.player.cast.CastRemoteControllerScreen
 import com.makd.afinity.ui.player.components.BufferingIndicator
 import com.makd.afinity.ui.player.components.DoubleTapSeekOverlay
 import com.makd.afinity.ui.player.components.ErrorIndicator
 import com.makd.afinity.ui.player.components.GestureHandler
-import com.makd.afinity.ui.player.components.MpvSurface
 import com.makd.afinity.ui.player.components.PlaybackStatsOverlay
 import com.makd.afinity.ui.player.components.PlayerControls
 import com.makd.afinity.ui.player.components.PlayerIndicators
@@ -317,45 +314,27 @@ fun PlayerScreen(
                 },
                 modifier = Modifier.fillMaxSize(),
             ) {
-                when (val player = viewModel.player) {
-                    is ExoPlayer -> {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            AndroidView(
-                                factory = { ctx ->
-                                    PlayerView(ctx).apply {
-                                        useController = false
-                                        subtitleView?.apply {
-                                            setApplyEmbeddedStyles(false)
-                                            setApplyEmbeddedFontSizes(false)
-                                            if (viewModel.isAssActive) {
-                                                viewModel.assOverlayHandler?.let {
-                                                    withAssSupport(it)
-                                                }
-                                            }
+                (viewModel.player as? ExoPlayer)?.let { exoPlayer ->
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        AndroidView(
+                            factory = { ctx ->
+                                PlayerView(ctx).apply {
+                                    useController = false
+                                    subtitleView?.apply {
+                                        setApplyEmbeddedStyles(false)
+                                        setApplyEmbeddedFontSizes(false)
+                                        if (viewModel.isAssActive) {
+                                            viewModel.assOverlayHandler?.let { withAssSupport(it) }
                                         }
-                                        this.player = player
                                     }
-                                },
-                                update = { view ->
-                                    view.resizeMode = uiState.videoZoomMode.toExoPlayerResizeMode()
-                                    view.subtitleView?.applySubtitleStyle(subtitlePrefs)
-                                },
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                        }
-                    }
-
-                    is MPVPlayer -> {
-                        MpvSurface(
-                            modifier = Modifier.fillMaxSize(),
-                            mpv = player.mpv,
-                            videoOutput = viewModel.mpvVideoOutputValue,
-                            aspectRatio = uiState.videoAspectRatio,
-                            fitToVideo = uiState.videoZoomMode == VideoZoomMode.FIT,
-                            onSurfaceCreated = { Timber.d("MPV surface created in player screen") },
-                            onSurfaceDestroyed = {
-                                Timber.d("MPV surface destroyed in player screen")
+                                    this.player = exoPlayer
+                                }
                             },
+                            update = { view ->
+                                view.resizeMode = uiState.videoZoomMode.toExoPlayerResizeMode()
+                                view.subtitleView?.applySubtitleStyle(subtitlePrefs)
+                            },
+                            modifier = Modifier.fillMaxSize(),
                         )
                     }
                 }
@@ -489,7 +468,7 @@ private fun SubtitleView.applySubtitleStyle(subtitlePrefs: SubtitlePreferences) 
     val customStyle =
         CaptionStyleCompat(
             subtitlePrefs.textColor,
-            subtitlePrefs.backgroundColor,
+            android.graphics.Color.TRANSPARENT,
             subtitlePrefs.windowColor,
             subtitlePrefs.outlineStyle.toExoPlayerEdgeType(),
             subtitlePrefs.outlineColor,

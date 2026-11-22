@@ -110,32 +110,6 @@ class AndroidDeviceProfileFactory @Inject constructor() {
         )
     }
 
-    fun createMpvProfile(
-        quality: VideoQuality,
-        maxAudioChannels: Int,
-        allowHdrPassthrough: Boolean,
-        allowTranscoding: Boolean,
-    ): DeviceProfile {
-        val codecProfiles = listOfNotNull(globalVideoConditions(quality, allowHdrPassthrough))
-
-        return DeviceProfile(
-            name = MPV_PROFILE_NAME,
-            maxStreamingBitrate = streamingBitrate(quality),
-            maxStaticBitrate = MAX_STATIC_BITRATE,
-            musicStreamingTranscodingBitrate = MAX_MUSIC_TRANSCODING_BITRATE,
-            directPlayProfiles =
-                listOf(
-                    DirectPlayProfile(type = DlnaProfileType.VIDEO, container = ""),
-                    DirectPlayProfile(type = DlnaProfileType.AUDIO, container = ""),
-                ),
-            transcodingProfiles =
-                if (allowTranscoding) transcodingProfiles(maxAudioChannels) else emptyList(),
-            containerProfiles = emptyList(),
-            codecProfiles = codecProfiles,
-            subtitleProfiles = MPV_SUBTITLE_PROFILES,
-        )
-    }
-
     fun createDownloadProfile(
         quality: VideoQuality,
         maxAudioChannels: Int,
@@ -295,7 +269,6 @@ class AndroidDeviceProfileFactory @Inject constructor() {
         const val DOWNLOAD_TRANSCODE_CONTAINER = "mp4"
 
         private const val PROFILE_NAME = "AFinity Android"
-        private const val MPV_PROFILE_NAME = "AFinity Android (MPV)"
         private const val MUSIC_PROFILE_NAME = "AFinity Android (Music)"
         private const val MP4_AUDIO_CONTAINERS = "m4a,m4b"
         private const val DOWNLOAD_PROFILE_NAME = "AFinity Android (Download)"
@@ -323,14 +296,6 @@ class AndroidDeviceProfileFactory @Inject constructor() {
                 SubtitleProfile(format = it, method = SubtitleDeliveryMethod.EMBED)
             } +
                 listOf("srt", "subrip", "ttml", "vtt", "webvtt", "ass", "ssa").map {
-                    SubtitleProfile(format = it, method = SubtitleDeliveryMethod.EXTERNAL)
-                }
-
-        private val MPV_SUBTITLE_PROFILES =
-            listOf("subrip", "srt", "ttml", "ass", "ssa", "pgssub", "dvbsub").map {
-                SubtitleProfile(format = it, method = SubtitleDeliveryMethod.EMBED)
-            } +
-                listOf("srt", "subrip", "ttml", "vtt", "webvtt", "ass", "ssa", "sub", "idx").map {
                     SubtitleProfile(format = it, method = SubtitleDeliveryMethod.EXTERNAL)
                 }
     }

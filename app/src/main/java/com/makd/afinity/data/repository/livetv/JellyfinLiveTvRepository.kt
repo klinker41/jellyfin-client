@@ -129,18 +129,16 @@ constructor(
         block: suspend (apiClient: ApiClient, userId: UUID) -> T,
     ): T = apiInvoker.apiCall(default, errorMessage, block)
 
-    private fun buildLiveTvDeviceProfile(maxBitrate: Int, useExoPlayer: Boolean): DeviceProfile {
+    private fun buildLiveTvDeviceProfile(maxBitrate: Int): DeviceProfile {
         val nativeVideoCodecs = MediaCapabilities.getSupportedVideoCodecs()
         val nativeAudioCodecs = MediaCapabilities.getSupportedAudioCodecs()
 
         val nativeVideo = nativeVideoCodecs.split(",")
         val nativeAudio = nativeAudioCodecs.split(",")
         val hlsVideoCodecs =
-            MPEGTS_VIDEO_CODECS.filter { !useExoPlayer || it in nativeVideo }
-                .joinToString(",")
-                .ifEmpty { "h264" }
+            MPEGTS_VIDEO_CODECS.filter { it in nativeVideo }.joinToString(",").ifEmpty { "h264" }
         val hlsAudioCodecs =
-            MPEGTS_AUDIO_CODECS.filter { !useExoPlayer || it == "mp2" || it in nativeAudio }
+            MPEGTS_AUDIO_CODECS.filter { it == "mp2" || it in nativeAudio }
                 .joinToString(",")
                 .ifEmpty { "aac" }
 
@@ -150,19 +148,12 @@ constructor(
             maxStreamingBitrate = maxBitrate,
             directPlayProfiles =
                 listOf(
-                    if (useExoPlayer) {
-                        DirectPlayProfile(
-                            type = DlnaProfileType.VIDEO,
-                            container = DIRECT_PLAY_CONTAINERS,
-                            videoCodec = nativeVideoCodecs,
-                            audioCodec = nativeAudioCodecs,
-                        )
-                    } else {
-                        DirectPlayProfile(
-                            type = DlnaProfileType.VIDEO,
-                            container = DIRECT_PLAY_CONTAINERS,
-                        )
-                    },
+                    DirectPlayProfile(
+                        type = DlnaProfileType.VIDEO,
+                        container = DIRECT_PLAY_CONTAINERS,
+                        videoCodec = nativeVideoCodecs,
+                        audioCodec = nativeAudioCodecs,
+                    ),
                 ),
             transcodingProfiles =
                 listOf(
@@ -867,11 +858,7 @@ constructor(
             val mediaInfoApi = MediaInfoApi(tuneClient)
             val videoApi = VideoApi(apiClient)
             val maxStreamingBitrate = 140_000_000
-            val deviceProfile =
-                buildLiveTvDeviceProfile(
-                    maxStreamingBitrate,
-                    preferencesRepository.useExoPlayer.first(),
-                )
+            val deviceProfile = buildLiveTvDeviceProfile(maxStreamingBitrate)
 
             val playbackInfoDto =
                 PlaybackInfoDto(

@@ -18,8 +18,6 @@ import timber.log.Timber
 
 private const val EXO_CACHE_DIR = "exo_media_cache"
 private const val HTTP_CACHE_DIR = "http_cache"
-private const val MPV_CACHE_DIR = "mpv"
-private const val FONTCONFIG_CACHE_DIR = "fontconfig"
 private const val CRASHES_DIR = "crashes"
 private const val AVATARS_DIR = "user_avatars"
 
@@ -42,14 +40,12 @@ enum class CacheStore {
     IMAGES,
     VIDEO,
     NETWORK,
-    PLAYER,
 }
 
 enum class CacheSection {
     IMAGES,
     VIDEO,
     NETWORK,
-    PLAYER,
     JELLYFIN_METADATA,
     JELLYSEERR,
     AUDIOBOOKSHELF;
@@ -60,7 +56,6 @@ enum class CacheSection {
                 IMAGES -> setOf(CacheStore.IMAGES)
                 VIDEO -> setOf(CacheStore.VIDEO)
                 NETWORK -> setOf(CacheStore.NETWORK)
-                PLAYER -> setOf(CacheStore.PLAYER)
                 else -> emptySet()
             }
 
@@ -132,9 +127,6 @@ constructor(
                     CacheStore.IMAGES to imageBytes,
                     CacheStore.VIDEO to directorySize(cacheDir(EXO_CACHE_DIR)),
                     CacheStore.NETWORK to directorySize(cacheDir(HTTP_CACHE_DIR)),
-                    CacheStore.PLAYER to
-                        directorySize(cacheDir(MPV_CACHE_DIR)) +
-                            directorySize(cacheDir(FONTCONFIG_CACHE_DIR)),
                 )
 
             val counters =
@@ -186,14 +178,6 @@ constructor(
                     .onFailure { Timber.e(it, "Failed to clear network cache") }
                 runCatching { gitHubOkHttpClient.cache?.evictAll() }
                     .onFailure { Timber.e(it, "Failed to clear GitHub network cache") }
-            }
-
-            if (CacheSection.PLAYER in sections) {
-                runCatching {
-                    cacheDir(MPV_CACHE_DIR).deleteRecursively()
-                    cacheDir(FONTCONFIG_CACHE_DIR).deleteRecursively()
-                }
-                    .onFailure { Timber.e(it, "Failed to clear player cache") }
             }
 
             if (CacheSection.JELLYFIN_METADATA in sections) {

@@ -17,4 +17,12 @@ class PortablePreferencesTest {
         assertNotNull(PortablePreferences.find("crash_reporting"))
         assertNotNull(PortablePreferences.find("usage_analytics"))
     }
+
+    @Test
+    fun removedMpvPreferencesAreNotExportable() {
+        assertNull(PortablePreferences.find("use_exo_player"))
+        assertNull(PortablePreferences.find("mpv_hw_dec"))
+        assertNull(PortablePreferences.find("subtitle_italic"))
+        assertNull(PortablePreferences.find("subtitle_background_color"))
+    }
 }

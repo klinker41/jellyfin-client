@@ -36,7 +36,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -47,9 +46,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -68,7 +65,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -80,19 +76,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.makd.afinity.R
 import com.makd.afinity.data.models.media.AfinitySegmentType
 import com.makd.afinity.data.models.player.AssRenderMode
-import com.makd.afinity.data.models.player.MpvAudioOutput
-import com.makd.afinity.data.models.player.MpvGpuApi
-import com.makd.afinity.data.models.player.MpvHdrOutput
-import com.makd.afinity.data.models.player.MpvHwDec
-import com.makd.afinity.data.models.player.MpvToneMapping
-import com.makd.afinity.data.models.player.MpvVideoOutput
 import com.makd.afinity.data.models.player.MusicQuality
 import com.makd.afinity.data.models.player.SeekStep
 import com.makd.afinity.data.models.player.SkipMode
-import com.makd.afinity.data.models.player.SubtitleHorizontalAlignment
 import com.makd.afinity.data.models.player.SubtitleOutlineStyle
 import com.makd.afinity.data.models.player.SubtitlePreferences
-import com.makd.afinity.data.models.player.SubtitleVerticalPosition
 import com.makd.afinity.data.models.player.VideoQuality
 import com.makd.afinity.data.models.player.VideoZoomMode
 import com.makd.afinity.di.PreferencesEntryPoint
@@ -113,11 +101,9 @@ import com.makd.afinity.ui.player.components.musicQualityLabel
 import com.makd.afinity.ui.player.components.settingsQualityLabel
 import com.makd.afinity.ui.settings.SettingsViewModel
 import dagger.hilt.android.EntryPointAccessors
-import java.io.File
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.jellyfin.sdk.model.api.SubtitlePlaybackMode
 
 private enum class PlaybackSection {
@@ -150,12 +136,8 @@ fun PlayerOptionsScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
-    deviceCheckViewModel: MpvDeviceCheckViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val mpvVulkanVerified by deviceCheckViewModel.vulkanVerified.collectAsStateWithLifecycle()
-    val mpvDeviceCheckPending by deviceCheckViewModel.checkPending.collectAsStateWithLifecycle()
-    val mpvDeviceCheck by deviceCheckViewModel.check.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var section by rememberSaveable { mutableStateOf<PlaybackSection?>(null) }
 
@@ -174,11 +156,6 @@ fun PlayerOptionsScreen(
     val subtitlePrefs by
         subtitlePrefsFlow.collectAsStateWithLifecycle(initialValue = SubtitlePreferences.DEFAULT)
     val playerOffset = LocalPlayerOffset.current
-
-    var editingConfigFile by remember { mutableStateOf<String?>(null) }
-    editingConfigFile?.let { fileName ->
-        MpvConfigEditorDialog(fileName = fileName, onDismiss = { editingConfigFile = null })
-    }
 
     AfinityScreen(
         topBar = { backgroundOpacity ->
@@ -275,130 +252,11 @@ fun PlayerOptionsScreen(
 
             if (section == PlaybackSection.Advanced)
                 item {
-                    Column {
-                        SettingsGroup(title = stringResource(R.string.pref_group_engine)) {
-                            SettingsSwitchItem(
-                                icon = painterResource(id = R.drawable.ic_video_settings),
-                                title = stringResource(R.string.pref_use_exoplayer_title),
-                                subtitle = stringResource(R.string.pref_use_exoplayer_summary),
-                                checked = uiState.useExoPlayer,
-                                onCheckedChange = viewModel::toggleUseExoPlayer,
-                            )
-                            SettingsDivider()
-                            BufferSizeSelectorItem(
-                                selectedSizeMb = uiState.bufferSizeMb,
-                                onSizeSelected = viewModel::setBufferSizeMb,
-                            )
-                        }
-
-                        AnimatedVisibility(
-                            visible = !uiState.useExoPlayer,
-                            enter = fadeIn() + expandVertically(),
-                            exit = fadeOut() + shrinkVertically(),
-                        ) {
-                            Column {
-                                Spacer(modifier = Modifier.height(24.dp))
-                                SettingsGroup(title = stringResource(R.string.pref_group_mpv)) {
-                                    SubtitleDropdownItem(
-                                        title = stringResource(R.string.pref_mpv_hwdec_title),
-                                        selectedOption = uiState.mpvHwDec,
-                                        options = MpvHwDec.entries.toList(),
-                                        onValueChange = viewModel::setMpvHwDec,
-                                        labelProvider = { stringResource(it.labelRes) },
-                                        icon = painterResource(id = R.drawable.ic_cpu),
-                                    )
-                                    SettingsDivider()
-                                    SubtitleDropdownItem(
-                                        title =
-                                            stringResource(R.string.pref_mpv_video_output_title),
-                                        selectedOption = uiState.mpvVideoOutput,
-                                        options = MpvVideoOutput.entries.toList(),
-                                        onValueChange = viewModel::setMpvVideoOutput,
-                                        labelProvider = { stringResource(it.labelRes) },
-                                        icon = painterResource(id = R.drawable.ic_video_settings),
-                                    )
-                                    SettingsDivider()
-                                    SubtitleDropdownItem(
-                                        title =
-                                            stringResource(R.string.pref_mpv_audio_output_title),
-                                        selectedOption = uiState.mpvAudioOutput,
-                                        options = MpvAudioOutput.entries.toList(),
-                                        onValueChange = viewModel::setMpvAudioOutput,
-                                        labelProvider = { stringResource(it.labelRes) },
-                                        icon = painterResource(id = R.drawable.ic_audio),
-                                    )
-                                    SettingsDivider()
-                                    SettingsItem(
-                                        icon = painterResource(id = R.drawable.ic_edit),
-                                        title = stringResource(R.string.pref_edit_mpv_conf_title),
-                                        subtitle =
-                                            stringResource(R.string.pref_edit_config_summary),
-                                        onClick = { editingConfigFile = "mpv.conf" },
-                                    )
-                                    SettingsDivider()
-                                    SettingsItem(
-                                        icon = painterResource(id = R.drawable.ic_edit),
-                                        title = stringResource(R.string.pref_edit_input_conf_title),
-                                        subtitle =
-                                            stringResource(R.string.pref_edit_input_conf_summary),
-                                        onClick = { editingConfigFile = "input.conf" },
-                                    )
-                                    MpvDeviceCheckEntry(
-                                        visible = mpvDeviceCheckPending,
-                                        check = mpvDeviceCheck,
-                                        onStart = deviceCheckViewModel::startCheck,
-                                        onFinish = deviceCheckViewModel::finishCheck,
-                                    )
-                                    if (mpvVulkanVerified) {
-                                        SettingsDivider()
-                                        SubtitleDropdownItem(
-                                            title = stringResource(R.string.pref_mpv_gpu_api_title),
-                                            selectedOption = uiState.mpvGpuApi,
-                                            options = MpvGpuApi.entries.toList(),
-                                            onValueChange = viewModel::setMpvGpuApi,
-                                            labelProvider = { stringResource(it.labelRes) },
-                                            icon = painterResource(id = R.drawable.ic_cpu),
-                                        )
-                                    }
-                                    if (
-                                        mpvVulkanVerified && uiState.mpvGpuApi == MpvGpuApi.VULKAN
-                                    ) {
-                                        SettingsDivider()
-                                        SubtitleDropdownItem(
-                                            title =
-                                                stringResource(R.string.pref_mpv_hdr_output_title),
-                                            selectedOption = uiState.mpvHdrOutput,
-                                            options = MpvHdrOutput.entries.toList(),
-                                            onValueChange = viewModel::setMpvHdrOutput,
-                                            labelProvider = { stringResource(it.labelRes) },
-                                            icon = painterResource(id = R.drawable.ic_colorize),
-                                            hint =
-                                                stringResource(R.string.pref_mpv_hdr_output_hint),
-                                        )
-                                    }
-                                    SettingsDivider()
-                                    SubtitleDropdownItem(
-                                        title =
-                                            stringResource(R.string.pref_mpv_tone_mapping_title),
-                                        selectedOption = uiState.mpvToneMapping,
-                                        options = MpvToneMapping.entries.toList(),
-                                        onValueChange = viewModel::setMpvToneMapping,
-                                        labelProvider = { stringResource(it.labelRes) },
-                                        icon = painterResource(id = R.drawable.ic_texture),
-                                        hint = stringResource(R.string.pref_mpv_tone_mapping_hint),
-                                    )
-                                    SettingsDivider()
-                                    SettingsSwitchItem(
-                                        icon = painterResource(id = R.drawable.ic_visibility),
-                                        title = stringResource(R.string.pref_mpv_hdr_peak_title),
-                                        subtitle =
-                                            stringResource(R.string.pref_mpv_hdr_peak_summary),
-                                        checked = uiState.mpvHdrPeakDetection,
-                                        onCheckedChange = viewModel::setMpvHdrPeakDetection,
-                                    )
-                                }
-                            }
-                        }
+                    SettingsGroup(title = stringResource(R.string.pref_group_engine)) {
+                        BufferSizeSelectorItem(
+                            selectedSizeMb = uiState.bufferSizeMb,
+                            onSizeSelected = viewModel::setBufferSizeMb,
+                        )
                     }
                 }
 
@@ -626,36 +484,25 @@ fun PlayerOptionsScreen(
                 item {
                     SettingsGroup(title = stringResource(R.string.pref_group_subtitles)) {
                         Box(modifier = Modifier.padding(16.dp)) {
-                            SubtitlePreview(
-                                subtitlePrefs = subtitlePrefs,
-                                useExoPlayer = uiState.useExoPlayer,
-                            )
+                            SubtitlePreview(subtitlePrefs = subtitlePrefs)
                         }
 
                         SettingsDivider()
 
-                        AnimatedVisibility(
-                            visible = uiState.useExoPlayer,
-                            enter = fadeIn() + expandVertically(),
-                            exit = fadeOut() + shrinkVertically(),
-                        ) {
-                            Column {
-                                SubtitleDropdownItem(
-                                    title = stringResource(R.string.pref_ass_render_mode_title),
-                                    selectedOption = uiState.assRenderMode,
-                                    options = AssRenderMode.entries.toList(),
-                                    onValueChange = viewModel::setAssRenderMode,
-                                    labelProvider = { stringResource(it.labelRes) },
-                                    icon = painterResource(id = R.drawable.ic_subtitles),
-                                    hint = stringResource(R.string.pref_ass_render_mode_hint),
-                                )
-                                SettingsDivider()
-                            }
-                        }
+                        SubtitleDropdownItem(
+                            title = stringResource(R.string.pref_ass_render_mode_title),
+                            selectedOption = uiState.assRenderMode,
+                            options = AssRenderMode.entries.toList(),
+                            onValueChange = viewModel::setAssRenderMode,
+                            labelProvider = { stringResource(it.labelRes) },
+                            icon = painterResource(id = R.drawable.ic_subtitles),
+                            hint = stringResource(R.string.pref_ass_render_mode_hint),
+                        )
+
+                        SettingsDivider()
 
                         SubtitleCustomizationContent(
                             subtitlePrefs = subtitlePrefs,
-                            useExoPlayer = uiState.useExoPlayer,
                             onUpdate = { updatedPrefs ->
                                 scope.launch(Dispatchers.IO) {
                                     preferencesRepository.setSubtitlePreferences(updatedPrefs)
@@ -1264,102 +1111,8 @@ private fun PauseScreenDelaySelectorItem(seconds: Int, onSecondsChange: (Int) ->
 }
 
 @Composable
-private fun MpvConfigEditorDialog(fileName: String, onDismiss: () -> Unit) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var text by remember { mutableStateOf("") }
-    var loaded by remember { mutableStateOf(false) }
-
-    LaunchedEffect(fileName) {
-        text = withContext(Dispatchers.IO) { readMpvConfig(context, fileName) }
-        loaded = true
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(fileName) },
-        text = {
-            Column {
-                if (!loaded) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().height(240.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                } else {
-                    TextField(
-                        value = text,
-                        onValueChange = { text = it },
-                        modifier =
-                            Modifier.fillMaxWidth()
-                                .heightIn(min = 120.dp, max = 320.dp)
-                                .weight(1f, fill = false),
-                        textStyle =
-                            MaterialTheme.typography.bodySmall.copy(
-                                fontFamily = FontFamily.Monospace,
-                            ),
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(R.string.mpv_conf_editor_note),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = loaded,
-                onClick = {
-                    val toSave = text
-                    scope.launch {
-                        withContext(Dispatchers.IO) { writeMpvConfig(context, fileName, toSave) }
-                        onDismiss()
-                    }
-                },
-            ) {
-                Text(stringResource(R.string.action_save))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
-        },
-    )
-}
-
-private fun mpvConfigDir(context: android.content.Context) = File(context.filesDir, "mpv")
-
-private fun readMpvConfig(context: android.content.Context, fileName: String): String {
-    return try {
-        val file = File(mpvConfigDir(context), fileName)
-        when {
-            file.exists() -> file.readText()
-            fileName == "mpv.conf" ->
-                context.assets.open("mpv.conf").bufferedReader().use { it.readText() }
-            else -> ""
-        }
-    } catch (e: Exception) {
-        timber.log.Timber.e(e, "Failed to read $fileName")
-        ""
-    }
-}
-
-private fun writeMpvConfig(context: android.content.Context, fileName: String, text: String) {
-    try {
-        val dir = mpvConfigDir(context)
-        if (!dir.exists()) dir.mkdirs()
-        File(dir, fileName).writeText(text)
-    } catch (e: Exception) {
-        timber.log.Timber.e(e, "Failed to write $fileName")
-    }
-}
-
-@Composable
 private fun SubtitleCustomizationContent(
     subtitlePrefs: SubtitlePreferences,
-    useExoPlayer: Boolean,
     onUpdate: (SubtitlePreferences) -> Unit,
 ) {
     ColorPickerItem(
@@ -1388,38 +1141,12 @@ private fun SubtitleCustomizationContent(
         onCheckedChange = { onUpdate(subtitlePrefs.copy(bold = it)) },
     )
 
-    AnimatedVisibility(
-        visible = !useExoPlayer,
-        enter = fadeIn() + expandVertically(),
-        exit = fadeOut() + shrinkVertically(),
-    ) {
-        Column {
-            SettingsDivider()
-            SettingsSwitchItem(
-                icon = painterResource(id = R.drawable.ic_italic),
-                title = stringResource(R.string.pref_sub_italic),
-                subtitle = stringResource(R.string.pref_sub_italic_summary),
-                checked = subtitlePrefs.italic,
-                onCheckedChange = { onUpdate(subtitlePrefs.copy(italic = it)) },
-            )
-        }
-    }
-
     SettingsDivider()
 
     SubtitleDropdownItem(
         title = stringResource(R.string.pref_sub_outline_style),
         selectedOption = subtitlePrefs.outlineStyle,
-        options =
-            SubtitleOutlineStyle.entries.filter { style ->
-                when (style) {
-                    SubtitleOutlineStyle.BACKGROUND_BOX -> !useExoPlayer
-                    SubtitleOutlineStyle.RAISED,
-                    SubtitleOutlineStyle.DEPRESSED -> useExoPlayer
-
-                    else -> true
-                }
-            },
+        options = SubtitleOutlineStyle.entries.toList(),
         onValueChange = { style -> onUpdate(subtitlePrefs.copy(outlineStyle = style)) },
         labelProvider = { getSubtitleOutlineStyleDisplayName(it) },
         icon = painterResource(id = R.drawable.ic_texture),
@@ -1442,83 +1169,15 @@ private fun SubtitleCustomizationContent(
                 color = subtitlePrefs.outlineColor,
                 onColorChange = { onUpdate(subtitlePrefs.copy(outlineColor = it)) },
             )
-
-            if (!useExoPlayer) {
-                SettingsDivider()
-                SubtitleSliderItem(
-                    title =
-                        if (subtitlePrefs.outlineStyle == SubtitleOutlineStyle.DROP_SHADOW)
-                            stringResource(R.string.pref_sub_shadow_size)
-                        else stringResource(R.string.pref_sub_outline_size),
-                    value = subtitlePrefs.outlineSize,
-                    valueRange = 0f..10f,
-                    onValueChange = { onUpdate(subtitlePrefs.copy(outlineSize = it)) },
-                    steps = 19,
-                )
-            }
         }
     }
 
-    AnimatedVisibility(
-        visible = subtitlePrefs.outlineStyle == SubtitleOutlineStyle.BACKGROUND_BOX,
-        enter = fadeIn() + expandVertically(),
-        exit = fadeOut() + shrinkVertically(),
-    ) {
-        Column {
-            SettingsDivider()
-            ColorPickerItem(
-                title = stringResource(R.string.pref_sub_background_color),
-                color = subtitlePrefs.backgroundColor,
-                onColorChange = { onUpdate(subtitlePrefs.copy(backgroundColor = it)) },
-            )
-        }
-    }
-
-    AnimatedVisibility(
-        visible = useExoPlayer,
-        enter = fadeIn() + expandVertically(),
-        exit = fadeOut() + shrinkVertically(),
-    ) {
-        Column {
-            SettingsDivider()
-            ColorPickerItem(
-                title = stringResource(R.string.pref_sub_window_color),
-                color = subtitlePrefs.windowColor,
-                onColorChange = { onUpdate(subtitlePrefs.copy(windowColor = it)) },
-            )
-        }
-    }
-
-    AnimatedVisibility(
-        visible = !useExoPlayer,
-        enter = fadeIn() + expandVertically(),
-        exit = fadeOut() + shrinkVertically(),
-    ) {
-        Column {
-            SettingsDivider()
-            SubtitleDropdownItem(
-                title = stringResource(R.string.pref_sub_vertical_pos),
-                selectedOption = subtitlePrefs.verticalPosition,
-                options = SubtitleVerticalPosition.entries,
-                onValueChange = { pos -> onUpdate(subtitlePrefs.copy(verticalPosition = pos)) },
-                labelProvider = { getSubtitleVerticalPositionDisplayName(it) },
-                icon = painterResource(id = R.drawable.ic_vertical),
-            )
-
-            SettingsDivider()
-
-            SubtitleDropdownItem(
-                title = stringResource(R.string.pref_sub_horizontal_align),
-                selectedOption = subtitlePrefs.horizontalAlignment,
-                options = SubtitleHorizontalAlignment.entries,
-                onValueChange = { align ->
-                    onUpdate(subtitlePrefs.copy(horizontalAlignment = align))
-                },
-                labelProvider = { getSubtitleHorizontalAlignmentDisplayName(it) },
-                icon = painterResource(id = R.drawable.ic_horizontal),
-            )
-        }
-    }
+    SettingsDivider()
+    ColorPickerItem(
+        title = stringResource(R.string.pref_sub_window_color),
+        color = subtitlePrefs.windowColor,
+        onColorChange = { onUpdate(subtitlePrefs.copy(windowColor = it)) },
+    )
 
     Box(modifier = Modifier.padding(16.dp)) {
         OutlinedButton(
@@ -2143,11 +1802,7 @@ private fun SimpleColorPickerDialog(
 }
 
 @Composable
-private fun SubtitlePreview(
-    subtitlePrefs: SubtitlePreferences,
-    useExoPlayer: Boolean,
-    modifier: Modifier = Modifier,
-) {
+private fun SubtitlePreview(subtitlePrefs: SubtitlePreferences, modifier: Modifier = Modifier) {
     Box(
         modifier =
             modifier
@@ -2160,7 +1815,6 @@ private fun SubtitlePreview(
         val textStyle =
             MaterialTheme.typography.headlineSmall.copy(
                 fontWeight = if (subtitlePrefs.bold) FontWeight.Bold else FontWeight.Normal,
-                fontStyle = if (subtitlePrefs.italic) FontStyle.Italic else FontStyle.Normal,
                 fontSize =
                     MaterialTheme.typography.headlineSmall.fontSize *
                         1.15f *
@@ -2169,64 +1823,11 @@ private fun SubtitlePreview(
 
         Box(
             modifier =
-                Modifier.background(
-                        if (useExoPlayer) {
-                            Color(subtitlePrefs.windowColor)
-                        } else {
-                            androidx.compose.ui.graphics.Color.Transparent
-                        },
-                        RoundedCornerShape(6.dp),
-                    )
-                    .padding(
-                        horizontal = if (useExoPlayer) 4.dp else 0.dp,
-                        vertical = if (useExoPlayer) 2.dp else 0.dp,
-                    ),
+                Modifier.background(Color(subtitlePrefs.windowColor), RoundedCornerShape(6.dp))
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
         ) {
-            Box(
-                modifier =
-                    Modifier.background(
-                            when (subtitlePrefs.outlineStyle) {
-                                SubtitleOutlineStyle.BACKGROUND_BOX ->
-                                    Color(subtitlePrefs.backgroundColor)
-
-                                else -> androidx.compose.ui.graphics.Color.Transparent
-                            },
-                            RoundedCornerShape(4.dp),
-                        )
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-            ) {
-                if (
-                    !useExoPlayer &&
-                        subtitlePrefs.outlineStyle == SubtitleOutlineStyle.OUTLINE &&
-                        subtitlePrefs.outlineSize > 0f
-                ) {
-                    val outlineColor = Color(subtitlePrefs.outlineColor)
-                    val offsetStep = (subtitlePrefs.outlineSize * 0.3f).coerceAtMost(2f)
-
-                    listOf(
-                            Offset(-offsetStep, -offsetStep),
-                            Offset(0f, -offsetStep),
-                            Offset(offsetStep, -offsetStep),
-                            Offset(-offsetStep, 0f),
-                            Offset(offsetStep, 0f),
-                            Offset(-offsetStep, offsetStep),
-                            Offset(0f, offsetStep),
-                            Offset(offsetStep, offsetStep),
-                        )
-                        .forEach { offset ->
-                            Text(
-                                text = stringResource(R.string.subtitle_preview_text),
-                                style = textStyle,
-                                color = outlineColor,
-                                textAlign = TextAlign.Center,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.offset(offset.x.dp, offset.y.dp),
-                            )
-                        }
-                }
-
-                if (useExoPlayer && subtitlePrefs.outlineStyle == SubtitleOutlineStyle.OUTLINE) {
+            Box(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                if (subtitlePrefs.outlineStyle == SubtitleOutlineStyle.OUTLINE) {
                     val outlineColor = Color(subtitlePrefs.outlineColor)
                     val offsetStep = 1.5f
 
@@ -2258,32 +1859,15 @@ private fun SubtitlePreview(
                     style =
                         textStyle.copy(
                             shadow =
-                                when {
-                                    !useExoPlayer &&
-                                        subtitlePrefs.outlineStyle ==
-                                            SubtitleOutlineStyle.DROP_SHADOW &&
-                                        subtitlePrefs.outlineSize > 0f -> {
-                                        val shadowOffset = subtitlePrefs.outlineSize
-                                        Shadow(
-                                            color = Color(subtitlePrefs.outlineColor),
-                                            offset = Offset(shadowOffset, shadowOffset),
-                                            blurRadius = shadowOffset * 1.2f,
-                                        )
-                                    }
-
-                                    useExoPlayer &&
-                                        subtitlePrefs.outlineStyle ==
-                                            SubtitleOutlineStyle.DROP_SHADOW -> {
+                                when (subtitlePrefs.outlineStyle) {
+                                    SubtitleOutlineStyle.DROP_SHADOW ->
                                         Shadow(
                                             color = Color(subtitlePrefs.outlineColor),
                                             offset = Offset(3f, 3f),
                                             blurRadius = 4f,
                                         )
-                                    }
 
-                                    useExoPlayer &&
-                                        subtitlePrefs.outlineStyle ==
-                                            SubtitleOutlineStyle.RAISED -> {
+                                    SubtitleOutlineStyle.RAISED ->
                                         Shadow(
                                             color =
                                                 androidx.compose.ui.graphics.Color.White.copy(
@@ -2292,11 +1876,8 @@ private fun SubtitlePreview(
                                             offset = Offset(-1f, -1f),
                                             blurRadius = 2f,
                                         )
-                                    }
 
-                                    useExoPlayer &&
-                                        subtitlePrefs.outlineStyle ==
-                                            SubtitleOutlineStyle.DEPRESSED -> {
+                                    SubtitleOutlineStyle.DEPRESSED ->
                                         Shadow(
                                             color =
                                                 androidx.compose.ui.graphics.Color.Black.copy(
@@ -2305,7 +1886,6 @@ private fun SubtitlePreview(
                                             offset = Offset(-1f, -1f),
                                             blurRadius = 2f,
                                         )
-                                    }
 
                                     else -> null
                                 },
@@ -2337,26 +1917,5 @@ private fun getSubtitleOutlineStyleDisplayName(style: SubtitleOutlineStyle): Str
         SubtitleOutlineStyle.DROP_SHADOW -> stringResource(R.string.outline_drop_shadow)
         SubtitleOutlineStyle.RAISED -> stringResource(R.string.outline_raised)
         SubtitleOutlineStyle.DEPRESSED -> stringResource(R.string.outline_depressed)
-        SubtitleOutlineStyle.BACKGROUND_BOX -> stringResource(R.string.outline_background)
-    }
-}
-
-@Composable
-private fun getSubtitleVerticalPositionDisplayName(position: SubtitleVerticalPosition): String {
-    return when (position) {
-        SubtitleVerticalPosition.TOP -> stringResource(R.string.align_top)
-        SubtitleVerticalPosition.BOTTOM -> stringResource(R.string.align_bottom)
-        SubtitleVerticalPosition.CENTER -> stringResource(R.string.align_center)
-    }
-}
-
-@Composable
-private fun getSubtitleHorizontalAlignmentDisplayName(
-    alignment: SubtitleHorizontalAlignment,
-): String {
-    return when (alignment) {
-        SubtitleHorizontalAlignment.LEFT -> stringResource(R.string.align_left)
-        SubtitleHorizontalAlignment.CENTER -> stringResource(R.string.align_center)
-        SubtitleHorizontalAlignment.RIGHT -> stringResource(R.string.align_right)
     }
 }

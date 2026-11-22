@@ -132,7 +132,6 @@ class SettingsViewModelTest {
                 every { getSkipIntroModeFlow() } returns MutableStateFlow(SkipMode.BUTTON)
                 every { getSkipOutroModeFlow() } returns MutableStateFlow(SkipMode.BUTTON)
                 every { getSegmentSkipModeFlow(any()) } returns MutableStateFlow(SkipMode.DISABLED)
-                every { useExoPlayer } returns MutableStateFlow(true)
                 every { getPipGestureEnabledFlow() } returns MutableStateFlow(false)
                 every { getPipBackgroundPlayFlow() } returns MutableStateFlow(true)
                 every { getOfflineModeFlow() } returns offlineModeFlow

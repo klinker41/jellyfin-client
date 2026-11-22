@@ -358,13 +358,6 @@
     <string name="cd_cancel_download">Batalkan unduhan</string>
     <string name="cd_delete_download">Hapus unduhan</string>
     <string name="player_options_title">Pemutaran</string>
-    <string name="pref_group_engine">Mesin &amp; Perilaku</string>
-    <string name="pref_use_exoplayer_title">Gunakan ExoPlayer</string>
-    <string name="pref_use_exoplayer_summary">Menggunakan LibMPV saat dinonaktifkan</string>
-    <string name="pref_group_mpv">Opsi MPV</string>
-    <string name="pref_mpv_hwdec_title">Dekode Perangkat Keras</string>
-    <string name="pref_mpv_video_output_title">Keluaran Video</string>
-    <string name="pref_mpv_audio_output_title">Keluaran Audio</string>
     <string name="pref_group_language">Bahasa</string>
     <string name="pref_preferred_audio_language_title">Bahasa Audio Pilihan</string>
     <string name="pref_preferred_audio_language_summary">Pilih trek audio secara otomatis berdasarkan bahasa</string>
@@ -389,17 +382,10 @@
     <string name="pref_sub_text_size">Ukuran Teks</string>
     <string name="pref_sub_bold">Teks Tebal</string>
     <string name="pref_sub_bold_summary">Buat subtitle lebih tebal</string>
-    <string name="pref_sub_italic">Teks Miring</string>
-    <string name="pref_sub_italic_summary">Gaya teks miring</string>
     <string name="pref_sub_outline_style">Gaya Garis Luar</string>
     <string name="pref_sub_shadow_color">Warna Bayangan</string>
     <string name="pref_sub_outline_color">Warna Garis Luar</string>
-    <string name="pref_sub_shadow_size">Ukuran Bayangan</string>
-    <string name="pref_sub_outline_size">Ukuran Garis Luar</string>
-    <string name="pref_sub_background_color">Warna Latar Belakang</string>
     <string name="pref_sub_window_color">Warna Jendela</string>
-    <string name="pref_sub_vertical_pos">Posisi Vertikal</string>
-    <string name="pref_sub_horizontal_align">Perataan Horizontal</string>
     <string name="action_reset_defaults">Atur Ulang Bawaan</string>
     <string name="subtitle_preview_text">Pratinjau Subtitle</string>
     <string name="color_picker_title">Pilih Warna</string>
@@ -418,12 +404,6 @@
     <string name="outline_drop_shadow">Bayangan Jatuh</string>
     <string name="outline_raised">Timbul</string>
     <string name="outline_depressed">Tertekan</string>
-    <string name="outline_background">Kotak Latar Belakang</string>
-    <string name="align_left">Kiri</string>
-    <string name="align_center">Tengah</string>
-    <string name="align_right">Kanan</string>
-    <string name="align_top">Atas</string>
-    <string name="align_bottom">Bawah</string>
     <string name="title_add_server">Tambah Server</string>
     <string name="title_edit_server">Edit Server</string>
     <string name="server_details_subtitle">Masukkan detail server Jellyfin Anda</string>
@@ -1126,13 +1106,6 @@
     <string name="playback_stats_label_audio_bitrate">Bitrate audio</string>
     <string name="playback_stats_value_hdr_output">diputar sebagai HDR</string>
     <string name="playback_stats_value_hdr_tonemapped">dipetakan nada ke SDR</string>
-    <string name="pref_mpv_gpu_api_title">API GPU</string>
-    <string name="pref_mpv_hdr_output_title">Keluaran HDR</string>
-    <string name="pref_mpv_hdr_output_hint">Passthrough memerlukan Vulkan pada sebagian besar perangkat; jika tidak, HDR akan dipetakan nada</string>
-    <string name="pref_mpv_tone_mapping_title">Pemetaan nada</string>
-    <string name="pref_mpv_tone_mapping_hint">Diterapkan saat HDR dikonversi ke SDR</string>
-    <string name="pref_mpv_hdr_peak_title">Deteksi puncak HDR</string>
-    <string name="pref_mpv_hdr_peak_summary">Mengukur kecerahan adegan saat HDR dipetakan nada ke SDR (menggunakan lebih banyak GPU)</string>
     <string name="pref_app_font_title">Font aplikasi</string>
     <string name="font_system_default">Default sistem</string>
     <string name="buffer_desc_minimal">Minimal</string>
@@ -1235,7 +1208,6 @@
     <string name="cache_kind_images">Gambar</string>
     <string name="cache_store_video">Tembolok video</string>
     <string name="cache_store_network">Tembolok jaringan</string>
-    <string name="cache_store_player">Data pemutar</string>
     <plurals name="cache_entries_fmt">
         <item quantity="other">%1$d entri</item>
     </plurals>
@@ -1323,7 +1295,6 @@
     <string name="player_cast_heading">Cast</string>
     <string name="player_ends_at">Berakhir %1$s</string>
     <string name="player_time_left">Tersisa %1$s</string>
-    <string name="pref_group_exoplayer">Opsi ExoPlayer</string>
     <string name="pref_ass_render_mode_title">Perenderan subtitle ASS</string>
     <string name="pref_ass_render_mode_hint">Perenderan asli gaya subtitle ASS/SSA menggunakan libass. Mode halus menggambar animasi pada lapisan GPU.</string>
     <string name="pref_pause_screen_title">Layar Jeda</string>
@@ -1333,11 +1304,6 @@
     <string name="pause_screen_delay_seconds_fmt">%1$dtk</string>
     <string name="pref_chapter_skip_gesture_title">Gestur lewati bab</string>
     <string name="pref_chapter_skip_gesture_summary">Tekan lama sisi kiri atau kanan untuk melewati bab (bagian tengah tetap mempertahankan kecepatan 2×)</string>
-    <string name="pref_edit_mpv_conf_title">Edit mpv.conf</string>
-    <string name="pref_edit_input_conf_title">Edit input.conf</string>
-    <string name="pref_edit_config_summary">Konfigurasi MPV lanjutan</string>
-    <string name="pref_edit_input_conf_summary">Tetapkan perintah ke gestur</string>
-    <string name="mpv_conf_editor_note">Perubahan akan diterapkan saat Anda memulai pemutaran berikutnya</string>
     <string name="pref_video_caching_title">Tembolok Video</string>
     <string name="pref_video_caching_summary">Simpan video yang baru saja diputar ke disk agar pencarian posisi dan pemutaran ulang tidak perlu mengunduh ulang</string>
     <string name="pref_connect_services">Hubungkan Layanan</string>
@@ -1479,12 +1445,6 @@
     <plurals name="syncplay_member_count">
         <item quantity="other">%1$d anggota</item>
     </plurals>
-    <string name="pref_mpv_hwdec_disabled">Dinonaktifkan</string>
-    <string name="pref_mpv_gpu_api_opengl">OpenGL (bawaan)</string>
-    <string name="pref_mpv_gpu_api_vulkan">Vulkan (eksperimental)</string>
-    <string name="pref_mpv_hdr_auto">Otomatis (HDR passthrough)</string>
-    <string name="pref_mpv_hdr_tone_map">Selalu tone-map ke SDR</string>
-    <string name="pref_mpv_tone_auto">Otomatis</string>
     <string name="cd_flag">Bendera</string>
     <string name="cd_rating">Peringkat</string>
     <string name="cd_select">Pilih</string>
@@ -1703,15 +1663,6 @@
     <string name="playback_stats_label_transcode_speed">Kecepatan encoder</string>
     <string name="playback_stats_label_transcode_hardware">Akselerasi perangkat keras</string>
     <string name="playback_stats_label_transcode_reasons">Alasan</string>
-    <string name="pref_mpv_device_check_title">Kompatibilitas Vulkan</string>
-    <string name="pref_mpv_device_check_summary">Ketuk untuk memverifikasi dukungan Vulkan dan HDR</string>
-    <string name="mpv_device_check_vulkan_missing">tidak tersedia</string>
-    <string name="mpv_device_check_vulkan_needs">(memerlukan %1$s+)</string>
-    <string name="mpv_device_check_hdr_none">bukan tampilan HDR</string>
-    <string name="mpv_device_check_status_checking">memeriksa perangkat…</string>
-    <string name="mpv_device_check_status_supported">Passthrough HDR tersedia. Pilih Vulkan sebagai GPU API.</string>
-    <string name="mpv_device_check_status_limited">Vulkan berfungsi, tetapi tampilan ini tidak dapat menampilkan HDR. HDR dipetakan tonenya ke SDR.</string>
-    <string name="mpv_device_check_status_unsupported">Vulkan %1$s tidak didukung. HDR dipetakan tonenya ke SDR.</string>
     <string name="player_quality_title">Kualitas</string>
     <string name="pref_group_streaming_quality">Kualitas streaming</string>
     <string name="pref_quality_wifi_title">Kualitas pada Wi-Fi</string>
@@ -1799,8 +1750,6 @@
     <string name="player_error_live_channel_unavailable">Saluran ini tidak tersedia saat ini. Sumbernya mungkin sedang offline.</string>
     <string name="player_error_stream_failed">Server tidak dapat memulai video ini.</string>
     <string name="player_error_server_reason_fmt">%1$s\n\nServer: %2$s</string>
-    <string name="player_error_video_output">Output video gagal dimulai. Coba GPU API: OpenGL di pengaturan pemutar.</string>
-    <string name="player_error_audio_output">Output audio gagal dimulai. Coba Output Audio yang berbeda di pengaturan pemutar.</string>
     <string name="drawer_libraries_mode_off">Nonaktif</string>
     <string name="drawer_libraries_mode_screen">Layar perpustakaan</string>
     <string name="drawer_libraries_mode_each">Setiap perpustakaan</string>
@@ -1868,7 +1817,6 @@
     <string name="playback_section_controls_summary">Gestur, tombol lewati, layar jeda, dan zoom</string>
     <string name="playback_section_cast_summary">Kualitas dan kodek saat mentransmisikan (casting)</string>
     <string name="playback_section_advanced">Lanjutan</string>
-    <string name="playback_section_advanced_summary">Mesin pemutaran, buffering, dan konfigurasi MPV</string>
     <string name="pref_group_audio_players">Musik dan buku audio</string>
     <string name="pref_music_swipe_skip_title">Usap untuk mengubah trek</string>
     <string name="pref_music_swipe_skip_summary">Usap sampul ke kiri atau kanan di pemutar musik</string>

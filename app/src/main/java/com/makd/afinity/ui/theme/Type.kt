@@ -3,47 +3,60 @@ package com.makd.afinity.ui.theme
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.googlefonts.Font
+import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.sp
 import com.makd.afinity.R
 
+private val googleFontProvider =
+    GoogleFont.Provider(
+        providerAuthority = "com.google.android.gms.fonts",
+        providerPackage = "com.google.android.gms",
+        certificates = R.array.google_fonts_certs,
+    )
+
+private val googleSansFlexFont = GoogleFont("Google Sans Flex")
+private val quicksandFont = GoogleFont("Quicksand")
+private val ibmPlexSansFont = GoogleFont("IBM Plex Sans")
+private val ibmPlexSansCondensedFont = GoogleFont("IBM Plex Sans Condensed")
+
 val GoogleSansFlex =
     FontFamily(
-        Font(R.font.google_sans_flex_thin, FontWeight.Thin),
-        Font(R.font.google_sans_flex_extra_light, FontWeight.ExtraLight),
-        Font(R.font.google_sans_flex_light, FontWeight.Light),
-        Font(R.font.google_sans_flex_regular, FontWeight.Normal),
-        Font(R.font.google_sans_flex_medium, FontWeight.Medium),
-        Font(R.font.google_sans_flex_semi_bold, FontWeight.SemiBold),
-        Font(R.font.google_sans_flex_bold, FontWeight.Bold),
-        Font(R.font.google_sans_flex_extra_bold, FontWeight.ExtraBold),
-        Font(R.font.google_sans_flex_black, FontWeight.Black),
+        Font(googleSansFlexFont, googleFontProvider, FontWeight.Thin),
+        Font(googleSansFlexFont, googleFontProvider, FontWeight.ExtraLight),
+        Font(googleSansFlexFont, googleFontProvider, FontWeight.Light),
+        Font(googleSansFlexFont, googleFontProvider, FontWeight.Normal),
+        Font(googleSansFlexFont, googleFontProvider, FontWeight.Medium),
+        Font(googleSansFlexFont, googleFontProvider, FontWeight.SemiBold),
+        Font(googleSansFlexFont, googleFontProvider, FontWeight.Bold),
+        Font(googleSansFlexFont, googleFontProvider, FontWeight.ExtraBold),
+        Font(googleSansFlexFont, googleFontProvider, FontWeight.Black),
     )
 
 val Quicksand =
     FontFamily(
-        Font(R.font.quicksand_light, FontWeight.Light),
-        Font(R.font.quicksand_regular, FontWeight.Normal),
-        Font(R.font.quicksand_medium, FontWeight.Medium),
-        Font(R.font.quicksand_semibold, FontWeight.SemiBold),
-        Font(R.font.quicksand_bold, FontWeight.Bold),
+        Font(quicksandFont, googleFontProvider, FontWeight.Light),
+        Font(quicksandFont, googleFontProvider, FontWeight.Normal),
+        Font(quicksandFont, googleFontProvider, FontWeight.Medium),
+        Font(quicksandFont, googleFontProvider, FontWeight.SemiBold),
+        Font(quicksandFont, googleFontProvider, FontWeight.Bold),
     )
 
 val IBMPlexSans =
     FontFamily(
-        Font(R.font.ibmplexsans_regular, FontWeight.Normal),
-        Font(R.font.ibmplexsans_medium, FontWeight.Medium),
-        Font(R.font.ibmplexsans_bold, FontWeight.Bold),
+        Font(ibmPlexSansFont, googleFontProvider, FontWeight.Normal),
+        Font(ibmPlexSansFont, googleFontProvider, FontWeight.Medium),
+        Font(ibmPlexSansFont, googleFontProvider, FontWeight.Bold),
     )
 
 val IBMPlexSansCondensed =
     FontFamily(
-        Font(R.font.ibmplexsans_condensed_regular, FontWeight.Normal),
-        Font(R.font.ibmplexsans_condensed_medium, FontWeight.Medium),
-        Font(R.font.ibmplexsans_condensed_bold, FontWeight.Bold),
+        Font(ibmPlexSansCondensedFont, googleFontProvider, FontWeight.Normal),
+        Font(ibmPlexSansCondensedFont, googleFontProvider, FontWeight.Medium),
+        Font(ibmPlexSansCondensedFont, googleFontProvider, FontWeight.Bold),
     )
 
 val CenterLineHeightStyle =

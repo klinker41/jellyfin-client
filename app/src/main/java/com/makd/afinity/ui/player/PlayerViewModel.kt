@@ -69,8 +69,6 @@ import com.makd.afinity.data.models.media.forSource
 import com.makd.afinity.data.models.media.toAfinityTrickplayInfoMap
 import com.makd.afinity.data.models.player.AssRenderMode
 import com.makd.afinity.data.models.player.GestureConfig
-import com.makd.afinity.data.models.player.MpvGpuApi
-import com.makd.afinity.data.models.player.MpvHdrOutput
 import com.makd.afinity.data.models.player.PlaybackStats
 import com.makd.afinity.data.models.player.PlayerEvent
 import com.makd.afinity.data.models.player.SLEEP_TIMER_EXTEND_MINUTES
@@ -79,8 +77,6 @@ import com.makd.afinity.data.models.player.SeekStep
 import com.makd.afinity.data.models.player.SkipMode
 import com.makd.afinity.data.models.player.SleepTimerMode
 import com.makd.afinity.data.models.player.StreamDecision
-import com.makd.afinity.data.models.player.SubtitleOutlineStyle
-import com.makd.afinity.data.models.player.SubtitlePreferences
 import com.makd.afinity.data.models.player.VideoQuality
 import com.makd.afinity.data.models.player.VideoZoomMode
 import com.makd.afinity.data.models.server.ConnectionType
@@ -104,8 +100,6 @@ import com.makd.afinity.data.websocket.JellyfinWebSocketManager
 import com.makd.afinity.player.audiobookshelf.AudiobookshelfPlayer
 import com.makd.afinity.player.common.TrackMapping
 import com.makd.afinity.player.common.TrackSelection
-import com.makd.afinity.player.mpv.MPVPlayer
-import com.makd.afinity.player.mpv.MpvDeviceSupport
 import com.makd.afinity.ui.player.components.TRICKPLAY_PREVIEW_FRACTION
 import com.makd.afinity.ui.player.components.TrickplayPreviewMaxSize
 import com.makd.afinity.ui.player.utils.VolumeManager
@@ -310,10 +304,6 @@ constructor(
 
     var enterPictureInPicture: (() -> Unit)? = null
     var updatePipParams: (() -> Unit)? = null
-    private val screenAspectRatio: Float by lazy {
-        val metrics = context.resources.displayMetrics
-        metrics.widthPixels.toFloat() / metrics.heightPixels.toFloat()
-    }
 
     private val SKIP_BUTTON_TIMEOUT_MS = 8000L
     private val SKIP_BUTTON_MIN_DURATION_MS = 3000L
@@ -611,8 +601,7 @@ constructor(
         positionUpdateJob = viewModelScope.launch {
             while (true) {
                 delay(100.milliseconds)
-                val isMpvLive = player is MPVPlayer && _uiState.value.isLiveChannel
-                if (!player.isPlaying && !isMpvLive) {
+                if (!player.isPlaying) {
                     updatePlayerState()
                     break
                 }
@@ -681,16 +670,7 @@ constructor(
     }
 
     private suspend fun initializePlayer() {
-        Timber.d("PlayerViewModel: reading useExoPlayer preference")
-        val useExoPlayer = preferencesRepository.useExoPlayer.first()
-        Timber.d("PlayerViewModel: useExoPlayer=$useExoPlayer, creating player")
-
-        player =
-            if (useExoPlayer) {
-                createExoPlayer()
-            } else {
-                createMPVPlayer()
-            }
+        player = createExoPlayer()
 
         player.addListener(this@PlayerViewModel)
         videoMediaSession =
@@ -839,120 +819,6 @@ constructor(
             }
     }
 
-    var mpvVideoOutputValue: String = "gpu-next"
-        private set
-
-    private suspend fun createMPVPlayer(): MPVPlayer {
-        val audioAttributes =
-            AudioAttributes.Builder()
-                .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
-                .setUsage(C.USAGE_MEDIA)
-                .build()
-
-        val hwDec = preferencesRepository.getMpvHwDec()
-        val vo = preferencesRepository.getMpvVideoOutput()
-        val ao = preferencesRepository.getMpvAudioOutput()
-        val subs = preferencesRepository.getSubtitlePreferences()
-        val audioLang = resolvePreferredAudioLanguage()
-        val subtitleLang = resolvePreferredSubtitleLanguage()
-        val (mpvHwDec, mpvVideoOutput, mpvAudioOutput, subtitlePrefs, preferredAudioLang) =
-            MpvPrefsSnapshot(hwDec.value, vo.value, ao.value, subs, audioLang)
-        val preferredSubtitleLang = subtitleLang.ifBlank { audioLang }
-
-        mpvVideoOutputValue = mpvVideoOutput
-
-        val bufferSizeMb = preferencesRepository.getBufferSizeMb()
-        val gpuApi =
-            preferencesRepository.getMpvGpuApi().let {
-                if (it == MpvGpuApi.VULKAN && !isVulkanVerified()) MpvGpuApi.OPENGL else it
-            }
-        val hdrOutput = preferencesRepository.getMpvHdrOutput()
-        val toneMapping = preferencesRepository.getMpvToneMapping()
-        val hdrPeakDetection = preferencesRepository.getMpvHdrPeakDetection()
-
-        val initialOptions = buildList {
-            add("sub-ass-override" to "no")
-            add("sub-ass-force-margins" to "yes")
-            add("sub-use-margins" to "yes")
-            add("sub-color" to SubtitlePreferences.colorToMpvHex(subtitlePrefs.textColor))
-            add("sub-font-size" to subtitlePrefs.toMpvFontSize().toString())
-            add("sub-bold" to if (subtitlePrefs.bold) "yes" else "no")
-            add("sub-italic" to if (subtitlePrefs.italic) "yes" else "no")
-
-            when (subtitlePrefs.outlineStyle) {
-                SubtitleOutlineStyle.OUTLINE -> {
-                    add("sub-border-style" to "outline-and-shadow")
-                    add("sub-border-size" to subtitlePrefs.outlineSize.toString())
-                    add(
-                        "sub-border-color" to
-                            SubtitlePreferences.colorToMpvHex(subtitlePrefs.outlineColor),
-                    )
-                    add("sub-shadow-offset" to "0")
-                    add("sub-shadow-color" to "#00000000")
-                }
-
-                SubtitleOutlineStyle.DROP_SHADOW -> {
-                    add("sub-border-style" to "outline-and-shadow")
-                    add("sub-border-size" to "0")
-                    add("sub-border-color" to "#00000000")
-                    add("sub-shadow-offset" to subtitlePrefs.outlineSize.toString())
-                    add(
-                        "sub-shadow-color" to
-                            SubtitlePreferences.colorToMpvHex(subtitlePrefs.outlineColor),
-                    )
-                }
-
-                SubtitleOutlineStyle.BACKGROUND_BOX -> {
-                    add("sub-border-style" to "background-box")
-                    add(
-                        "sub-back-color" to
-                            SubtitlePreferences.colorToMpvHex(subtitlePrefs.backgroundColor),
-                    )
-                    add("sub-spacing" to "0.5")
-                }
-
-                else -> {
-                    add("sub-border-style" to "outline-and-shadow")
-                    add("sub-border-size" to "0")
-                    add("sub-border-color" to "#00000000")
-                    add("sub-shadow-offset" to "0")
-                    add("sub-shadow-color" to "#00000000")
-                }
-            }
-
-            add("sub-align-y" to subtitlePrefs.verticalPosition.mpvValue)
-            add("sub-align-x" to subtitlePrefs.horizontalAlignment.mpvValue)
-
-            TrackSelection.languageAliases(preferredAudioLang)
-                .takeIf { it.isNotEmpty() }
-                ?.let { add("alang" to it.joinToString(",")) }
-            TrackSelection.languageAliases(preferredSubtitleLang)
-                .takeIf { it.isNotEmpty() }
-                ?.let { add("slang" to it.joinToString(",")) }
-            add("subs-with-matching-audio" to "yes")
-            add("subs-fallback" to "no")
-        }
-
-        val mpvPlayer =
-            MPVPlayer.Builder(application)
-                .setAudioAttributes(audioAttributes, true)
-                .setSeekBackIncrementMs(10000)
-                .setSeekForwardIncrementMs(10000)
-                .setPauseAtEndOfMediaItems(true)
-                .setVideoOutput(mpvVideoOutput)
-                .setAudioOutput(mpvAudioOutput)
-                .setHwDec(mpvHwDec)
-                .setBufferSizeMb(bufferSizeMb)
-                .setGpuApi(gpuApi.value)
-                .setHdrPassthrough(hdrOutput == MpvHdrOutput.AUTO)
-                .setToneMapping(toneMapping.value)
-                .setHdrPeakDetection(hdrPeakDetection)
-                .setInitialOptions(initialOptions)
-                .build()
-
-        return mpvPlayer
-    }
-
     override fun onPlaybackStateChanged(playbackState: Int) {
         updatePlayerState()
     }
@@ -972,16 +838,6 @@ constructor(
         if (retryWithTranscodeFallback(error)) return
         val isLive = _uiState.value.isLiveChannel
         retryResumesCurrentItem = !isLive
-        val outputFailureMessage =
-            when (error.errorCode) {
-                MPVPlayer.ERROR_CODE_VIDEO_OUTPUT_FAILED -> R.string.player_error_video_output
-                MPVPlayer.ERROR_CODE_AUDIO_OUTPUT_FAILED -> R.string.player_error_audio_output
-                else -> null
-            }
-        if (outputFailureMessage != null) {
-            showPlaybackError(context.getString(outputFailureMessage))
-            return
-        }
         if (
             !isConnectionFailure(error) &&
                 error.errorCode != PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS
@@ -1208,56 +1064,15 @@ constructor(
         }
     }
 
-    private var lastKnownPosition = 0L
-    private var lastKnownDuration = 0L
-    private var mpvStreamActiveTime = 0L
-    private var mpvLiveAutoHideTriggered = false
-
     private fun updatePlayerState() {
         val position = player.currentPosition.coerceAtLeast(0)
         val duration = player.duration.coerceAtLeast(0)
         val isPlaying = player.isPlaying
         val playbackState = player.playbackState
-        val isLiveChannel = _uiState.value.isLiveChannel
-        val isMpv = player is MPVPlayer
-        val wasActuallyPlaying = _uiState.value.isPlaying
 
-        val isActuallyPlaying =
-            if (isMpv && isLiveChannel) {
-                val positionAdvancing = position > lastKnownPosition && position > 0
-                val durationAdvancing = duration > lastKnownDuration && duration > 0
-                val streamActive = positionAdvancing || durationAdvancing
-
-                if (streamActive || isPlaying) {
-                    mpvStreamActiveTime = System.currentTimeMillis()
-                    true
-                } else {
-                    val recentlyActive = System.currentTimeMillis() - mpvStreamActiveTime < 10000
-                    recentlyActive && duration > 0
-                }
-            } else {
-                isPlaying
-            }
-
-        if (
-            isMpv &&
-                isLiveChannel &&
-                isActuallyPlaying &&
-                !wasActuallyPlaying &&
-                !mpvLiveAutoHideTriggered
-        ) {
-            mpvLiveAutoHideTriggered = true
-            if (_uiState.value.showControls) {
-                startControlsAutoHide()
-            }
-        }
-
-        val isBuffering = !isActuallyPlaying && playbackState == Player.STATE_BUFFERING
-        val isPausedState = !isActuallyPlaying && playbackState == Player.STATE_READY
+        val isBuffering = !isPlaying && playbackState == Player.STATE_BUFFERING
+        val isPausedState = !isPlaying && playbackState == Player.STATE_READY
         val playWhenReady = player.playWhenReady
-
-        lastKnownPosition = position
-        lastKnownDuration = duration
 
         val bufferedPosition = player.bufferedPosition.coerceAtLeast(0)
 
@@ -1266,7 +1081,7 @@ constructor(
 
         _uiState.value =
             _uiState.value.copy(
-                isPlaying = isActuallyPlaying,
+                isPlaying = isPlaying,
                 isPaused = isPausedState,
                 isBuffering = isBuffering,
                 playWhenReady = playWhenReady,
@@ -1799,106 +1614,6 @@ constructor(
                     transcodeReasons = transcode.reasons,
                 )
             }
-            is MPVPlayer -> {
-                val mpv = currentPlayer.mpv
-
-                val bufferSeconds = mpv.getPropertyInt("demuxer-cache-duration") ?: 0
-                val bitrateBps = mpv.getPropertyInt("video-bitrate") ?: 0
-                val bitrateMbps = bitrateBps / 1_000_000f
-                val fps =
-                    (mpv.getPropertyDouble("estimated-vf-fps")
-                            ?: mpv.getPropertyDouble("container-fps"))
-                        ?.takeIf { it > 0.0 }
-                val frameRate =
-                    when {
-                        fps != null && displayRefresh.isNotBlank() ->
-                            String.format(Locale.US, "%.3f fps @ %s", fps, displayRefresh)
-                        fps != null -> String.format(Locale.US, "%.3f fps", fps)
-                        else -> ""
-                    }
-
-                val hwdecCurrent = mpv.getPropertyString("hwdec-current")
-                val decoderName =
-                    if (
-                        hwdecCurrent.isNullOrBlank() ||
-                            hwdecCurrent == "no" ||
-                            hwdecCurrent == "none"
-                    )
-                        "ffmpeg (software)"
-                    else hwdecCurrent
-
-                val networkSpeed =
-                    if (!isLocal) {
-                        mpv.getPropertyInt("cache-speed")
-                            ?.takeIf { it > 0 }
-                            ?.let { String.format(Locale.US, "%.1f Mbps", it * 8f / 1_000_000f) }
-                            ?: ""
-                    } else ""
-
-                val colorInfo =
-                    listOfNotNull(
-                            mpv.getPropertyString("video-params/pixelformat"),
-                            mpv.getPropertyString("video-params/colormatrix"),
-                            mpv.getPropertyString("video-params/gamma"),
-                        )
-                        .joinToString(" • ")
-
-                val sourceGamma = mpv.getPropertyString("video-params/gamma")
-                val targetGamma = mpv.getPropertyString("video-target-params/gamma")
-                val isSourceHdr = sourceGamma == "pq" || sourceGamma == "hlg"
-                val mpvVideoRange =
-                    effectiveVideoRange(
-                        videoRange,
-                        isSourceHdr,
-                        targetGamma?.let { it == "pq" || it == "hlg" },
-                    )
-
-                PlaybackStats(
-                    playerType = "MPV",
-                    playMethod = playMethod,
-                    videoOutput = mpvVideoOutputValue,
-                    connection = connection,
-                    decoderName = decoderName,
-                    avSync =
-                        mpv.getPropertyDouble("avsync")?.let {
-                            String.format(Locale.US, "%+.3f s", it)
-                        } ?: "",
-                    networkSpeed = networkSpeed,
-                    videoRange = mpvVideoRange,
-                    colorInfo = colorInfo,
-                    frameRate = frameRate,
-                    container = container,
-                    subtitleTrack = subtitleTrack,
-                    audioBitrate =
-                        mpv.getPropertyInt("audio-bitrate")
-                            ?.takeIf { it > 0 }
-                            ?.let { "${it / 1000} kbps" } ?: "",
-                    videoResolution =
-                        "${mpv.getPropertyInt("width") ?: 0}x${mpv.getPropertyInt("height") ?: 0}",
-                    videoCodec = mpv.getPropertyString("video-codec")?.uppercase() ?: "UNKNOWN",
-                    audioCodec = mpv.getPropertyString("audio-codec")?.uppercase() ?: "UNKNOWN",
-                    audioChannels = mpv.getPropertyInt("audio-params/channel-count") ?: 0,
-                    audioSampleRate = mpv.getPropertyInt("audio-params/samplerate") ?: 0,
-                    droppedFrames = mpv.getPropertyInt("frame-drop-count") ?: 0,
-                    hwDec =
-                        if ((hwdecCurrent ?: "no").contains("mediacodec")) "H/W Dec" else "S/W Dec",
-                    bufferHealth =
-                        context.resources.getQuantityString(
-                            R.plurals.playback_stats_value_seconds_fmt,
-                            bufferSeconds,
-                            bufferSeconds,
-                        ),
-                    videoBitrate =
-                        if (bitrateMbps > 0) String.format(Locale.US, "%.1f Mbps", bitrateMbps)
-                        else "Unknown",
-                    transcodeOutput = transcode.output,
-                    transcodeVideo = transcode.video,
-                    transcodeAudio = transcode.audio,
-                    transcodeSpeed = transcode.speed,
-                    transcodeHardware = transcode.hardware,
-                    transcodeReasons = transcode.reasons,
-                )
-            }
             else -> PlaybackStats()
         }
     }
@@ -2036,22 +1751,6 @@ constructor(
             else -> "$base • $suffix"
         }
     }
-
-    private suspend fun isVulkanVerified(): Boolean =
-        try {
-            val savedSignature = preferencesRepository.getMpvDeviceCheckSignature()
-            withContext(Dispatchers.IO) {
-                MpvDeviceSupport.isVulkanVerified(
-                    MpvDeviceSupport.capabilities(context),
-                    savedSignature,
-                )
-            }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to verify Vulkan support")
-            false
-        }
 
     private fun isDisplayHdr(): Boolean? =
         try {
@@ -2326,37 +2025,8 @@ constructor(
                 Timber.w(e, "Failed to remember the device subtitle")
             }
         }
-        val mpv = player as? MPVPlayer
-        val refreshed =
-            if (mpv != null) loadDeviceSubtitles(item, scope, allowReattach = false) else emptyMap()
-        val entry = refreshed.entries.firstOrNull { it.value.meta.fileName == fileName }
-        if (mpv == null || entry == null) {
-            pendingDeviceSubtitleFile = fileName
-            reloadAtCurrentPosition()
-            return
-        }
-        val index = entry.key
-        val uri = deviceSubtitleUri(entry.value)
-        deviceSubtitles = refreshed
-        sideLoadedSubtitleUris = sideLoadedSubtitleUris + (index to uri)
-        pendingSubtitleStreamIndex = index
-        pendingTrackResolveAttempts = 0
-        updateUiState { state ->
-            state.copy(
-                sideLoadedSubtitleUris = sideLoadedSubtitleUris,
-                localSubtitleTracks =
-                    state.localSubtitleTracks.filterKeys {
-                        !TrackMapping.isDeviceSubtitleIndex(it)
-                    } + deviceSubtitleTracks(item, refreshed),
-                subtitleStreamIndex = index,
-                subtitleUserSelected = true,
-            )
-        }
-        mpv.addExternalSubtitle(
-            uri = uri,
-            label = subtitleSourceLabel(entry.value.meta.language),
-            language = SubtitleLanguageCodes.toLanguageTag(entry.value.meta.language),
-        )
+        pendingDeviceSubtitleFile = fileName
+        reloadAtCurrentPosition()
     }
 
     private suspend fun reloadWithServerSubtitle(item: AfinityItem, fileName: String?) {
@@ -2449,34 +2119,8 @@ constructor(
     }
 
     private fun applyZoomMode(mode: VideoZoomMode) {
-        if (player is MPVPlayer) {
-            applyMPVZoomMode(mode)
-        }
-
         currentZoomMode = mode
         updateUiState { it.copy(videoZoomMode = mode) }
-    }
-
-    private fun applyMPVZoomMode(mode: VideoZoomMode) {
-        val mpvPlayer = player as? MPVPlayer ?: return
-
-        when (mode) {
-            VideoZoomMode.FIT -> {
-                mpvPlayer.setOption("video-aspect-override", "-1")
-                mpvPlayer.setOption("panscan", "0.0")
-            }
-
-            VideoZoomMode.ZOOM -> {
-                mpvPlayer.setOption("video-aspect-override", "-1")
-                mpvPlayer.setOption("panscan", "1.0")
-            }
-
-            VideoZoomMode.STRETCH -> {
-                mpvPlayer.setOption("video-unscaled", "1")
-                mpvPlayer.setOption("panscan", "0.0")
-                mpvPlayer.setOption("video-aspect-override", screenAspectRatio.toString())
-            }
-        }
     }
 
     fun cycleZoomMode() {
@@ -3018,7 +2662,6 @@ constructor(
             player.setPlaybackSpeed(1f)
             updateUiState { it.copy(playbackSpeed = 1f) }
         }
-        mpvLiveAutoHideTriggered = false
         currentLivePlaybackInfo = playbackInfo
         currentSessionId = playbackInfo.playSessionId
 
@@ -3027,32 +2670,7 @@ constructor(
             Timber.d("Stream URL: ${redactUrl(streamUrl)}")
             val userAgent = "AFinity/${BuildConfig.VERSION_NAME} (Android; ExoPlayer)"
 
-            if (player is MPVPlayer) {
-                val mpv = player as MPVPlayer
-                mpv.setOption("user-agent", userAgent)
-                mpv.setOption("http-header-fields", "allow-cross-protocol-redirects: true")
-                mpv.setOption("profile", "low-latency")
-                mpv.setOption("cache", "yes")
-                mpv.setOption("cache-secs", "2")
-                mpv.setOption("demuxer-max-bytes", "32M")
-                mpv.setOption("demuxer-max-back-bytes", "16M")
-                mpv.setOption("demuxer-lavf-analyzeduration", "0.5")
-                mpv.setOption("demuxer-lavf-probesize", "32768")
-
-                withContext(Dispatchers.Main) {
-                    val mediaItem =
-                        MediaItem.Builder()
-                            .setMediaId(channelId.toString())
-                            .setUri(streamUrl)
-                            .setMediaMetadata(MediaMetadata.Builder().setTitle(channelName).build())
-                            .build()
-
-                    player.setMediaItem(mediaItem)
-                    player.prepare()
-                    player.play()
-                    showControls()
-                }
-            } else if (player is ExoPlayer) {
+            if (player is ExoPlayer) {
                 val dataSourceFactory =
                     DefaultHttpDataSource.Factory()
                         .setUserAgent(userAgent)
@@ -3215,7 +2833,6 @@ constructor(
     }
 
     private fun retryWithoutPlayableVideo(tracks: Tracks): Boolean {
-        if (player is MPVPlayer) return false
         if (tracks.groups.isEmpty()) return false
         if (currentMediaStreams(MediaStreamType.VIDEO).isEmpty()) return false
         if (tracks.groups.any { it.type == C.TRACK_TYPE_VIDEO && it.isSupported(true) })
@@ -3910,8 +3527,6 @@ constructor(
     }
 
     fun onLongPress(xFraction: Float) {
-        if (mpvPlayerOrNull()?.sendLongPressKeypress() == true) return
-
         val chapters = _uiState.value.chapters
         if (chapterSkipGestureEnabled && chapters.isNotEmpty()) {
             when {
@@ -3977,28 +3592,12 @@ constructor(
     }
 
     fun onDoubleTapSeek(isForward: Boolean, xFraction: Float): SeekStep? {
-        if (sendMpvGestureKeypress(xFraction)) return null
         val state = _uiState.value
         if (state.isLiveChannel) return null
 
         val step = if (isForward) state.seekForwardStep else state.seekBackStep
         handlePlayerEvent(PlayerEvent.SeekRelative(if (isForward) step.millis else -step.millis))
         return step
-    }
-
-    private fun mpvPlayerOrNull(): MPVPlayer? =
-        (if (::player.isInitialized) player else null) as? MPVPlayer
-
-    private fun sendMpvGestureKeypress(xFraction: Float): Boolean {
-        val mpvPlayer = mpvPlayerOrNull() ?: return false
-
-        val zone =
-            when {
-                xFraction < 1f / 3f -> -1
-                xFraction > 2f / 3f -> 1
-                else -> 0
-            }
-        return mpvPlayer.sendGestureKeypress(zone)
     }
 
     private fun onLockToggle() {
@@ -4135,24 +3734,12 @@ constructor(
     }
 
     private fun getInternalVolume(): Float {
-        return when (val currentPlayer = player) {
-            is ExoPlayer -> currentPlayer.volume
-            is MPVPlayer -> {
-                val mpvVol = currentPlayer.mpv.getPropertyDouble("volume") ?: 100.0
-                (mpvVol / 100.0).toFloat()
-            }
-            else -> 1f
-        }
+        return (player as? ExoPlayer)?.volume ?: 1f
     }
 
     private fun setInternalVolume(volume: Float) {
         val clampedVolume = volume.coerceIn(0f, 1f)
-        when (val currentPlayer = player) {
-            is ExoPlayer -> currentPlayer.volume = clampedVolume
-            is MPVPlayer -> {
-                currentPlayer.mpv.setPropertyDouble("volume", (clampedVolume * 100.0))
-            }
-        }
+        (player as? ExoPlayer)?.volume = clampedVolume
     }
 
     private fun executeSegmentSeek(targetPositionMs: Long) {
@@ -4620,11 +4207,3 @@ private enum class SleepTimerStopPoint {
     ITEM_END,
     OUTRO,
 }
-
-private data class MpvPrefsSnapshot(
-    val hwDec: String,
-    val videoOutput: String,
-    val audioOutput: String,
-    val subtitlePrefs: SubtitlePreferences,
-    val preferredAudioLanguage: String,
-)
