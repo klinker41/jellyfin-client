@@ -37,15 +37,9 @@ constructor(
             val key =
                 session?.takeIf { it.serverId.isNotBlank() }?.let { "${it.serverId}_${it.userId}" }
             if (key == null) {
-                flowOf(emptySet())
+                flowOf(HomeRow.defaultHidden)
             } else {
-                dao.observeForSession(key).map { rows ->
-                    rows
-                        .filterNot { it.visible }
-                        .mapNotNull { HomeRow.fromKey(it.sectionKey) }
-                        .filterNot { it.mandatory }
-                        .toSet()
-                }
+                dao.observeForSession(key).map(::resolveHiddenHomeRows)
             }
         }
 
@@ -62,18 +56,14 @@ constructor(
         }
 
     suspend fun getHiddenRows(): Set<HomeRow> {
-        val key = sessionKey() ?: return emptySet()
+        val key = sessionKey() ?: return HomeRow.defaultHidden
         return try {
-            dao.getForSession(key)
-                .filterNot { it.visible }
-                .mapNotNull { HomeRow.fromKey(it.sectionKey) }
-                .filterNot { it.mandatory }
-                .toSet()
+            resolveHiddenHomeRows(dao.getForSession(key))
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             Timber.e(e, "Failed to read hidden home rows")
-            emptySet()
+            HomeRow.defaultHidden
         }
     }
 

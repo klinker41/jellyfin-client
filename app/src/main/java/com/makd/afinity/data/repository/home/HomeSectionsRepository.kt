@@ -564,7 +564,8 @@ constructor(
         buildJob =
             scope.launch(Dispatchers.IO) {
                 try {
-                    if (!force) {
+                    val discovery = homeLayoutPreferencesRepository.getDiscoveryConfig()
+                    if (!force && !discovery.isDiscoveryOff) {
                         val cachedLayout =
                             homeCacheRepository.getRaw(layoutCacheKey(sk), layoutTTL)?.let {
                                 try {
@@ -592,7 +593,6 @@ constructor(
                     }
 
                     val oldKeys = _layout.value.map { it.key }
-                    val discovery = homeLayoutPreferencesRepository.getDiscoveryConfig()
                     val fresh =
                         if (discovery.isDiscoveryOff) emptyList() else buildLayout(discovery)
                     if (fresh.isEmpty() && !discovery.isDiscoveryOff) {

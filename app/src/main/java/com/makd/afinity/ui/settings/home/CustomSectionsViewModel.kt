@@ -67,7 +67,7 @@ data class CustomSectionsUiState(
     val filterOptions: LibraryFilterOptions = LibraryFilterOptions(),
     val sourceStates: Map<CustomSectionSourceType, SourceLoadState> = emptyMap(),
     val canAddMore: Boolean = true,
-    val hiddenRows: Set<HomeRow> = emptySet(),
+    val hiddenRows: Set<HomeRow> = HomeRow.defaultHidden,
     val discovery: DiscoveryConfig = DiscoveryConfig(),
     val heroSource: HeroContentSource = HeroContentSource(),
     val parentalRatings: List<String> = emptyList(),

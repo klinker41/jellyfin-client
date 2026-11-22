@@ -13,9 +13,16 @@ class DiscoveryConfigTest {
 
     @Test
     fun discoveryDensityAndSectionLookupsHandleValidAndUnknownKeys() {
+        assertEquals(DiscoveryDensity.OFF, DiscoveryDensity.default)
         assertEquals(DiscoveryDensity.LIGHT, DiscoveryDensity.fromKey("light"))
         assertEquals(DiscoveryDensity.default, DiscoveryDensity.fromKey("invalid"))
         assertEquals(DiscoveryDensity.default, DiscoveryDensity.fromKey(null))
+
+        val defaultConfig = DiscoveryConfig()
+        assertEquals(DiscoveryDensity.OFF, defaultConfig.density)
+        assertTrue(defaultConfig.isDiscoveryOff)
+        assertFalse(defaultConfig.isEnabled(DiscoverySection.GENRES))
+        assertEquals(0, defaultConfig.countFor(DiscoverySection.GENRES))
 
         assertEquals(DiscoverySection.GENRES, DiscoverySection.fromKey("discovery_genres"))
         assertNull(DiscoverySection.fromKey("nope"))
@@ -68,6 +75,31 @@ class DiscoveryConfigTest {
         assertTrue(HomeRow.LIBRARIES in HomeRow.alwaysOn)
         assertTrue(HomeRow.CONTINUE_WATCHING in HomeRow.alwaysOn)
         assertFalse(HomeRow.LIBRARIES in HomeRow.configurable)
+        val expectedDefaultHidden =
+            setOf(
+                HomeRow.LATEST_BOOKS,
+                HomeRow.LATEST_AUDIOBOOKS,
+                HomeRow.LATEST_HOME_VIDEOS,
+                HomeRow.LATEST_MUSIC_VIDEOS,
+                HomeRow.UPCOMING_EPISODES,
+                HomeRow.CRITICS_CHOICE,
+                HomeRow.FRANCHISES,
+                HomeRow.WATCH_AGAIN,
+                HomeRow.POPULAR_STUDIOS,
+            )
+        assertEquals(expectedDefaultHidden, HomeRow.defaultHidden)
+        val expectedDefaultVisible =
+            listOf(
+                HomeRow.HERO_CAROUSEL,
+                HomeRow.LIBRARIES,
+                HomeRow.CONTINUE_WATCHING,
+                HomeRow.NEXT_UP,
+                HomeRow.CONTINUE_READING,
+                HomeRow.CONTINUE_LISTENING,
+                HomeRow.LATEST_MOVIES,
+                HomeRow.LATEST_TV,
+            )
+        expectedDefaultVisible.forEach { row -> assertFalse(row in HomeRow.defaultHidden) }
         assertEquals(SettingsSection.SUBTITLES, SettingsSection.fromKey("subtitles"))
         assertNull(SettingsSection.fromKey("other"))
 

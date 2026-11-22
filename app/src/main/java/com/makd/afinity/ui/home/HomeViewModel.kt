@@ -1078,7 +1078,7 @@ data class HomeUiState(
     val nextUpLoaded: Boolean = false,
     val loadedPlaybackRows: Set<HomeRow> = emptySet(),
     val upcomingLoaded: Boolean = false,
-    val hiddenRows: Set<HomeRow> = emptySet(),
+    val hiddenRows: Set<HomeRow> = HomeRow.defaultHidden,
     val genreMovies: Map<String, List<AfinityMovie>> = emptyMap(),
     val genreShows: Map<String, List<AfinityShow>> = emptyMap(),
     val downloadedMovies: List<AfinityMovie> = emptyList(),

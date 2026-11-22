@@ -11,7 +11,7 @@ enum class DiscoveryDensity(val key: String, val factor: Float, val labelRes: In
     CUSTOM("custom", 1.0f, R.string.discovery_density_custom);
 
     companion object {
-        val default = BALANCED
+        val default = OFF
 
         val displayOrder = listOf(OFF, LIGHT, BALANCED, FULL, CUSTOM)
 

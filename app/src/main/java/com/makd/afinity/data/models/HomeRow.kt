@@ -17,19 +17,32 @@ enum class HomeRow(
     CONTINUE_LISTENING("continue_listening", R.string.home_row_continue_listening),
     LATEST_MOVIES("latest_movies", R.string.home_row_latest_movies),
     LATEST_TV("latest_tv", R.string.home_row_latest_tv),
-    LATEST_BOOKS("latest_books", R.string.home_row_latest_books),
-    LATEST_AUDIOBOOKS("latest_audiobooks", R.string.home_row_latest_audiobooks),
-    LATEST_HOME_VIDEOS("latest_home_videos", R.string.home_row_latest_home_videos),
-    LATEST_MUSIC_VIDEOS("latest_music_videos", R.string.home_row_latest_music_videos),
-    UPCOMING_EPISODES("upcoming_episodes", R.string.home_row_upcoming),
-    CRITICS_CHOICE("critics_choice", R.string.home_row_critics_choice),
+    LATEST_BOOKS("latest_books", R.string.home_row_latest_books, defaultVisible = false),
+    LATEST_AUDIOBOOKS(
+        "latest_audiobooks",
+        R.string.home_row_latest_audiobooks,
+        defaultVisible = false,
+    ),
+    LATEST_HOME_VIDEOS(
+        "latest_home_videos",
+        R.string.home_row_latest_home_videos,
+        defaultVisible = false,
+    ),
+    LATEST_MUSIC_VIDEOS(
+        "latest_music_videos",
+        R.string.home_row_latest_music_videos,
+        defaultVisible = false,
+    ),
+    UPCOMING_EPISODES("upcoming_episodes", R.string.home_row_upcoming, defaultVisible = false),
+    CRITICS_CHOICE("critics_choice", R.string.home_row_critics_choice, defaultVisible = false),
     FRANCHISES(
         "franchises",
         R.string.home_row_franchises,
+        defaultVisible = false,
         summaryRes = R.string.home_row_franchises_summary,
     ),
-    WATCH_AGAIN("watch_again", R.string.home_row_watch_again),
-    POPULAR_STUDIOS("popular_studios", R.string.home_row_popular_studios);
+    WATCH_AGAIN("watch_again", R.string.home_row_watch_again, defaultVisible = false),
+    POPULAR_STUDIOS("popular_studios", R.string.home_row_popular_studios, defaultVisible = false);
 
     companion object {
         fun fromKey(key: String): HomeRow? = entries.firstOrNull { it.key == key }
@@ -37,5 +50,7 @@ enum class HomeRow(
         val configurable: List<HomeRow> = entries.filterNot { it.mandatory }
 
         val alwaysOn: List<HomeRow> = entries.filter { it.mandatory }
+
+        val defaultHidden: Set<HomeRow> = configurable.filterNot { it.defaultVisible }.toSet()
     }
 }
