@@ -22,7 +22,7 @@ val appName = project.property("app.name") as String
 val appVersionName = project.property("app.versionName") as String
 val appVersionCode = project.property("app.versionCode") as String
 
-base { archivesName.set("afinity-v${appVersionName}") }
+base { archivesName.set("jellyfin-client-v${appVersionName}") }
 
 aboutLibraries {
     library {
@@ -235,7 +235,7 @@ configure<ApplicationAndroidComponentsExtension> {
                 description = "Archives the R8 mapping for $buildType builds."
                 from(mappingFile)
                 archiveFileName.set(
-                    "afinity-v$appVersionName-$appVersionCode-${variant.name}-mapping.zip",
+                    "jellyfin-client-v$appVersionName-$appVersionCode-${variant.name}-mapping.zip",
                 )
                 destinationDirectory.set(rootProject.layout.projectDirectory.dir("mapping-archive"))
                 onlyIf { mappingFile.orNull?.asFile?.exists() == true }
