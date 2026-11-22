@@ -1779,15 +1779,11 @@ private fun SeekBar(
                         .background(Color.Red.copy(alpha = 0.8f), RoundedCornerShape(3.dp)),
             )
         } else {
-            val sliderRange = 0f..duration.toFloat().coerceAtLeast(0f)
-            val currentValue = draggedPosition ?: position.toFloat()
-            val scrubberState =
-                remember(sliderRange) {
-                    SliderState(value = currentValue, trackRange = sliderRange)
-                }
-            scrubberState.value = currentValue
+            val seekRange = 0f..duration.toFloat().coerceAtLeast(0f)
+            val seekState = remember(seekRange) { SliderState(trackRange = seekRange) }
+            seekState.value = draggedPosition ?: position.toFloat()
             Slider(
-                state = scrubberState,
+                state = seekState,
                 onValueChange = { newPosition ->
                     if (!uiState.isSeeking) {
                         onPlayerEvent(PlayerEvent.OnSeekBarDragStart)

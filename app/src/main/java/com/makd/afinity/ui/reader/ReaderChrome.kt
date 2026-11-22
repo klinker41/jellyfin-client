@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -262,7 +261,6 @@ internal fun ReaderToolText(text: String) {
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ReaderScrubber(
     fraction: Float,
@@ -281,12 +279,12 @@ internal fun ReaderScrubber(
     val density = LocalDensity.current
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val thumbRadiusPx = with(density) { (ThumbDragging / 2).toPx() }
+    val sliderState = remember { SliderState() }
+    sliderState.value = shown
 
-    val scrubberState = remember { SliderState(value = shown) }
-    scrubberState.value = shown
     Box(modifier = modifier.fillMaxWidth()) {
         Slider(
-            state = scrubberState,
+            state = sliderState,
             onValueChange = {
                 dragValue = it
                 dragging = true

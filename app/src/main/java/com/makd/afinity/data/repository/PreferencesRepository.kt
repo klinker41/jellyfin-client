@@ -398,6 +398,28 @@ interface PreferencesRepository {
 
     fun getSwapGestureIndicatorsFlow(): Flow<Boolean>
 
+    suspend fun getAbsSort(key: String): String?
+
+    suspend fun setAbsSort(key: String, value: String)
+
+    suspend fun setSeekGestureEnabled(enabled: Boolean)
+
+    suspend fun getSeekGestureEnabled(): Boolean
+
+    fun getSeekGestureEnabledFlow(): Flow<Boolean>
+
+    suspend fun setBrightnessGestureEnabled(enabled: Boolean)
+
+    suspend fun getBrightnessGestureEnabled(): Boolean
+
+    fun getBrightnessGestureEnabledFlow(): Flow<Boolean>
+
+    suspend fun setVolumeGestureEnabled(enabled: Boolean)
+
+    suspend fun getVolumeGestureEnabled(): Boolean
+
+    fun getVolumeGestureEnabledFlow(): Flow<Boolean>
+
     suspend fun setDefaultVideoZoomMode(mode: VideoZoomMode)
 
     suspend fun getDefaultVideoZoomMode(): VideoZoomMode

@@ -32,6 +32,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.clearText
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -97,6 +100,7 @@ import com.makd.afinity.ui.components.SettingsDivider
 import com.makd.afinity.ui.components.SettingsGroup
 import com.makd.afinity.ui.components.SettingsItem
 import com.makd.afinity.ui.components.SettingsSwitchItem
+import com.makd.afinity.ui.components.afinityDialogProperties
 import com.makd.afinity.ui.player.components.musicQualityLabel
 import com.makd.afinity.ui.player.components.settingsQualityLabel
 import com.makd.afinity.ui.settings.SettingsViewModel
@@ -415,21 +419,57 @@ fun PlayerOptionsScreen(
                         )
                         SettingsDivider()
                         SettingsSwitchItem(
+                            icon = painterResource(id = R.drawable.ic_arrows_move_horizontal),
+                            title = stringResource(R.string.pref_seek_gesture_title),
+                            subtitle = stringResource(R.string.pref_seek_gesture_summary),
+                            checked = uiState.seekGestureEnabled,
+                            onCheckedChange = viewModel::toggleSeekGesture,
+                        )
+                        SettingsDivider()
+                        SettingsSwitchItem(
+                            icon = painterResource(id = R.drawable.ic_brightness_half),
+                            title = stringResource(R.string.pref_brightness_gesture_title),
+                            subtitle = stringResource(R.string.pref_brightness_gesture_summary),
+                            checked = uiState.brightnessGestureEnabled,
+                            onCheckedChange = viewModel::toggleBrightnessGesture,
+                        )
+                        SettingsDivider()
+                        SettingsSwitchItem(
+                            icon = painterResource(id = R.drawable.ic_volume_up),
+                            title = stringResource(R.string.pref_volume_gesture_title),
+                            subtitle = stringResource(R.string.pref_volume_gesture_summary),
+                            checked = uiState.volumeGestureEnabled,
+                            onCheckedChange = viewModel::toggleVolumeGesture,
+                        )
+                        SettingsDivider()
+                        SettingsSwitchItem(
                             icon = painterResource(id = R.drawable.ic_fast_forward),
                             title = stringResource(R.string.pref_chapter_skip_gesture_title),
                             subtitle = stringResource(R.string.pref_chapter_skip_gesture_summary),
                             checked = uiState.chapterSkipGesture,
                             onCheckedChange = viewModel::toggleChapterSkipGesture,
                         )
-                        SettingsDivider()
-                        SettingsSwitchItem(
-                            icon = painterResource(id = R.drawable.ic_switch_horizontal),
-                            title = stringResource(R.string.pref_swap_gesture_indicators_title),
-                            subtitle =
-                                stringResource(R.string.pref_swap_gesture_indicators_summary),
-                            checked = uiState.swapGestureIndicators,
-                            onCheckedChange = viewModel::toggleSwapGestureIndicators,
-                        )
+                        AnimatedVisibility(
+                            visible =
+                                uiState.brightnessGestureEnabled || uiState.volumeGestureEnabled,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically(),
+                        ) {
+                            Column {
+                                SettingsDivider()
+                                SettingsSwitchItem(
+                                    icon = painterResource(id = R.drawable.ic_switch_horizontal),
+                                    title =
+                                        stringResource(R.string.pref_swap_gesture_indicators_title),
+                                    subtitle =
+                                        stringResource(
+                                            R.string.pref_swap_gesture_indicators_summary,
+                                        ),
+                                    checked = uiState.swapGestureIndicators,
+                                    onCheckedChange = viewModel::toggleSwapGestureIndicators,
+                                )
+                            }
+                        }
                         SettingsDivider()
                         VideoZoomModeSelectorItem(
                             selectedMode = uiState.defaultVideoZoomMode,
@@ -778,6 +818,7 @@ private fun SubtitleModePickerDialog(
     val options = listOf("") + SubtitlePlaybackMode.entries.map { it.serialName }
 
     AlertDialog(
+        properties = afinityDialogProperties(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.pref_subtitle_mode_title)) },
         text = {
@@ -1354,6 +1395,7 @@ private fun VideoQualityPickerDialog(
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
+        properties = afinityDialogProperties(),
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
@@ -1539,7 +1581,8 @@ private fun LanguagePickerDialog(
     onSelect: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var searchQuery by remember { mutableStateOf("") }
+    val searchState = rememberTextFieldState()
+    val searchQuery = searchState.text.toString()
 
     val filteredIndices =
         remember(searchQuery) {
@@ -1553,6 +1596,7 @@ private fun LanguagePickerDialog(
         }
 
     AlertDialog(
+        properties = afinityDialogProperties(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.pref_group_language)) },
         text = {
@@ -1576,15 +1620,14 @@ private fun LanguagePickerDialog(
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         androidx.compose.foundation.text.BasicTextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
+                            state = searchState,
                             textStyle =
                                 MaterialTheme.typography.bodyLarge.copy(
                                     color = MaterialTheme.colorScheme.onSurface,
                                 ),
-                            singleLine = true,
+                            lineLimits = TextFieldLineLimits.SingleLine,
                             modifier = Modifier.weight(1f).padding(vertical = 12.dp),
-                            decorationBox = { innerTextField ->
+                            decorator = { innerTextField ->
                                 if (searchQuery.isEmpty()) {
                                     Text(
                                         text = stringResource(R.string.pref_language_search_hint),
@@ -1597,7 +1640,7 @@ private fun LanguagePickerDialog(
                         )
                         if (searchQuery.isNotEmpty()) {
                             IconButton(
-                                onClick = { searchQuery = "" },
+                                onClick = { searchState.clearText() },
                                 modifier = Modifier.size(32.dp),
                             ) {
                                 Icon(
@@ -1700,6 +1743,7 @@ private fun SimpleColorPickerDialog(
     }
 
     AlertDialog(
+        properties = afinityDialogProperties(),
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.color_picker_title)) },
         text = {

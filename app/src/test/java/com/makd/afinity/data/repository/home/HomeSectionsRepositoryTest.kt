@@ -172,7 +172,10 @@ class HomeSectionsRepositoryTest {
             }
         val backgroundWorkQueue = BackgroundWorkQueue()
         val franchiseRepository: FranchiseRepository = mockk(relaxed = true)
-        val libraryIndexRepository: LibraryIndexRepository = mockk(relaxed = true)
+        val libraryIndexRepository: LibraryIndexRepository =
+            mockk(relaxed = true) {
+                coEvery { index(any(), any()) } returns Result.success(emptyList())
+            }
         val preferencesRepository: PreferencesRepository =
             mockk(relaxed = true) {
                 every { getWikidataEnabledFlow(any(), any()) } returns MutableStateFlow(false)

@@ -91,6 +91,7 @@ import com.makd.afinity.ui.components.SettingsDivider
 import com.makd.afinity.ui.components.SettingsGroup
 import com.makd.afinity.ui.components.SettingsItem
 import com.makd.afinity.ui.components.SettingsSwitchItem
+import com.makd.afinity.ui.components.afinityDialogProperties
 import com.makd.afinity.ui.components.connectionIndicatorColor
 import com.makd.afinity.ui.components.connectionLabel
 import com.makd.afinity.ui.components.listDetailPaneDirective
@@ -254,6 +255,7 @@ fun SettingsScreen(
     uiState.error?.let { error ->
         LaunchedEffect(error) { Timber.e("Settings error: $error") }
         AlertDialog(
+            properties = afinityDialogProperties(),
             onDismissRequest = { viewModel.clearError() },
             title = { Text(stringResource(R.string.dialog_error_title)) },
             text = { Text(error) },
@@ -892,6 +894,7 @@ fun ProfileHeader(
 @Composable
 private fun LogoutConfirmationDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
+        properties = afinityDialogProperties(),
         onDismissRequest = onDismiss,
         icon = {
             Icon(
@@ -943,6 +946,7 @@ private fun LanguagePickerDialog(onDismiss: () -> Unit) {
     }
 
     AlertDialog(
+        properties = afinityDialogProperties(),
         onDismissRequest = onDismiss,
         title = {
             Text(
@@ -1055,7 +1059,7 @@ private fun QuickConnectPane(
     onBackClick: () -> Unit,
 ) {
     val codeState = rememberQuickConnectCode()
-    val code = codeState.value
+    val code = codeState.text.toString()
 
     LaunchedEffect(isSuccess) {
         if (isSuccess) kotlinx.coroutines.delay(1200.milliseconds)
@@ -1124,7 +1128,7 @@ private fun AuthorizeQuickConnectDialog(
     onDismiss: () -> Unit,
 ) {
     val codeState = rememberQuickConnectCode()
-    val code = codeState.value
+    val code = codeState.text.toString()
 
     LaunchedEffect(isSuccess) {
         if (isSuccess) kotlinx.coroutines.delay(1200.milliseconds)
@@ -1132,6 +1136,7 @@ private fun AuthorizeQuickConnectDialog(
     }
 
     AlertDialog(
+        properties = afinityDialogProperties(),
         onDismissRequest = onDismiss,
         icon = {
             Icon(

@@ -31,7 +31,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -442,7 +441,6 @@ fun CastRemoteTitle(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CastRemoteTransport(
     position: Float,
@@ -473,13 +471,12 @@ fun CastRemoteTransport(
     val span = (valueRange.endInclusive - valueRange.start).coerceAtLeast(1f)
     val inactiveColor = Color.White.copy(alpha = 0.16f)
     val markColor = Color.White.copy(alpha = 0.55f)
+    val seekState = remember(valueRange) { SliderState(trackRange = valueRange) }
+    seekState.value = displayValue
 
-    val scrubberState =
-        remember(valueRange) { SliderState(value = displayValue, trackRange = valueRange) }
-    scrubberState.value = displayValue
     Column(modifier = modifier.fillMaxWidth()) {
         Slider(
-            state = scrubberState,
+            state = seekState,
             onValueChange = { dragValue = it },
             onValueChangeFinished = {
                 dragValue?.let(onSeek)

@@ -342,6 +342,7 @@ constructor(
             initializeSeekSteps()
             initializeChapterSkipGesture()
             initializeSwapGestureIndicators()
+            initializeSwipeGestures()
             initializeBackgroundPlay()
             observeCastState()
             observeServerUrlChanges()
@@ -450,6 +451,21 @@ constructor(
         viewModelScope.launch {
             val swapGestureIndicators = preferencesRepository.getSwapGestureIndicators()
             updateUiState { it.copy(swapGestureIndicators = swapGestureIndicators) }
+        }
+    }
+
+    private fun initializeSwipeGestures() {
+        viewModelScope.launch {
+            val seekGestureEnabled = preferencesRepository.getSeekGestureEnabled()
+            val brightnessGestureEnabled = preferencesRepository.getBrightnessGestureEnabled()
+            val volumeGestureEnabled = preferencesRepository.getVolumeGestureEnabled()
+            updateUiState {
+                it.copy(
+                    seekGestureEnabled = seekGestureEnabled,
+                    brightnessGestureEnabled = brightnessGestureEnabled,
+                    volumeGestureEnabled = volumeGestureEnabled,
+                )
+            }
         }
     }
 
@@ -4150,6 +4166,9 @@ constructor(
         val resolvedOrientation: Int = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED,
         val logoAutoHide: Boolean = false,
         val swapGestureIndicators: Boolean = false,
+        val seekGestureEnabled: Boolean = true,
+        val brightnessGestureEnabled: Boolean = true,
+        val volumeGestureEnabled: Boolean = true,
         val pauseScreenEnabled: Boolean = false,
         val pauseScreenDelaySeconds: Int = 0,
         val seekBackStep: SeekStep = SeekStep.defaultBack,
