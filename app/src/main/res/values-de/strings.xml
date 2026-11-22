@@ -385,7 +385,7 @@
     <string name="error_unexpected">Ein unvorhergesehener Fehler ist aufgetreten.</string>
     <string name="cd_screen_rotation">Bildschirmdrehung</string>
     <string name="person_born_deceased_fmt">Geburtstag: %1$s</string>
-    <string name="playback_channel_name">AFinity Hörbuch-Wiedergabe</string>
+    <string name="playback_channel_name">Jellyfin Hörbuch-Wiedergabe</string>
     <string name="error_load_live_channel">Laden des Live-Kanals fehlgeschlagen.</string>
     <string name="skip_recap">Zusammenfassung überspringen</string>
     <string name="error_get_stream_url">Abfragen der Stream-URL fehlgeschlagen</string>
@@ -452,7 +452,7 @@
     <string name="pref_audiobookshelf">Hörbuch-Bibliothek</string>
     <string name="audiobookshelf_connect">Verbinden, um in Hörbüchern zu stöbern</string>
     <string name="error_audiobookshelf_logout_failed_fmt">Fehler beim Trennen der Verbindung von der Hörbuch-Bibliothek: %1$s</string>
-    <string name="notification_permission_message">AFinity braucht Berechtigungen zum zeigen von Benachrichtigungen, um den Media-Player in der Benachrichtigungsleiste und auf dem Sperrbildschirm anzeigen zu können, während du Hörbücher oder Podcasts hörst.\n\nSolltest du die Berechtigungen später doch erteilen wollen, kannst du das über die App-Einstellungen -&gt; Berechtigungen -&gt; Benachrichtigungen tun.</string>
+    <string name="notification_permission_message">Jellyfin braucht Berechtigungen zum zeigen von Benachrichtigungen, um den Media-Player in der Benachrichtigungsleiste und auf dem Sperrbildschirm anzeigen zu können, während du Hörbücher oder Podcasts hörst.\n\nSolltest du die Berechtigungen später doch erteilen wollen, kannst du das über die App-Einstellungen -&gt; Berechtigungen -&gt; Benachrichtigungen tun.</string>
     <string name="pref_playback_summary">Wiedergabeverhalten und -qualität</string>
     <string name="build_debug">Debug-Build</string>
     <string name="build_release">Release-Build</string>
@@ -760,7 +760,7 @@
     <string name="connection_label_local">Lokal</string>
     <string name="connection_label_offline">Offline</string>
     <string name="drawer_admin_badge">Admin</string>
-    <string name="drawer_app_version">AFinity v%1$s</string>
+    <string name="drawer_app_version">Jellyfin v%1$s</string>
     <string name="chapter_number_fmt">Kapitel %1$d</string>
     <string name="episode_upcoming">DEMNÄCHST</string>
     <string name="episode_missing">FEHLT</string>

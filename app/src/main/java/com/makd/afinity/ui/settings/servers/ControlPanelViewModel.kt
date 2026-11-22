@@ -60,7 +60,7 @@ constructor(
         private const val MESSAGE_TIMEOUT_MS = 5_000L
         private const val STOP_TIMEOUT_MS = 5_000L
         private const val TASK_REFRESH_DELAY_MS = 500L
-        private const val APP_NAME = "AFinity"
+        private const val APP_NAME = "Jellyfin"
         private const val REFRESH_LIBRARY_TASK_KEY = "RefreshLibrary"
     }
 

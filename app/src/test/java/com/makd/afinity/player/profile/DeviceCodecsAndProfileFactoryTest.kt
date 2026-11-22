@@ -65,6 +65,7 @@ class DeviceCodecsAndProfileFactoryTest {
                 allowTranscoding = true,
             )
 
+        assertEquals("Jellyfin Android", hdrProfile.name)
         assertEquals(20_000_000, hdrProfile.maxStreamingBitrate)
         assertTrue(
             hdrProfile.directPlayProfiles.any {
@@ -133,6 +134,7 @@ class DeviceCodecsAndProfileFactoryTest {
                 maxAudioChannels = 2,
                 allowHdrPassthrough = false,
             )
+        assertEquals("Jellyfin Android (Download)", download.name)
         assertEquals(1, download.transcodingProfiles.size)
         assertEquals(
             AndroidDeviceProfileFactory.DOWNLOAD_TRANSCODE_CONTAINER,
@@ -140,6 +142,7 @@ class DeviceCodecsAndProfileFactoryTest {
         )
 
         val music = factory.createMusicProfile(maxStreamingBitrate = 320_000)
+        assertEquals("Jellyfin Android (Music)", music.name)
         assertEquals(320_000, music.maxStreamingBitrate)
         assertNotNull(music.directPlayProfiles.firstOrNull { it.container == "m4a,m4b" })
         assertFalse(music.transcodingProfiles.isEmpty())

@@ -9,7 +9,7 @@
     <string name="loading_phase_ready">Ready!</string>
 
     <!--Login Screen-->
-    <string name="app_name" translatable="false">AFinity</string>
+    <string name="app_name" translatable="false">Jellyfin</string>
     <string name="login_connect_to_jellyfin">Connect to Jellyfin</string>
     <string name="login_welcome_back">Welcome Back</string>
     <string name="login_saved_servers">Saved Servers</string>
@@ -71,7 +71,7 @@
     <string name="connection_label_remote">Remote</string>
     <string name="connection_label_offline">Offline</string>
     <string name="drawer_admin_badge">Admin</string>
-    <string name="drawer_app_version">AFinity v%1$s</string>
+    <string name="drawer_app_version">Jellyfin v%1$s</string>
     <string name="cd_watched_status">Watched</string>
     <string name="cd_imdb">IMDB</string>
     <string name="cd_rotten_tomatoes">Rotten Tomatoes</string>
@@ -215,13 +215,13 @@
     <string name="backup_import_summary">Restore settings from a file</string>
     <string name="backup_import_title">Import settings</string>
     <string name="backup_apply">Apply</string>
-    <string name="backup_import_from_fmt">From AFinity %1$s. Choose what to apply.</string>
+    <string name="backup_import_from_fmt">From Jellyfin %1$s. Choose what to apply.</string>
     <string name="backup_import_skipped">Skipped, not on this server</string>
     <string name="backup_import_done">Settings imported</string>
     <string name="backup_import_done_message">Some changes may need an app restart to appear everywhere.</string>
     <string name="backup_excluded_note">Passwords, sign-in details and device-specific options such as download location and hardware decoding are never included in the file.</string>
-    <string name="backup_error_format">That file isn\'t an AFinity backup.</string>
-    <string name="backup_error_version">This backup was made by a newer version of AFinity.</string>
+    <string name="backup_error_format">That file isn\'t a Jellyfin backup.</string>
+    <string name="backup_error_version">This backup was made by a newer version of Jellyfin.</string>
     <string name="backup_error_unreadable">That file couldn\'t be read.</string>
     <string name="backup_section_home">Home screen</string>
     <string name="backup_section_appearance">Appearance</string>
@@ -538,8 +538,8 @@
     <string name="photo_action_save">Save to device</string>
     <string name="photo_action_share">Share</string>
     <string name="photo_action_play">Play video</string>
-    <string name="photo_saving">Saving to Pictures/AFinity</string>
-    <string name="photo_saved">Saved to Pictures/AFinity</string>
+    <string name="photo_saving">Saving to Pictures/Jellyfin</string>
+    <string name="photo_saved">Saved to Pictures/Jellyfin</string>
     <string name="photo_save_failed">Couldn\'t save the photo</string>
     <string name="photo_action_failed">Something went wrong. Try again.</string>
     <string name="photo_info_taken">Taken</string>
@@ -944,9 +944,9 @@
     <string name="cd_subtitle_language_filter">Subtitle language</string>
     <string name="cd_subtitle_remove">Remove from this device</string>
     <string name="subtitledb_connect_title">Search TheSubtitleDB?</string>
-    <string name="subtitledb_blurb_no_provider">Your server has no subtitle plugin, so AFinity can search TheSubtitleDB directly and save what you pick to your server. Free and public, no account or API key needed.</string>
-    <string name="subtitledb_blurb_no_permission">Your account can\'t add subtitles to the server, so AFinity can search TheSubtitleDB directly and keep what you pick on this device. Free and public, no account or API key needed.</string>
-    <string name="subtitledb_blurb_downloaded">This is a downloaded copy, so AFinity can search TheSubtitleDB directly and keep what you pick on this device. Free and public, no account or API key needed.</string>
+    <string name="subtitledb_blurb_no_provider">Your server has no subtitle plugin, so Jellyfin can search TheSubtitleDB directly and save what you pick to your server. Free and public, no account or API key needed.</string>
+    <string name="subtitledb_blurb_no_permission">Your account can\'t add subtitles to the server, so Jellyfin can search TheSubtitleDB directly and keep what you pick on this device. Free and public, no account or API key needed.</string>
+    <string name="subtitledb_blurb_downloaded">This is a downloaded copy, so Jellyfin can search TheSubtitleDB directly and keep what you pick on this device. Free and public, no account or API key needed.</string>
     <string name="subtitledb_sends_body">The IMDb or TMDB id of what you\'re playing, its season and episode number, the language you pick, and your IP address, which TheSubtitleDB keeps to enforce rate limits.</string>
     <string name="subtitledb_connect_action">Enable</string>
     <string name="subtitledb_connect_blurb">Find subtitles from the player when your server can\'t add them for you. Free and public, no account or API key needed.</string>
@@ -1010,7 +1010,7 @@
     <string name="track_unknown">Unknown</string>
     <string name="track_none">None</string>
     <string name="track_number_fmt">Track %1$d</string>
-    <string name="playback_channel_name">AFinity Audiobook Playback</string>
+    <string name="playback_channel_name">Jellyfin Audiobook Playback</string>
 
     <string name="cd_series_logo">Series Logo</string>
     <string name="cd_back">Back</string>
@@ -1606,7 +1606,7 @@
     <string name="error_audiobookshelf_logout_failed_fmt">Failed to disconnect from Audiobookshelf: %1$s</string>
 
     <string name="notification_permission_title">Enable Notifications</string>
-    <string name="notification_permission_message">AFinity uses notifications for music and audiobook playback controls (lock screen and notification shade).\n\nIf you change your mind later, you can enable it from App Info → Permissions → Notifications.</string>
+    <string name="notification_permission_message">Jellyfin uses notifications for music and audiobook playback controls (lock screen and notification shade).\n\nIf you change your mind later, you can enable it from App Info → Permissions → Notifications.</string>
     <string name="notification_permission_yes">Allow</string>
     <string name="notification_permission_no">No Thanks</string>
 
@@ -1650,7 +1650,7 @@
 
     <string name="pref_licenses">Licenses</string>
     <string name="pref_licenses_summary">Open source libraries</string>
-    <string name="pref_about_app">About AFinity</string>
+    <string name="pref_about_app">About Jellyfin</string>
     <string name="pref_changelog">Changelog</string>
     <string name="pref_changelog_summary">What\'s new in %1$s</string>
     <string name="changelog_title">Changelog</string>
@@ -1718,7 +1718,7 @@
     <string name="services_hub_tile_wikidata">Wikidata</string>
     <string name="wikidata_connect_title">Connect Wikidata</string>
     <string name="wikidata_connect_blurb">Award wins and nominations for films, shows and people, and the Universes &amp; Sagas row on Home. Free and public — no account or API key needed.</string>
-    <string name="wikidata_connect_sends_title">What AFinity sends</string>
+    <string name="wikidata_connect_sends_title">What Jellyfin sends</string>
     <string name="wikidata_connect_sends_body">The TMDB id of an item when you open its detail screen, the IMDb ids of the movies and shows in your library to group them into franchises, and your IP address, to Wikimedia\'s public query service. Franchise logos load from Wikimedia Commons.</string>
     <string name="wikidata_connect_never_title">What it never sends</string>
     <string name="wikidata_connect_never_body">No account, token, server address or watch history from your Jellyfin server.</string>
@@ -2918,11 +2918,11 @@
     <string name="server_version_fmt">v%1$s</string>
     <string name="server_active_connection">Active Connection</string>
     <string name="server_no_alternate_addresses">No alternate addresses configured.</string>
-    <string name="server_unsupported_version">This server runs Jellyfin %1$s. AFinity needs %2$s or newer.</string>
-    <string name="server_unsupported_version_unknown">This server\'s Jellyfin version could not be read. AFinity needs %1$s or newer.</string>
+    <string name="server_unsupported_version">This server runs Jellyfin %1$s. This app needs %2$s or newer.</string>
+    <string name="server_unsupported_version_unknown">This server\'s Jellyfin version could not be read. This app needs %1$s or newer.</string>
     <string name="server_unsupported_title">Server needs updating</string>
-    <string name="server_unsupported_body">This server runs Jellyfin %1$s, and AFinity needs %2$s or newer. Media won\'t load until the server is updated.</string>
-    <string name="server_unsupported_body_unknown">This server\'s Jellyfin version could not be read, and AFinity needs %1$s or newer. Media won\'t load until the server is updated.</string>
+    <string name="server_unsupported_body">This server runs Jellyfin %1$s, and this app needs %2$s or newer. Media won\'t load until the server is updated.</string>
+    <string name="server_unsupported_body_unknown">This server\'s Jellyfin version could not be read, and this app needs %1$s or newer. Media won\'t load until the server is updated.</string>
     <string name="server_unsupported_switch_account">Switch account</string>
     <string name="section_library_overview">Library Overview</string>
     <string name="section_active_services">Active Services</string>
@@ -3558,7 +3558,7 @@
     <string name="services_hub_editor_empty">Select a service to manage.</string>
     <string name="services_hub_editor_title_seerr">Seerr</string>
     <string name="seerr_watchlist_sync_title">Sync watchlists</string>
-    <string name="seerr_watchlist_sync_summary">Adding or removing a movie or show on your AFinity watchlist also updates your Seerr watchlist, and the other way round. Only for this profile.</string>
+    <string name="seerr_watchlist_sync_summary">Adding or removing a movie or show on your Jellyfin watchlist also updates your Seerr watchlist, and the other way round. Only for this profile.</string>
     <string name="services_hub_editor_title_abs">Audiobookshelf addresses</string>
     <string name="services_hub_editor_title_jellyfin">Server addresses</string>
     <string name="services_hub_editor_title_ratings">API keys</string>
@@ -3580,9 +3580,9 @@
     <string name="local_network_permission_title">Local network access</string>
     <string name="local_network_permission_needed">Local network access is required to discover and connect to servers on your network.</string>
     <string name="local_network_permission_grant">Grant permission</string>
-    <string name="local_network_permission_offline_body">AFinity can\'t reach your server because local network access is turned off. Grant it to reconnect.</string>
+    <string name="local_network_permission_offline_body">Jellyfin can\'t reach your server because local network access is turned off. Grant it to reconnect.</string>
     <string name="local_network_permission_settings">Open settings</string>
-    <string name="local_network_permission_discovery_body">No servers were found. Grant local network access so AFinity can search your network.</string>
+    <string name="local_network_permission_discovery_body">No servers were found. Grant local network access so Jellyfin can search your network.</string>
     <string name="error_address_different_jellyseerr">That address belongs to a different Seerr server.</string>
     <string name="error_address_different_audiobookshelf">That address belongs to a different Audiobookshelf server.</string>
     <string name="error_verify_jellyseerr_failed">Could not verify Seerr server at this address.</string>
@@ -3678,7 +3678,7 @@
     <string name="logs_empty_filter_title">Nothing matches these filters</string>
     <string name="logs_empty_search_body">Message, tag and stack trace are all searched. Widen it by dropping a filter.</string>
     <string name="logs_empty_crashes_title">No crashes recorded</string>
-    <string name="logs_empty_crashes_body">AFinity keeps the last five crash reports on this device. There are none to show.</string>
+    <string name="logs_empty_crashes_body">Jellyfin keeps the last five crash reports on this device. There are none to show.</string>
     <string name="logs_empty_clear_filters">Clear filters</string>
     <!--Linter -->
     <string name="pref_send_logs">Server addresses, tokens and usernames are replaced with [REDACTED] before the file is written.</string>
@@ -3767,7 +3767,7 @@
     </plurals>
     <string name="review_by_author_fmt">Review by %1$s</string>
     <string name="log_repeat_count_fmt">%1$d×</string>
-    <string name="widget_audio_name">AFinity player</string>
+    <string name="widget_audio_name">Jellyfin player</string>
     <string name="widget_audio_description">Music, audiobooks and podcasts on your home screen</string>
     <string name="widget_status_playing">PLAYING</string>
     <string name="widget_status_paused">PAUSED</string>
@@ -3913,7 +3913,7 @@
     <string name="reader_search_close">Close search</string>
     <string name="reader_error_not_found">This book couldn\'t be found on the server.</string>
     <string name="reader_error_download_not_allowed">Your account isn\'t allowed to download from this server, so this book can\'t be opened. Ask the server admin to allow media downloading.</string>
-    <string name="reader_error_unsupported">This format can\'t be opened in AFinity yet.</string>
+    <string name="reader_error_unsupported">This format can\'t be opened in Jellyfin yet.</string>
     <string name="reader_error_network">Couldn\'t download the book. Check your connection and try again.</string>
     <string name="reader_error_corrupt">This file couldn\'t be read. It may be damaged.</string>
     <string name="reader_error_no_pages">No pages were found in this file.</string>

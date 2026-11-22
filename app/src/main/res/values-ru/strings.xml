@@ -341,7 +341,7 @@
     <string name="search_placeholder">Поиск</string>
     <string name="cd_clear">Очистить</string>
     <string name="filter_request">Запрос</string>
-    <string name="playback_channel_name">Вопроизведение аудиокниг в AFinity</string>
+    <string name="playback_channel_name">Вопроизведение аудиокниг в Jellyfin</string>
     <string name="filter_audiobooks">Аудиокниги</string>
     <string name="explore_genres">Исследуйте жанры</string>
     <plurals name="search_results_count_fmt">
@@ -529,7 +529,7 @@
     <string name="audiobookshelf_connect">Подключите для прослушивания аудиокниг</string>
     <string name="error_audiobookshelf_logout_failed_fmt">Не удалось отключиться от Audiobookshelf: %1$s</string>
     <string name="notification_permission_title">Включить уведомления</string>
-    <string name="notification_permission_message">AFinity использует уведомления для управления воспроизведением музыки и аудиокниг (на экране блокировки и панели уведомлений), и для оповещений о доступных обновлениях.\n\nЕсли вы передумаете, разрешение можно дать вручную через меню О приложении → Разрешения → Уведомления.</string>
+    <string name="notification_permission_message">Jellyfin использует уведомления для управления воспроизведением музыки и аудиокниг (на экране блокировки и панели уведомлений), и для оповещений о доступных обновлениях.\n\nЕсли вы передумаете, разрешение можно дать вручную через меню О приложении → Разрешения → Уведомления.</string>
     <string name="notification_permission_yes">Разрешить</string>
     <string name="notification_permission_no">Нет, спасибо</string>
     <string name="pref_switch_session">Смена сессии</string>
@@ -545,7 +545,7 @@
     <string name="dialog_select_language_title">Выберите язык</string>
     <string name="pref_playback">Воспроизведение</string>
     <string name="pref_playback_summary">Настройки плеера и качества</string>
-    <string name="pref_group_about">Об AFinity</string>
+    <string name="pref_group_about">О Jellyfin</string>
     <string name="pref_version">Версия</string>
     <string name="version_fmt">%1$s (%2$s)</string>
     <string name="build_debug">Тестовая сборка</string>
@@ -1102,7 +1102,7 @@
     <string name="connection_label_remote">Удаленный</string>
     <string name="connection_label_offline">Не в сети</string>
     <string name="drawer_admin_badge">Админ</string>
-    <string name="drawer_app_version">AFinity v%1$s</string>
+    <string name="drawer_app_version">Jellyfin v%1$s</string>
     <string name="playback_stats_label_video_output">Видеовыход</string>
     <string name="playback_stats_value_direct_play_local">Прямое воспроизведение (локальный файл)</string>
     <string name="playback_stats_value_bitrate_container_fmt">%1$s Мбит/с (контейнер)</string>
@@ -1372,13 +1372,13 @@
     <string name="backup_import_summary">Восстановить настройки из файла</string>
     <string name="backup_import_title">Импорт настроек</string>
     <string name="backup_apply">Применить</string>
-    <string name="backup_import_from_fmt">Из AFinity %1$s. Выберите, что следует применить.</string>
+    <string name="backup_import_from_fmt">Из Jellyfin %1$s. Выберите, что следует применить.</string>
     <string name="backup_import_skipped">Пропущено, нет на сервере</string>
     <string name="backup_import_done">Настройки импортированы</string>
     <string name="backup_import_done_message">Для применения некоторых изменений может понадобиться перезапуск приложения.</string>
     <string name="backup_excluded_note">Пароли, данные для входа, и настройки для конкретного устройства, такие как путь для сохранения загрузок и аппаратное декодирование, не добавляются в файл.</string>
-    <string name="backup_error_format">Этот файл не является резервной копией AFinity.</string>
-    <string name="backup_error_version">Эта резервная копия была создана в более новой версии AFinity.</string>
+    <string name="backup_error_format">Этот файл не является резервной копией Jellyfin.</string>
+    <string name="backup_error_version">Эта резервная копия была создана в более новой версии Jellyfin.</string>
     <string name="backup_error_unreadable">Не удалось прочитать этот файл.</string>
     <string name="backup_section_home">Главный экран</string>
     <string name="backup_section_appearance">Внешний вид</string>
@@ -1698,7 +1698,7 @@
     <string name="mdblist_usage_unknown">—</string>
     <string name="services_hub_tile_wikidata">Викиданные</string>
     <string name="wikidata_connect_title">Подключить Викиданные</string>
-    <string name="wikidata_connect_sends_title">Что AFinity передает</string>
+    <string name="wikidata_connect_sends_title">Что Jellyfin передает</string>
     <string name="wikidata_connect_never_title">Что никогда не передается</string>
     <string name="wikidata_connect_action">Включить</string>
     <string name="wikidata_disconnect_title">Отключиться от Викиданных?</string>
@@ -1948,11 +1948,11 @@
     <string name="abs_skip_silence_title">Пропуск тишины</string>
     <string name="abs_volume_boost_title">Усиление громкости</string>
     <string name="section_downloads">Загрузки</string>
-    <string name="server_unsupported_version">На этом сервере работает Jellyfin %1$s. AFinity нужна %2$s или выше.</string>
-    <string name="server_unsupported_version_unknown">Не удалось прочесть версию Jellyfin на этом сервере. AFinity нужна %1$s или выше.</string>
+    <string name="server_unsupported_version">На этом сервере работает Jellyfin %1$s. Этому приложению нужна %2$s или выше.</string>
+    <string name="server_unsupported_version_unknown">Не удалось прочесть версию Jellyfin на этом сервере. Этому приложению нужна %1$s или выше.</string>
     <string name="server_unsupported_title">Необходимо обновление сервера</string>
-    <string name="server_unsupported_body">На этом сервере работает Jellyfin %1$s, а AFinity нужна %2$s или новее. Медиафайлы не будут загружаться, пока сервер не будет обновлен.</string>
-    <string name="server_unsupported_body_unknown">Не удалось прочесть версию Jellyfin на этом сервере, AFinity нужна %1$s или новее. Медиафайлы не будут загружаться, пока сервер не будет обновлен.</string>
+    <string name="server_unsupported_body">На этом сервере работает Jellyfin %1$s, а этому приложению нужна %2$s или новее. Медиафайлы не будут загружаться, пока сервер не будет обновлен.</string>
+    <string name="server_unsupported_body_unknown">Не удалось прочесть версию Jellyfin на этом сервере, а этому приложению нужна %1$s или новее. Медиафайлы не будут загружаться, пока сервер не будет обновлен.</string>
     <string name="server_unsupported_switch_account">Сменить аккаунт</string>
     <string name="stat_albums">Альбомы</string>
     <string name="stat_songs">Песни</string>
@@ -2001,9 +2001,9 @@
     <string name="local_network_permission_title">Доступ к локальной сети</string>
     <string name="local_network_permission_needed">Требуется доступ к локальной сети для нахождения и подключения к серверам в вашей сети.</string>
     <string name="local_network_permission_grant">Разрешить</string>
-    <string name="local_network_permission_offline_body">Afinity не сожет связаться с вашим сервром, так как доступ к локальной сети запрещен. Для подключения, дайте это разрешение.</string>
+    <string name="local_network_permission_offline_body">Jellyfin не сожет связаться с вашим сервром, так как доступ к локальной сети запрещен. Для подключения, дайте это разрешение.</string>
     <string name="local_network_permission_settings">Открыть настройки</string>
-    <string name="local_network_permission_discovery_body">Сервера не найдены. Разрешите AFinity доступ к локальной сети для их поиска.</string>
+    <string name="local_network_permission_discovery_body">Сервера не найдены. Разрешите Jellyfin доступ к локальной сети для их поиска.</string>
     <string name="pref_view_logs">Просмотр логов</string>
     <string name="pref_view_logs_summary">Смотреть работу приложения в реальном времени</string>
     <string name="library_filter_audio_language">Язык аудио</string>
@@ -2088,7 +2088,7 @@
     <string name="logs_empty_search_title_fmt">Нет строк с текстом “%1$s”</string>
     <string name="logs_empty_search_body">Поиск произведен по сообщениям, тегам и трассировкам стека. Расширьте его, убрав какой-нибудь фильтр.</string>
     <string name="logs_empty_crashes_title">Нет зафиксированных вылетов</string>
-    <string name="logs_empty_crashes_body">AFinity хранит на этом устройстве последние пять отчетов о вылетах. Сейчас отчетов нет.</string>
+    <string name="logs_empty_crashes_body">Jellyfin хранит на этом устройстве последние пять отчетов о вылетах. Сейчас отчетов нет.</string>
     <string name="logs_empty_clear_filters">Очистить фильтры</string>
     <string name="logs_empty_filter_title">Нет соответсвий под данные фильтры</string>
     <string name="related_starring_fmt">В главных ролях: %1$s</string>
@@ -2284,7 +2284,7 @@
     <string name="admin_image_action_failed">Не удалось изменить изображение. Попробуйте еще раз.</string>
     <string name="admin_image_file_unreadable">Не удалось прочесть выбранный файл.</string>
     <string name="player_error_connection">Не удалось связаться с сервером. Проверьте ваше соединение и попробуйте еще раз.</string>
-    <string name="pref_about_app">Об AFinity</string>
+    <string name="pref_about_app">О Jellyfin</string>
     <string name="cd_go_online">Выключить автономный режим</string>
     <string name="connection_go_online">Выйти в сеть</string>
     <string name="abs_latest_episode_label">Последний эпизод</string>
@@ -3476,7 +3476,7 @@
         <item quantity="other">%d элементов</item>
     </plurals>
     <string name="music_player_lyrics_unsynced">Этот текст не синхронизирован с песней</string>
-    <string name="widget_audio_name">Плеер AFinity</string>
+    <string name="widget_audio_name">Плеер Jellyfin</string>
     <string name="widget_audio_description">Музыка, аудиокниги и подкасты на вашем домашнем экране</string>
     <string name="widget_status_playing">ИГРАЕТ</string>
     <string name="widget_status_paused">ПАУЗА</string>
@@ -3554,9 +3554,9 @@
     <string name="cd_subtitle_language_filter">Язык субтитров</string>
     <string name="cd_subtitle_remove">Удалить с этого устройства</string>
     <string name="subtitledb_connect_title">Искать на TheSubtitleDB?</string>
-    <string name="subtitledb_blurb_no_provider">На вашем сервере не установлен плагин для субтитров, но AFinity может выполнить поиск на TheSubtitleDB самостоятельно, и сохранить ваш выбор на вашем сервере. Бесплатно и открыто для всех — без регистраций и ключей API.</string>
-    <string name="subtitledb_blurb_no_permission">Ваш аккаунт не может добавлять субтитры на сервер, но AFinity может выполнить поиск на TheSubtitleDB самостоятельно, и сохранить ваш выбор на этом устройстве. Бесплатно и открыто для всех — без регистраций и ключей API.</string>
-    <string name="subtitledb_blurb_downloaded">Это уже скаченная копия, но AFinity может выполнить поиск на TheSubtitleDB самостоятельно, и сохранить ваш выбор на этом устройстве. Бесплатно и открыто для всех — без регистраций и ключей API.</string>
+    <string name="subtitledb_blurb_no_provider">На вашем сервере не установлен плагин для субтитров, но Jellyfin может выполнить поиск на TheSubtitleDB самостоятельно, и сохранить ваш выбор на вашем сервере. Бесплатно и открыто для всех — без регистраций и ключей API.</string>
+    <string name="subtitledb_blurb_no_permission">Ваш аккаунт не может добавлять субтитры на сервер, но Jellyfin может выполнить поиск на TheSubtitleDB самостоятельно, и сохранить ваш выбор на этом устройстве. Бесплатно и открыто для всех — без регистраций и ключей API.</string>
+    <string name="subtitledb_blurb_downloaded">Это уже скаченная копия, но Jellyfin может выполнить поиск на TheSubtitleDB самостоятельно, и сохранить ваш выбор на этом устройстве. Бесплатно и открыто для всех — без регистраций и ключей API.</string>
     <string name="subtitledb_sends_body">Идентификатор IMDb или TMDB того, что вы сейчас смотрите, номер сезона и эпизода, выбранный вами язык и ваш IP-адрес, который TheSubtitleDB сохраняет для ограничения количества запросов.</string>
     <string name="subtitledb_connect_action">Включить</string>
     <string name="subtitledb_connect_blurb">Находите субтитры прямо из плеера, если ваш сервер не может добавить их самостоятельно. Бесплатно и открыто для всех — без регистраций и ключей API.</string>
@@ -3588,7 +3588,7 @@
     <string name="wikidata_scope_note">Эта настройка применяется только к серверу и профилю, в которые вы вошли. У другие профилей на этом устройстве остаются свои настройки.</string>
     <string name="wikidata_disconnect_message">История наград и раздел «Вселенные и саги» перестанут загружаться для этого профиля. Сохраненные данные не будут удалены.</string>
     <string name="franchise_load_failed">Не удалось загрузить франшизу. Проверьте ваше соединение и попробуйте еще раз.</string>
-    <string name="seerr_watchlist_sync_summary">Добавление и удаление фильма или сериала в список запланинированных в AFinity также обновляет список в Seerr, и наоборот. Работает только для этого профиля.</string>
+    <string name="seerr_watchlist_sync_summary">Добавление и удаление фильма или сериала в список запланинированных в Jellyfin также обновляет список в Seerr, и наоборот. Работает только для этого профиля.</string>
     <string name="seerr_watchlist_sync_title">Синхронизировать запланированные просмотры</string>
     <string name="section_seerr_watchlist_not_in_library">Еще нет в вашей библиотеке</string>
     <string name="section_seerr_watchlist">Ваши запланированные</string>
@@ -3791,7 +3791,7 @@
     <string name="reader_search_close">Закрыть поиск</string>
     <string name="reader_error_not_found">Не удалось найти книгу на сервере.</string>
     <string name="reader_error_download_not_allowed">Вашему аккаунту запрещено скачивать с этого сервера, и потому книгу нельзя открыть. Попросите администратора сервера разрешить загрузку медиафайлов.</string>
-    <string name="reader_error_unsupported">Этот формат пока еще не открывается в AFinity.</string>
+    <string name="reader_error_unsupported">Этот формат пока еще не открывается в Jellyfin.</string>
     <string name="reader_error_network">Не удалось скачать книгу. Проверьте ваше соединение и попробуйте еще раз.</string>
     <string name="reader_error_corrupt">Не удалось прочесть файл. Он может быть поврежден.</string>
     <string name="reader_error_no_pages">В этом файле отсутствуют страницы.</string>
@@ -3830,8 +3830,8 @@
     <string name="photo_action_save">Сохранить на устройство</string>
     <string name="photo_action_share">Поделиться</string>
     <string name="photo_action_play">Смотреть видео</string>
-    <string name="photo_saving">Сохранение в Pictures/AFinity</string>
-    <string name="photo_saved">Сохранено в Pictures/AFinity</string>
+    <string name="photo_saving">Сохранение в Pictures/Jellyfin</string>
+    <string name="photo_saved">Сохранено в Pictures/Jellyfin</string>
     <string name="photo_save_failed">Не удалось сохранить фотографию</string>
     <string name="photo_action_failed">Что-то пошло не так. Попробуйте еще раз.</string>
     <string name="photo_info_taken">Снято</string>

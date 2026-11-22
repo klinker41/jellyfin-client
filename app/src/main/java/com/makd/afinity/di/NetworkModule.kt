@@ -207,13 +207,13 @@ object NetworkModule {
         return builder.build()
     }
 
-    private val imageUserAgent = "AFinity/${BuildConfig.VERSION_NAME} (Android; Coil)"
+    private val imageUserAgent = "Jellyfin/${BuildConfig.VERSION_NAME} (Android; Coil)"
 
     private val imageAcceptHeader =
         "image/avif,image/webp,image/svg+xml,image/png,image/jpeg,image/*;q=0.8"
 
     private val apiUserAgent =
-        "AFinity/${BuildConfig.VERSION_NAME} (Android ${Build.VERSION.RELEASE}; ${Build.MODEL})"
+        "Jellyfin/${BuildConfig.VERSION_NAME} (Android ${Build.VERSION.RELEASE}; ${Build.MODEL})"
 
     private val wikidataUserAgent =
         "AFinity/${BuildConfig.VERSION_NAME} (https://github.com/MakD/AFinity; award and franchise lookups, cached client-side)"

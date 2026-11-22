@@ -7,7 +7,6 @@
     <string name="loading_phase_processing">Procesando bibliotecas…</string>
     <string name="loading_phase_finalizing">Finalizando la pantalla de inicio…</string>
     <string name="loading_phase_ready">¡Listo!</string>
-    <string name="app_name" translatable="false">AFinity</string>
     <string name="login_connect_to_jellyfin">Conéctate a Jellyfin</string>
     <string name="login_welcome_back">Bienvenido de nuevo</string>
     <string name="login_saved_servers">Servidores guardados</string>
@@ -234,7 +233,7 @@
     <string name="track_unknown">Desconocido</string>
     <string name="track_none">Ninguno</string>
     <string name="track_number_fmt">Pista %1$d</string>
-    <string name="playback_channel_name">Reproducción de audio‐libros AFinity</string>
+    <string name="playback_channel_name">Reproducción de audio‐libros Jellyfin</string>
     <string name="cd_logo">Logo</string>
     <string name="cd_series_logo">Logotipo de la serie</string>
     <string name="cd_back">Atrás</string>
@@ -489,7 +488,7 @@
     <string name="audiobookshelf_connect">Conéctese para buscar audio‐libros</string>
     <string name="error_audiobookshelf_logout_failed_fmt">No se pudo desconectar de Audiobookshelf: %1$s</string>
     <string name="notification_permission_title">Habilitar notificaciones</string>
-    <string name="notification_permission_message">AFinity necesita permiso de notificación para mostrar el reproductor multimedia en su panel de notificaciones y bloqueo de pantalla mientras reproduce audiolibros o podcasts.\n\nSi cambia de opinión más tarde, puede habilitarlo manualmente desde Información de la aplicación → Permisos → Notificaciones.</string>
+    <string name="notification_permission_message">Jellyfin necesita permiso de notificación para mostrar el reproductor multimedia en su panel de notificaciones y bloqueo de pantalla mientras reproduce audiolibros o podcasts.\n\nSi cambia de opinión más tarde, puede habilitarlo manualmente desde Información de la aplicación → Permisos → Notificaciones.</string>
     <string name="notification_permission_yes">Conceder</string>
     <string name="notification_permission_no">No, gracias</string>
     <string name="pref_switch_session">Cambiar de sesión</string>

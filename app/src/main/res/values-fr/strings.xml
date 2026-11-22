@@ -185,7 +185,7 @@
     <string name="track_unknown">Inconnu</string>
     <string name="track_none">Aucun</string>
     <string name="track_number_fmt">Piste %1$d</string>
-    <string name="playback_channel_name">Lecture de livres audio AFinity</string>
+    <string name="playback_channel_name">Lecture de livres audio Jellyfin</string>
     <string name="cd_series_logo">Logo de la série</string>
     <string name="cd_back">Retour</string>
     <string name="cd_lock">Verrouiller</string>
@@ -466,7 +466,7 @@
     <string name="audiobookshelf_connect">Connectez-vous pour parcourir les livres audio</string>
     <string name="error_audiobookshelf_logout_failed_fmt">Impossible de se déconnecter d\'Audiobookshelf : %1$s</string>
     <string name="notification_permission_title">Activer les notifications</string>
-    <string name="notification_permission_message">AFinity utilise les notifications pour les commandes de lecture de la musique et des livres audio (écran de verrouillage et volet des notifications) et pour vous avertir lorsqu\'une mise à jour de l\'application est disponible.\n\nSi vous changez d\'avis plus tard, vous pourrez l\'activer depuis Infos sur l\'appli → Autorisations → Notifications.</string>
+    <string name="notification_permission_message">Jellyfin utilise les notifications pour les commandes de lecture de la musique et des livres audio (écran de verrouillage et volet des notifications) et pour vous avertir lorsqu\'une mise à jour de l\'application est disponible.\n\nSi vous changez d\'avis plus tard, vous pourrez l\'activer depuis Infos sur l\'appli → Autorisations → Notifications.</string>
     <string name="notification_permission_yes">Autoriser</string>
     <string name="notification_permission_no">Non, merci</string>
     <string name="pref_switch_session">Changer de session</string>
@@ -578,7 +578,7 @@
     <string name="connection_label_remote">Distant</string>
     <string name="connection_label_offline">Hors ligne</string>
     <string name="drawer_admin_badge">Administrateur</string>
-    <string name="drawer_app_version">AFinity v%1$s</string>
+    <string name="drawer_app_version">Jellyfin v%1$s</string>
     <string name="home_because_you_liked">Parce que vous avez apprécié %1$s</string>
     <string name="home_directed_by_from_watched">Réalisé par %1$s, parce que vous avez regardé %2$s</string>
     <string name="home_written_by_from_watched">Écrit par %1$s, parce que vous avez regardé %2$s</string>
@@ -665,13 +665,13 @@
     <string name="backup_import_summary">Restaurer des paramètres depuis un fichier</string>
     <string name="backup_import_title">Importer des paramètres</string>
     <string name="backup_apply">Appliquer</string>
-    <string name="backup_import_from_fmt">Sauvegarde créée par AFinity %1$s. Choisissez ce qu\'il faut appliquer.</string>
+    <string name="backup_import_from_fmt">Sauvegarde créée par Jellyfin %1$s. Choisissez ce qu\'il faut appliquer.</string>
     <string name="backup_import_skipped">Ignoré : absent de ce serveur</string>
     <string name="backup_import_done">Paramètres importés</string>
     <string name="backup_import_done_message">Certaines modifications peuvent nécessiter un redémarrage de l\'application pour s\'appliquer partout.</string>
     <string name="backup_excluded_note">Les mots de passe, les informations de connexion et les options propres à l\'appareil, comme l\'emplacement des téléchargements et le décodage matériel, ne sont jamais inclus dans le fichier.</string>
-    <string name="backup_error_format">Ce fichier n\'est pas une sauvegarde d\'AFinity.</string>
-    <string name="backup_error_version">Cette sauvegarde a été créée par une version plus récente d\'AFinity.</string>
+    <string name="backup_error_format">Ce fichier n\'est pas une sauvegarde de Jellyfin.</string>
+    <string name="backup_error_version">Cette sauvegarde a été créée par une version plus récente de Jellyfin.</string>
     <string name="backup_error_unreadable">Ce fichier n\'a pas pu être lu.</string>
     <string name="backup_section_home">Écran d\'accueil</string>
     <string name="backup_section_appearance">Apparence</string>
@@ -1451,7 +1451,7 @@
     <string name="pref_connect_services">Connecter des services</string>
     <string name="pref_connect_services_summary">Configurer Seerr, Audiobookshelf et l\'accès à distance</string>
     <string name="build_nightly">Version nocturne</string>
-    <string name="pref_about_app">À propos d\'AFinity</string>
+    <string name="pref_about_app">À propos de Jellyfin</string>
     <string name="pref_changelog">Journal des modifications</string>
     <string name="pref_changelog_summary">Nouveautés de %1$s</string>
     <string name="changelog_title">Journal des modifications</string>
@@ -1490,7 +1490,7 @@
     <string name="mdblist_usage_unknown">—</string>
     <string name="services_hub_tile_wikidata">Wikidata</string>
     <string name="wikidata_connect_title">Connecter Wikidata</string>
-    <string name="wikidata_connect_sends_title">Ce qu\'AFinity envoie</string>
+    <string name="wikidata_connect_sends_title">Ce que Jellyfin envoie</string>
     <string name="wikidata_connect_never_title">Ce qu\'il n\'envoie jamais</string>
     <string name="pref_show_awards_summary">Bannière de récompense et historique des victoires sur les fiches détaillées</string>
     <string name="awards_headline_won_fmt">A remporté %1$s</string>
@@ -2521,11 +2521,11 @@
     <string name="server_version_fmt">v%1$s</string>
     <string name="server_active_connection">Connexion active</string>
     <string name="server_no_alternate_addresses">Aucune adresse alternative configurée.</string>
-    <string name="server_unsupported_version">Ce serveur exécute Jellyfin %1$s. AFinity nécessite %2$s ou une version plus récente.</string>
-    <string name="server_unsupported_version_unknown">La version Jellyfin de ce serveur n\'a pas pu être lue. AFinity nécessite %1$s ou une version plus récente.</string>
+    <string name="server_unsupported_version">Ce serveur exécute Jellyfin %1$s. Cette application nécessite %2$s ou une version plus récente.</string>
+    <string name="server_unsupported_version_unknown">La version Jellyfin de ce serveur n\'a pas pu être lue. Cette application nécessite %1$s ou une version plus récente.</string>
     <string name="server_unsupported_title">Le serveur doit être mis à jour</string>
-    <string name="server_unsupported_body">Ce serveur exécute Jellyfin %1$s et AFinity nécessite %2$s ou une version plus récente. Les médias ne se chargeront pas tant que le serveur ne sera pas mis à jour.</string>
-    <string name="server_unsupported_body_unknown">La version Jellyfin de ce serveur n\'a pas pu être lue et AFinity nécessite %1$s ou une version plus récente. Les médias ne se chargeront pas tant que le serveur ne sera pas mis à jour.</string>
+    <string name="server_unsupported_body">Ce serveur exécute Jellyfin %1$s et cette application nécessite %2$s ou une version plus récente. Les médias ne se chargeront pas tant que le serveur ne sera pas mis à jour.</string>
+    <string name="server_unsupported_body_unknown">La version Jellyfin de ce serveur n\'a pas pu être lue et cette application nécessite %1$s ou une version plus récente. Les médias ne se chargeront pas tant que le serveur ne sera pas mis à jour.</string>
     <string name="server_unsupported_switch_account">Changer de compte</string>
     <string name="section_library_overview">Présentation de la bibliothèque</string>
     <string name="section_active_services">Services actifs</string>
@@ -3026,9 +3026,9 @@
     <string name="local_network_permission_title">Accès au réseau local</string>
     <string name="local_network_permission_needed">L\'accès au réseau local est requis pour découvrir et se connecter aux serveurs de votre réseau.</string>
     <string name="local_network_permission_grant">Accorder l\'autorisation</string>
-    <string name="local_network_permission_offline_body">AFinity ne peut pas joindre votre serveur, car l\'accès au réseau local est désactivé. Accordez-le pour vous reconnecter.</string>
+    <string name="local_network_permission_offline_body">Jellyfin ne peut pas joindre votre serveur, car l\'accès au réseau local est désactivé. Accordez-le pour vous reconnecter.</string>
     <string name="local_network_permission_settings">Ouvrir les paramètres</string>
-    <string name="local_network_permission_discovery_body">Aucun serveur n\'a été trouvé. Accordez l\'accès au réseau local pour qu\'AFinity puisse parcourir votre réseau.</string>
+    <string name="local_network_permission_discovery_body">Aucun serveur n\'a été trouvé. Accordez l\'accès au réseau local pour que Jellyfin puisse parcourir votre réseau.</string>
     <string name="error_address_different_jellyseerr">Cette adresse appartient à un autre serveur Seerr.</string>
     <string name="error_address_different_audiobookshelf">Cette adresse appartient à un autre serveur Audiobookshelf.</string>
     <string name="error_verify_jellyseerr_failed">Impossible de vérifier le serveur Seerr à cette adresse.</string>
@@ -3121,7 +3121,7 @@
     <string name="logs_empty_filter_title">Rien ne correspond à ces filtres</string>
     <string name="logs_empty_search_body">Le message, la étiquette et la trace d\'appels sont tous examinés. Élargissez la recherche en retirant un filtre.</string>
     <string name="logs_empty_crashes_title">Aucun plantage enregistré</string>
-    <string name="logs_empty_crashes_body">AFinity conserve les cinq derniers rapports de plantage sur cet appareil. Il n\'y en a aucun à afficher.</string>
+    <string name="logs_empty_crashes_body">Jellyfin conserve les cinq derniers rapports de plantage sur cet appareil. Il n\'y en a aucun à afficher.</string>
     <string name="logs_empty_clear_filters">Effacer les filtres</string>
     <string name="error_set_server_url_fmt">Les adresses de serveur, les jetons et les noms d\'utilisateur sont remplacés par [SUPPRIMÉ] avant l\'écriture du fichier.</string>
     <string name="media_info_title">Informations sur le média</string>
@@ -3248,9 +3248,9 @@
     <string name="cd_subtitle_language_filter">Langue des sous-titres</string>
     <string name="cd_subtitle_remove">Supprimer de cet appareil</string>
     <string name="subtitledb_connect_title">Rechercher sur TheSubtitleDB ?</string>
-    <string name="subtitledb_blurb_no_provider">Votre serveur ne dispose d\'aucun plugin de sous-titres ; AFinity peut donc effectuer une recherche directement sur TheSubtitleDB et enregistrer vos choix sur votre serveur. Ce service est gratuit et accessible à tous, sans nécessiter de compte ni de clé API.</string>
-    <string name="subtitledb_blurb_no_permission">Votre compte ne permet pas d\'ajouter des sous-titres au serveur ; AFinity peut donc effectuer une recherche directement dans TheSubtitleDB et enregistrer votre sélection sur cet appareil. Service gratuit et public, aucun compte ni clé API n\'est nécessaire.</string>
-    <string name="subtitledb_blurb_downloaded">Il s\'agit d\'une copie téléchargée ; AFinity peut donc effectuer des recherches directement dans TheSubtitleDB et enregistrer vos choix sur cet appareil. Service gratuit et accessible à tous, aucun compte ni clé API n\'est nécessaire.</string>
+    <string name="subtitledb_blurb_no_provider">Votre serveur ne dispose d\'aucun plugin de sous-titres ; Jellyfin peut donc effectuer une recherche directement sur TheSubtitleDB et enregistrer vos choix sur votre serveur. Ce service est gratuit et accessible à tous, sans nécessiter de compte ni de clé API.</string>
+    <string name="subtitledb_blurb_no_permission">Votre compte ne permet pas d\'ajouter des sous-titres au serveur ; Jellyfin peut donc effectuer une recherche directement dans TheSubtitleDB et enregistrer votre sélection sur cet appareil. Service gratuit et public, aucun compte ni clé API n\'est nécessaire.</string>
+    <string name="subtitledb_blurb_downloaded">Il s\'agit d\'une copie téléchargée ; Jellyfin peut donc effectuer des recherches directement dans TheSubtitleDB et enregistrer vos choix sur cet appareil. Service gratuit et accessible à tous, aucun compte ni clé API n\'est nécessaire.</string>
     <string name="subtitledb_sends_body">L\'identifiant IMDb ou TMDB du contenu que vous regardez, le numéro de la saison et de l\'épisode, la langue que vous sélectionnez, ainsi que votre adresse IP, que TheSubtitleDB conserve afin d\'appliquer des limites de fréquentation.</string>
     <string name="subtitledb_connect_action">Activer</string>
     <string name="subtitledb_connect_blurb">Retrouvez les sous-titres depuis le lecteur lorsque votre serveur ne peut pas les ajouter pour vous. Service gratuit et accessible à tous, sans compte ni clé API.</string>
@@ -3398,7 +3398,7 @@
     </plurals>
     <string name="music_player_lyrics_unsynced">Ces paroles ne sont pas synchronisées avec la chanson</string>
     <string name="franchise_load_failed">Impossible de charger cette franchise. Vérifiez votre connexion et réessayez.</string>
-    <string name="widget_audio_name">Lecteur AFinity</string>
+    <string name="widget_audio_name">Lecteur Jellyfin</string>
     <string name="widget_audio_description">Musique, livres audio et podcasts sur votre écran d\'accueil</string>
     <string name="widget_status_playing">LECTURE</string>
     <string name="widget_status_paused">PAUSE</string>
@@ -3516,7 +3516,7 @@
     <string name="log_repeat_count_fmt">%1$d×</string>
     <string name="section_seerr_watchlist_not_in_library">Pas encore dans votre bibliothèque</string>
     <string name="seerr_watchlist_sync_title">Synchroniser les playlist</string>
-    <string name="seerr_watchlist_sync_summary">L\'ajout ou la suppression d\'un film ou d\'une série dans votre liste de favoris AFinity met également à jour votre liste de favoris Seerr, et inversement. Uniquement pour ce profil.</string>
+    <string name="seerr_watchlist_sync_summary">L\'ajout ou la suppression d\'un film ou d\'une série dans votre liste de favoris Jellyfin met également à jour votre liste de favoris Seerr, et inversement. Uniquement pour ce profil.</string>
     <string name="home_downloaded_videos">Vidéos téléchargées</string>
     <plurals name="music_video_artists_prefix">
         <item quantity="one">Artiste</item>

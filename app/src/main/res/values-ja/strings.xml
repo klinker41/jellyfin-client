@@ -7,7 +7,6 @@
     <string name="loading_phase_processing">ライブラリを処理中...</string>
     <string name="loading_phase_finalizing">ホーム画面を完成させています...</string>
     <string name="loading_phase_ready">準備ができて！</string>
-    <string name="app_name" translatable="false">AFinity</string>
     <string name="login_connect_to_jellyfin">ジェリーフィンに接続する</string>
     <string name="login_welcome_back">おかえり</string>
     <string name="login_saved_servers">保存されたサーバー</string>
@@ -222,7 +221,7 @@
     <string name="track_unknown">未知</string>
     <string name="track_none">なし</string>
     <string name="track_number_fmt">追跡 %1$d</string>
-    <string name="playback_channel_name">AFinity オーディオブックの再生</string>
+    <string name="playback_channel_name">Jellyfin オーディオブックの再生</string>
     <string name="cd_logo">ロゴ</string>
     <string name="cd_series_logo">シリーズロゴ</string>
     <string name="cd_back">戻る</string>
@@ -475,7 +474,7 @@
     <string name="audiobookshelf_connect">接続してオーディオブックを閲覧する</string>
     <string name="error_audiobookshelf_logout_failed_fmt">オーディオブックシェルフからの切断に失敗しました: %1$s</string>
     <string name="notification_permission_title">通知を有効にする</string>
-    <string name="notification_permission_message">AFinity では、オーディオブックまたはポッドキャストの再生中に通知パネルとロック画面にメディア プレーヤーを表示するには、通知権限が必要です。\n\n後で気が変わった場合は、[アプリ情報] → [権限] → [通知] から手動で有効にできます。</string>
+    <string name="notification_permission_message">Jellyfin では、オーディオブックまたはポッドキャストの再生中に通知パネルとロック画面にメディア プレーヤーを表示するには、通知権限が必要です。\n\n後で気が変わった場合は、[アプリ情報] → [権限] → [通知] から手動で有効にできます。</string>
     <string name="notification_permission_yes">許可する</string>
     <string name="notification_permission_no">結構です</string>
     <string name="pref_switch_session">セッションの切り替え</string>

@@ -58,8 +58,8 @@ object LogExporter {
                 val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
                 share(
                     context = context,
-                    fileName = "afinity_logs_$timestamp.txt",
-                    subject = "AFinity logs — $timestamp",
+                    fileName = "jellyfin_logs_$timestamp.txt",
+                    subject = "Jellyfin logs — $timestamp",
                     content = scrub(logContent, secretsToRedact),
                 )
             } catch (e: CancellationException) {
@@ -91,8 +91,8 @@ object LogExporter {
 
                 share(
                     context = context,
-                    fileName = "afinity_${report.id}",
-                    subject = "AFinity crash — ${report.simpleExceptionClass}",
+                    fileName = "jellyfin_${report.id}",
+                    subject = "Jellyfin crash — ${report.simpleExceptionClass}",
                     content = scrub(content, secretsToRedact),
                 )
             } catch (e: CancellationException) {
@@ -131,7 +131,7 @@ object LogExporter {
         val buildType = if (BuildConfig.DEBUG) "debug" else "release"
 
         return buildString {
-            appendLine("AFinity $versionName ($versionCode) [$buildType]")
+            appendLine("Jellyfin $versionName ($versionCode) [$buildType]")
             appendLine("Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
             appendLine("Device: ${Build.MANUFACTURER} ${Build.MODEL} (${Build.DEVICE})")
             appendLine("ABI: ${Build.SUPPORTED_ABIS.firstOrNull() ?: "unknown"}")

@@ -57,7 +57,7 @@
     <string name="connection_label_remote">Távoli</string>
     <string name="connection_label_offline">Offline</string>
     <string name="drawer_admin_badge">Admin</string>
-    <string name="drawer_app_version">AFinity v%1$s</string>
+    <string name="drawer_app_version">Jellyfin v%1$s</string>
     <string name="cd_watched_status">Megtekintett</string>
     <string name="cd_imdb">IMDB</string>
     <string name="cd_rotten_tomatoes">Rotten Tomatoes</string>
@@ -163,8 +163,8 @@
     <string name="backup_import_done">Beállítások importálva</string>
     <string name="backup_import_done_message">Néhány változás érvényesítéséhez újra kell indítani az alkalmazást.</string>
     <string name="backup_excluded_note">A jelszavak, bejelentkezési adatok és eszközspecifikus beállítások, például a letöltési hely és a hardveres dekódolás soha nem kerülnek bele a fájlba.</string>
-    <string name="backup_error_format">Ez a fájl nem egy AFinity biztonsági mentés.</string>
-    <string name="backup_error_version">Ezt a biztonsági mentést az AFinity egy újabb verziója készítette.</string>
+    <string name="backup_error_format">Ez a fájl nem egy Jellyfin biztonsági mentés.</string>
+    <string name="backup_error_version">Ezt a biztonsági mentést a Jellyfin egy újabb verziója készítette.</string>
     <string name="backup_error_unreadable">A fájl nem olvasható.</string>
     <string name="backup_section_home">Kezdőlap</string>
     <string name="backup_section_appearance">Megjelenés</string>
@@ -583,7 +583,7 @@
     <string name="outline_none">Nincs</string>
     <string name="subtitle_mode_none">Nincs</string>
     <string name="track_number_fmt">%1$d. szám</string>
-    <string name="playback_channel_name">AFinity hangoskönyv lejátszás</string>
+    <string name="playback_channel_name">Jellyfin hangoskönyv lejátszás</string>
     <string name="cd_logo">Logó</string>
     <string name="admin_image_type_logo">Logó</string>
     <string name="cd_series_logo">Sorozat logó</string>
@@ -945,7 +945,7 @@
     <string name="audiobookshelf_connect">Csatlakozás hangoskönyvek böngészéséhez</string>
     <string name="error_audiobookshelf_logout_failed_fmt">Nem sikerült lecsatlakozni a hangoskönyvpolcról: %1$s</string>
     <string name="notification_permission_title">Értesítések engedélyezése</string>
-    <string name="notification_permission_message">Az AFinity értesítéseket használ a zene és a hangoskönyvek lejátszásának vezérléséhez (zárolási képernyő és értesítési felület), valamint az elérhető alkalmazásfrissítések értesítéseihez.\n\nHa később meggondolja magát, engedélyezheti az Alkalmazásinformáció → Engedélyek → Értesítések menüpontban.</string>
+    <string name="notification_permission_message">A Jellyfin értesítéseket használ a zene és a hangoskönyvek lejátszásának vezérléséhez (zárolási képernyő és értesítési felület), valamint az elérhető alkalmazásfrissítések értesítéseihez.\n\nHa később meggondolja magát, engedélyezheti az Alkalmazásinformáció → Engedélyek → Értesítések menüpontban.</string>
     <string name="notification_permission_yes">Engedélyezés</string>
     <string name="notification_permission_no">Nem, köszönöm</string>
     <string name="pref_switch_session_summary">Felhasználó vagy szerver váltás</string>
@@ -1075,7 +1075,7 @@
     <string name="abs_placeholder_server_url">https://abs.example.com</string>
     <string name="abs_no_items_in_library">Nincsenek tételek a könyvtárban</string>
     <string name="discovery_count_range_fmt">0-tól %1$d-ig</string>
-    <string name="backup_import_from_fmt">Az AFinity %1$s-től. Válassza ki, mit szeretne alkalmazni.</string>
+    <string name="backup_import_from_fmt">A Jellyfin %1$s-től. Válassza ki, mit szeretne alkalmazni.</string>
     <string name="sort_option_popularity">Népszerűség</string>
     <string name="livetv_guide_date_fmt">EEE, MMM d</string>
     <string name="abs_no_personalized_content">Nincs elérhető személyre szabott tartalom</string>

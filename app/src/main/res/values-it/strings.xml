@@ -305,7 +305,7 @@
     <string name="livetv_cat_on_now">Adesso</string>
     <string name="livetv_empty_letter_fmt">Nessun canale che inizia con \'%1$s\'</string>
     <string name="player_error_title">Errore di riproduzione</string>
-    <string name="playback_channel_name">AFinity Riproduzione Audiolibri</string>
+    <string name="playback_channel_name">Jellyfin Riproduzione Audiolibri</string>
     <string name="cd_enter_pip">Accedi alla modalità Picture-in-Picture</string>
     <string name="cd_speed">Velocità di Riproduzione</string>
     <string name="cd_aspect_ratio">Proporzioni</string>
@@ -424,7 +424,7 @@
     <string name="cd_random_item">Riproduci qualcosa a caso</string>
     <string name="random_item_none">Niente di nuovo da guardare</string>
     <string name="cd_scroll_to_top">Torna all\'inizio</string>
-    <string name="drawer_app_version">AFinity v%1$s</string>
+    <string name="drawer_app_version">Jellyfin v%1$s</string>
     <string name="chapter_number_fmt">Capitolo %1$d</string>
     <string name="filter_empty_filtered">Nessun elemento corrisponde ai tuoi filtri</string>
     <string name="library_filter_status">Filtri</string>

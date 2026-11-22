@@ -143,7 +143,7 @@ constructor(
                 .ifEmpty { "aac" }
 
         return DeviceProfile(
-            name = "AFinity-LiveTV",
+            name = "Jellyfin-LiveTV",
             maxStaticBitrate = maxBitrate,
             maxStreamingBitrate = maxBitrate,
             directPlayProfiles =

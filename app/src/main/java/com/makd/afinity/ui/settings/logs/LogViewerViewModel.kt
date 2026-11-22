@@ -469,7 +469,7 @@ constructor(
         const val REFRESH_DEBOUNCE_MS = 200L
         const val GAP_THRESHOLD_MS = 3000L
         const val CONTEXT_LINES = 20
-        const val CLIP_LABEL = "AFinity logs"
+        const val CLIP_LABEL = "Jellyfin logs"
         const val KEY_LAST_SEEN_CRASH = "log_viewer_last_seen_crash"
     }
 }

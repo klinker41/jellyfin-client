@@ -294,7 +294,7 @@ constructor(
     }
 
     private companion object {
-        const val SAVE_FOLDER = "AFinity"
+        const val SAVE_FOLDER = "Jellyfin"
         const val SHARE_DIR = "shared_photos"
     }
 }

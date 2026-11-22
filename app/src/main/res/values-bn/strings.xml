@@ -7,7 +7,6 @@
     <string name="loading_phase_processing">লাইব্রেরি প্রসেস করা হচ্ছে...</string>
     <string name="loading_phase_finalizing">হোম স্ক্রীন চূড়ান্ত করা হচ্ছে...</string>
     <string name="loading_phase_ready">প্রস্তুত!</string>
-    <string name="app_name" translatable="false">AFinity</string>
     <string name="login_connect_to_jellyfin">জেলিফিনের সাথে সংযোগ করুন</string>
     <string name="login_welcome_back">স্বাগত ফিরে</string>
     <string name="login_saved_servers">সংরক্ষিত সার্ভার</string>
@@ -485,7 +484,7 @@
     <string name="audiobookshelf_connect">অডিওবুক ব্রাউজ করতে সংযোগ করুন</string>
     <string name="error_audiobookshelf_logout_failed_fmt">অডিওবুকশেলফ থেকে সংযোগ বিচ্ছিন্ন করতে ব্যর্থ হয়েছে: %1$s</string>
     <string name="notification_permission_title">বিজ্ঞপ্তি সক্রিয় করুন</string>
-    <string name="notification_permission_message">অডিওবুক বা পডকাস্ট চালানোর সময় আপনার নোটিফিকেশন প্যানেলে মিডিয়া প্লেয়ার এবং লক স্ক্রিনে দেখানোর জন্য AFinity-এর বিজ্ঞপ্তির অনুমতি প্রয়োজন।\n\nআপনি যদি পরে আপনার মত পরিবর্তন করেন, আপনি অ্যাপ তথ্য → অনুমতি → বিজ্ঞপ্তি থেকে ম্যানুয়ালি এটি সক্ষম করতে পারেন।</string>
+    <string name="notification_permission_message">অডিওবুক বা পডকাস্ট চালানোর সময় আপনার নোটিফিকেশন প্যানেলে মিডিয়া প্লেয়ার এবং লক স্ক্রিনে দেখানোর জন্য Jellyfin-এর বিজ্ঞপ্তির অনুমতি প্রয়োজন।\n\nআপনি যদি পরে আপনার মত পরিবর্তন করেন, আপনি অ্যাপ তথ্য → অনুমতি → বিজ্ঞপ্তি থেকে ম্যানুয়ালি এটি সক্ষম করতে পারেন।</string>
     <string name="notification_permission_yes">অনুমতি দিন</string>
     <string name="notification_permission_no">না ধন্যবাদ</string>
     <string name="pref_switch_session">সেশন পরিবর্তন করুন</string>

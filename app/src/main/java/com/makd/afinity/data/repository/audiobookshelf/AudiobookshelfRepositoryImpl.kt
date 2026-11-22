@@ -2355,7 +2355,7 @@ constructor(
             manufacturer = Build.MANUFACTURER,
             model = Build.MODEL,
             sdkVersion = Build.VERSION.SDK_INT,
-            clientName = "AFinity",
+            clientName = "Jellyfin",
             clientVersion = BuildConfig.VERSION_NAME,
         )
 

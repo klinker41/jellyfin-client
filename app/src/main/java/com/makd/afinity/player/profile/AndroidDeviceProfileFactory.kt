@@ -268,10 +268,10 @@ class AndroidDeviceProfileFactory @Inject constructor() {
     companion object {
         const val DOWNLOAD_TRANSCODE_CONTAINER = "mp4"
 
-        private const val PROFILE_NAME = "AFinity Android"
-        private const val MUSIC_PROFILE_NAME = "AFinity Android (Music)"
+        private const val PROFILE_NAME = "Jellyfin Android"
+        private const val MUSIC_PROFILE_NAME = "Jellyfin Android (Music)"
         private const val MP4_AUDIO_CONTAINERS = "m4a,m4b"
-        private const val DOWNLOAD_PROFILE_NAME = "AFinity Android (Download)"
+        private const val DOWNLOAD_PROFILE_NAME = "Jellyfin Android (Download)"
 
         private const val MAX_STREAMING_BITRATE = 120_000_000
         private const val MAX_STATIC_BITRATE = 100_000_000

@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.Dp
 import com.makd.afinity.R
 import com.makd.afinity.ui.components.AsyncImage
 
-internal const val OWN_APP_NAME = "AFinity"
+internal const val OWN_APP_NAME = "Jellyfin"
 
 @Composable
 internal fun DeviceLogo(

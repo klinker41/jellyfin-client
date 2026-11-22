@@ -279,7 +279,7 @@ private fun SettingsImportFailure.labelRes(): Int =
     }
 
 private fun defaultBackupFileName(): String =
-    "afinity-settings-${SimpleDateFormat("yyyyMMdd", Locale.US).format(Date())}.json"
+    "jellyfin-settings-${SimpleDateFormat("yyyyMMdd", Locale.US).format(Date())}.json"
 
 private val BACKUP_MIME_TYPES =
     arrayOf("application/json", "text/plain", "application/octet-stream")

@@ -55,7 +55,7 @@ fun HomeFullScreenScreenshotTest() {
             mode = AfinityScreenMode.Hero,
             topBar = { backgroundOpacity ->
                 AfinityTopBar(
-                    title = { AfinityTopAppBarTitle("AFinity") },
+                    title = { AfinityTopAppBarTitle("Jellyfin") },
                     backgroundOpacity = backgroundOpacity,
                 )
             },
@@ -149,7 +149,7 @@ fun HomeScrolledTopBarScreenshotTest() {
             mode = AfinityScreenMode.Immersive,
             topBar = { backgroundOpacity ->
                 AfinityTopBar(
-                    title = { AfinityTopAppBarTitle("AFinity") },
+                    title = { AfinityTopAppBarTitle("Jellyfin") },
                     modifier =
                         Modifier.topBarBlurBackdrop(blurState, containerColor = backgroundColor),
                     backgroundOpacity = backgroundOpacity,

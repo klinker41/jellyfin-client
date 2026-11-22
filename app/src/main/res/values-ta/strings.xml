@@ -524,7 +524,7 @@
     <string name="audiobookshelf_connect">ஆடியோபுக்குகளை உலாவ இணைக்கவும்</string>
     <string name="error_audiobookshelf_logout_failed_fmt">ஆடியோ புத்தக அலமாரியிலிருந்து துண்டிக்க முடியவில்லை: %1$s</string>
     <string name="notification_permission_title">அறிவிப்புகளை இயக்கு</string>
-    <string name="notification_permission_message">ஆடியோபுக்குகள் அல்லது பாட்காச்ட்களை இயக்கும் போது உங்கள் அறிவிப்பு பேனலில் மீடியா பிளேயரைக் காட்ட AFinityக்கு அறிவிப்பு இசைவு தேவை. \n\nநீங்கள் பின்னர் உங்கள் எண்ணத்தை மாற்றினால், பயன்பாட்டுத் செய்தி → அனுமதிகள் → அறிவிப்புகளில் இருந்து அதை கைமுறையாக இயக்கலாம்.</string>
+    <string name="notification_permission_message">ஆடியோபுக்குகள் அல்லது பாட்காச்ட்களை இயக்கும் போது உங்கள் அறிவிப்பு பேனலில் மீடியா பிளேயரைக் காட்ட Jellyfinக்கு அறிவிப்பு இசைவு தேவை. \n\nநீங்கள் பின்னர் உங்கள் எண்ணத்தை மாற்றினால், பயன்பாட்டுத் செய்தி → அனுமதிகள் → அறிவிப்புகளில் இருந்து அதை கைமுறையாக இயக்கலாம்.</string>
     <string name="notification_permission_yes">இசைவு</string>
     <string name="notification_permission_no">நன்றி இல்லை</string>
     <string name="pref_switch_session">அமர்வு மாறவும்</string>

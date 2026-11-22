@@ -714,7 +714,7 @@ constructor(
                 .setPrioritizeTimeOverSizeThresholds(false)
                 .build()
 
-        val userAgent = "AFinity/${BuildConfig.VERSION_NAME} (Android; ExoPlayer)"
+        val userAgent = "Jellyfin/${BuildConfig.VERSION_NAME} (Android; ExoPlayer)"
         val bandwidthMeter = DefaultBandwidthMeter.getSingletonInstance(context)
         val upstreamFactory =
             DefaultHttpDataSource.Factory()
@@ -2668,7 +2668,7 @@ constructor(
         try {
             Timber.d("Loading live channel: $channelName ($channelId)")
             Timber.d("Stream URL: ${redactUrl(streamUrl)}")
-            val userAgent = "AFinity/${BuildConfig.VERSION_NAME} (Android; ExoPlayer)"
+            val userAgent = "Jellyfin/${BuildConfig.VERSION_NAME} (Android; ExoPlayer)"
 
             if (player is ExoPlayer) {
                 val dataSourceFactory =
