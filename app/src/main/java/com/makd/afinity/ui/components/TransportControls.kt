@@ -20,6 +20,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -88,9 +89,13 @@ fun TransportControls(
         if (isDark) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(modifier = modifier.fillMaxWidth()) {
+        val currentValue = if (isDragging) sliderValue else position
+        val scrubberState =
+            remember(range) { SliderState(value = currentValue, trackRange = range) }
+        scrubberState.value = currentValue
         Box(contentAlignment = Alignment.CenterStart) {
             Slider(
-                value = if (isDragging) sliderValue else position,
+                state = scrubberState,
                 onValueChange = { value ->
                     sliderValue = value
                     isDragging = true
@@ -99,7 +104,6 @@ fun TransportControls(
                     onSeek(sliderValue)
                     isDragging = false
                 },
-                valueRange = range,
                 modifier = Modifier.fillMaxWidth(),
                 colors =
                     SliderDefaults.colors(
@@ -119,10 +123,10 @@ fun TransportControls(
                         val h = size.height
                         val cornerR = CornerRadius(h / 2f, h / 2f)
                         val rangeSpan =
-                            (sliderState.valueRange.endInclusive - sliderState.valueRange.start)
+                            (sliderState.trackRange.endInclusive - sliderState.trackRange.start)
                                 .coerceAtLeast(1f)
                         val progress =
-                            (sliderState.value - sliderState.valueRange.start) / rangeSpan
+                            (sliderState.value - sliderState.trackRange.start) / rangeSpan
                         val thumbCenterX = trackStart + progress * trackRange
 
                         drawRoundRect(
@@ -133,7 +137,7 @@ fun TransportControls(
                         )
 
                         val bufferedFraction =
-                            ((bufferedPosition - sliderState.valueRange.start) / rangeSpan)
+                            ((bufferedPosition - sliderState.trackRange.start) / rangeSpan)
                                 .coerceIn(0f, 1f)
                         val bufferedEndX =
                             (trackStart + bufferedFraction * trackRange).coerceAtMost(trackEnd)

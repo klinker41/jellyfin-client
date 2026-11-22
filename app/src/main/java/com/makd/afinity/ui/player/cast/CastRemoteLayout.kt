@@ -37,6 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -473,15 +474,17 @@ fun CastRemoteTransport(
     val inactiveColor = Color.White.copy(alpha = 0.16f)
     val markColor = Color.White.copy(alpha = 0.55f)
 
+    val scrubberState =
+        remember(valueRange) { SliderState(value = displayValue, trackRange = valueRange) }
+    scrubberState.value = displayValue
     Column(modifier = modifier.fillMaxWidth()) {
         Slider(
-            value = displayValue,
+            state = scrubberState,
             onValueChange = { dragValue = it },
             onValueChangeFinished = {
                 dragValue?.let(onSeek)
                 dragValue = null
             },
-            valueRange = valueRange,
             thumb = { Box(modifier = Modifier.size(14.dp).background(Color.White, CircleShape)) },
             track = { sliderState ->
                 val fraction = ((sliderState.value - valueRange.start) / span).coerceIn(0f, 1f)

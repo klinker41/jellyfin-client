@@ -31,6 +31,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -281,9 +282,11 @@ internal fun ReaderScrubber(
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val thumbRadiusPx = with(density) { (ThumbDragging / 2).toPx() }
 
+    val scrubberState = remember { SliderState(value = shown) }
+    scrubberState.value = shown
     Box(modifier = modifier.fillMaxWidth()) {
         Slider(
-            value = shown,
+            state = scrubberState,
             onValueChange = {
                 dragValue = it
                 dragging = true
