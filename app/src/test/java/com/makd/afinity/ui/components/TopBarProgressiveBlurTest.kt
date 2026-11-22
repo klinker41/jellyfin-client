@@ -1,5 +1,6 @@
 package com.makd.afinity.ui.components
 
+import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -26,13 +27,13 @@ class TopBarProgressiveBlurTest {
     @Test
     fun `computeProgressiveBlurPasses emits 4 continuous semigroup passes at 60px radius`() {
         val maxRadiusPx = 60f
-        val barHeightPx = 240f
+        val blurHeightPx = 240f
         val passes =
-            computeProgressiveBlurPasses(maxRadiusPx = maxRadiusPx, barHeightPx = barHeightPx)
+            computeProgressiveBlurPasses(maxRadiusPx = maxRadiusPx, blurHeightPx = blurHeightPx)
 
         assertEquals(4, passes.size)
         assertEquals(0f, passes.last().maskTopY, 0.0001f)
-        assertEquals(barHeightPx, passes.first().maskBottomY, 0.0001f)
+        assertEquals(blurHeightPx, passes.first().maskBottomY, 0.0001f)
 
         val sumOfSquares =
             passes.fold(0f) { acc, pass ->
@@ -48,7 +49,7 @@ class TopBarProgressiveBlurTest {
     @Test
     fun `computeProgressiveBlurPasses skips subthreshold bands cleanly at small radii`() {
         for (radius in listOf(1f, 2f, 5f)) {
-            val passes = computeProgressiveBlurPasses(maxRadiusPx = radius, barHeightPx = 240f)
+            val passes = computeProgressiveBlurPasses(maxRadiusPx = radius, blurHeightPx = 240f)
             assertTrue("Expected at least one pass for radius=$radius", passes.isNotEmpty())
             passes.forEach { pass ->
                 assertTrue(pass.incrementalRadiusPx >= MIN_BLUR_RADIUS_PX)
@@ -79,5 +80,35 @@ class TopBarProgressiveBlurTest {
         )
         assertEquals(0f, computeTopBarScrimAlpha(1f, -0.2f), 0.0001f)
         assertEquals(1f, computeTopBarScrimAlpha(1f, 2f), 0.0001f)
+    }
+
+    @Test
+    fun `computeTopBarBlurHeightPx extends positive bar height and clamps negative extension`() {
+        assertEquals(16.dp, DefaultTopBarBlurBottomExtension)
+        assertEquals(
+            288f,
+            computeTopBarBlurHeightPx(barHeightPx = 240f, bottomExtensionPx = 48f),
+            0.0001f,
+        )
+        assertEquals(
+            240f,
+            computeTopBarBlurHeightPx(barHeightPx = 240f, bottomExtensionPx = 0f),
+            0.0001f,
+        )
+        assertEquals(
+            240f,
+            computeTopBarBlurHeightPx(barHeightPx = 240f, bottomExtensionPx = -24f),
+            0.0001f,
+        )
+        assertEquals(
+            0f,
+            computeTopBarBlurHeightPx(barHeightPx = 0.5f, bottomExtensionPx = 48f),
+            0.0001f,
+        )
+        assertEquals(
+            0f,
+            computeTopBarBlurHeightPx(barHeightPx = 0f, bottomExtensionPx = 48f),
+            0.0001f,
+        )
     }
 }

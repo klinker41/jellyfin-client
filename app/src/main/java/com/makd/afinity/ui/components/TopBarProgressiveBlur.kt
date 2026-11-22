@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RenderEffect
@@ -35,8 +36,12 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 val DefaultTopBarMaxBlurRadius = 20.dp
+val DefaultTopBarBlurBottomExtension = 16.dp
 const val DefaultTopBarMaxScrimAlpha = 0.25f
 internal const val MIN_BLUR_RADIUS_PX = 0.5f
+
+internal fun computeTopBarBlurHeightPx(barHeightPx: Float, bottomExtensionPx: Float): Float =
+    if (barHeightPx < 1f) 0f else barHeightPx + bottomExtensionPx.coerceAtLeast(0f)
 
 internal fun computeTopBarScrimAlpha(progress: Float, maxScrimAlpha: Float): Float =
     maxScrimAlpha.coerceIn(0f, 1f) * progress.coerceIn(0f, 1f)
@@ -68,10 +73,10 @@ internal fun quantizeBlurRadiusPx(radiusPx: Float): Float =
 
 internal fun computeProgressiveBlurPasses(
     maxRadiusPx: Float,
-    barHeightPx: Float,
+    blurHeightPx: Float,
     bands: List<ProgressiveBlurBand> = DefaultProgressiveBlurBands,
 ): List<BlurPassSpec> {
-    if (maxRadiusPx < MIN_BLUR_RADIUS_PX || barHeightPx < 1f) return emptyList()
+    if (maxRadiusPx < MIN_BLUR_RADIUS_PX || blurHeightPx < 1f) return emptyList()
 
     val passes = ArrayList<BlurPassSpec>(bands.size)
     var previousCumulative = 0f
@@ -81,8 +86,8 @@ internal fun computeProgressiveBlurPasses(
         val deltaSq = targetCumulative * targetCumulative - previousCumulative * previousCumulative
         val incremental = if (deltaSq > 0f) sqrt(deltaSq) else 0f
         if (incremental >= MIN_BLUR_RADIUS_PX) {
-            val topY = barHeightPx * band.topFraction
-            val bottomY = maxOf(barHeightPx * band.bottomFraction, topY + 1f)
+            val topY = blurHeightPx * band.topFraction
+            val bottomY = maxOf(blurHeightPx * band.bottomFraction, topY + 1f)
             passes.add(
                 BlurPassSpec(
                     bandIndex = index,
@@ -141,7 +146,7 @@ internal constructor(
     internal var backdropPositionInRoot: Offset = Offset.Zero
     internal var invalidateBackdrop: (() -> Unit)? = null
 
-    private var cachedBarHeightPx: Float = -1f
+    private var cachedBlurHeightPx: Float = -1f
     private var cachedMasks: Array<AndroidRenderEffect>? = null
     private var cachedQuantizedRadiusPx: Float = -1f
     private var cachedRenderEffect: RenderEffect? = null
@@ -154,21 +159,21 @@ internal constructor(
         cachedRenderEffect = null
     }
 
-    internal fun getOrCreateRenderEffect(barHeightPx: Float, maxRadiusPx: Float): RenderEffect? {
+    internal fun getOrCreateRenderEffect(blurHeightPx: Float, maxRadiusPx: Float): RenderEffect? {
         val quantizedRadius = quantizeBlurRadiusPx(maxRadiusPx)
-        if (quantizedRadius < MIN_BLUR_RADIUS_PX || barHeightPx < 1f) return null
+        if (quantizedRadius < MIN_BLUR_RADIUS_PX || blurHeightPx < 1f) return null
 
         val masks =
-            if (cachedMasks == null || cachedBarHeightPx != barHeightPx) {
+            if (cachedMasks == null || cachedBlurHeightPx != blurHeightPx) {
                 Array(DefaultProgressiveBlurBands.size) { index ->
                         val band = DefaultProgressiveBlurBands[index]
-                        val topY = barHeightPx * band.topFraction
-                        val bottomY = maxOf(barHeightPx * band.bottomFraction, topY + 1f)
+                        val topY = blurHeightPx * band.topFraction
+                        val bottomY = maxOf(blurHeightPx * band.bottomFraction, topY + 1f)
                         createSmoothstepMaskEffect(topY, bottomY)
                     }
                     .also {
                         cachedMasks = it
-                        cachedBarHeightPx = barHeightPx
+                        cachedBlurHeightPx = blurHeightPx
                         cachedQuantizedRadiusPx = -1f
                         cachedRenderEffect = null
                     }
@@ -180,7 +185,7 @@ internal constructor(
             return cachedRenderEffect
         }
 
-        val passes = computeProgressiveBlurPasses(quantizedRadius, barHeightPx)
+        val passes = computeProgressiveBlurPasses(quantizedRadius, blurHeightPx)
         if (passes.isEmpty()) return null
 
         var blurChain: AndroidRenderEffect? = null
@@ -258,7 +263,17 @@ fun Modifier.topBarBlurBackdrop(
     containerColor: Color,
     scrimColor: Color = containerColor,
     maxScrimAlpha: Float = DefaultTopBarMaxScrimAlpha,
-): Modifier = this.then(TopBarBlurBackdropElement(state, containerColor, scrimColor, maxScrimAlpha))
+    bottomExtension: Dp = DefaultTopBarBlurBottomExtension,
+): Modifier =
+    this.then(
+        TopBarBlurBackdropElement(
+            state,
+            containerColor,
+            scrimColor,
+            maxScrimAlpha,
+            bottomExtension,
+        ),
+    )
 
 private data class TopBarBlurSourceElement(private val state: TopBarBlurState) :
     ModifierNodeElement<TopBarBlurSourceNode>() {
@@ -318,16 +333,18 @@ private data class TopBarBlurBackdropElement(
     private val containerColor: Color,
     private val scrimColor: Color,
     private val maxScrimAlpha: Float,
+    private val bottomExtension: Dp,
 ) : ModifierNodeElement<TopBarBlurBackdropNode>() {
     override fun create(): TopBarBlurBackdropNode =
-        TopBarBlurBackdropNode(state, containerColor, scrimColor, maxScrimAlpha)
+        TopBarBlurBackdropNode(state, containerColor, scrimColor, maxScrimAlpha, bottomExtension)
 
     override fun update(node: TopBarBlurBackdropNode) {
         val stateChanged = node.state !== state
         val appearanceChanged =
             node.containerColor != containerColor ||
                 node.scrimColor != scrimColor ||
-                node.maxScrimAlpha != maxScrimAlpha
+                node.maxScrimAlpha != maxScrimAlpha ||
+                node.bottomExtension != bottomExtension
         if (stateChanged) {
             node.state.invalidateBackdrop = null
             node.state.clearCachedEffect()
@@ -340,6 +357,7 @@ private data class TopBarBlurBackdropElement(
             node.containerColor = containerColor
             node.scrimColor = scrimColor
             node.maxScrimAlpha = maxScrimAlpha
+            node.bottomExtension = bottomExtension
         }
         if (stateChanged || appearanceChanged) {
             node.invalidateScrimCache()
@@ -353,6 +371,7 @@ private data class TopBarBlurBackdropElement(
         properties["containerColor"] = containerColor
         properties["scrimColor"] = scrimColor
         properties["maxScrimAlpha"] = maxScrimAlpha
+        properties["bottomExtension"] = bottomExtension
     }
 }
 
@@ -361,6 +380,7 @@ private class TopBarBlurBackdropNode(
     var containerColor: Color,
     var scrimColor: Color,
     var maxScrimAlpha: Float,
+    var bottomExtension: Dp,
 ) : Modifier.Node(), DrawModifierNode, GlobalPositionAwareModifierNode {
 
     private var cachedScrimBrush: Brush? = null
@@ -431,8 +451,8 @@ private class TopBarBlurBackdropNode(
         state.scrollKeyProvider()
 
         val barWidthPx = size.width.roundToInt()
-        val barHeightPx = size.height
-        if (barWidthPx <= 0 || barHeightPx < 1f) {
+        val blurHeightPx = computeTopBarBlurHeightPx(size.height, bottomExtension.toPx())
+        if (barWidthPx <= 0 || blurHeightPx < 1f) {
             state.clearCachedEffect()
             invalidateScrimCache()
             drawContent()
@@ -441,7 +461,7 @@ private class TopBarBlurBackdropNode(
 
         val maxRadiusAtFullScrollPx = state.maxBlurRadius.toPx()
         val currentMaxRadiusPx = maxRadiusAtFullScrollPx * progress
-        val effect = state.getOrCreateRenderEffect(barHeightPx, currentMaxRadiusPx)
+        val effect = state.getOrCreateRenderEffect(blurHeightPx, currentMaxRadiusPx)
         if (effect == null) {
             state.clearCachedEffect()
             invalidateScrimCache()
@@ -450,7 +470,7 @@ private class TopBarBlurBackdropNode(
         }
 
         val stripHeightPx =
-            (barHeightPx.roundToInt() + maxRadiusAtFullScrollPx.roundToInt()).coerceAtLeast(1)
+            (blurHeightPx.roundToInt() + maxRadiusAtFullScrollPx.roundToInt()).coerceAtLeast(1)
         val offset = state.sourcePositionInRoot - state.backdropPositionInRoot
 
         state.blurLayer.clip = true
@@ -460,13 +480,16 @@ private class TopBarBlurBackdropNode(
             translate(left = offset.x, top = offset.y) { drawLayer(state.contentLayer) }
         }
 
-        clipRect(left = 0f, top = 0f, right = size.width, bottom = size.height) {
+        clipRect(left = 0f, top = 0f, right = size.width, bottom = blurHeightPx) {
             drawLayer(state.blurLayer)
         }
 
         val scrimAlpha = computeTopBarScrimAlpha(progress, maxScrimAlpha)
         if (scrimAlpha > 0f) {
-            drawRect(brush = getOrCreateScrimBrush(scrimAlpha, barHeightPx))
+            drawRect(
+                brush = getOrCreateScrimBrush(scrimAlpha, blurHeightPx),
+                size = Size(size.width, blurHeightPx),
+            )
         } else {
             invalidateScrimCache()
         }

@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.makd.afinity.ui.preview.PreviewHost
 import com.makd.afinity.ui.utils.rememberTopBarScrollProgress
@@ -249,12 +250,75 @@ class TopBarProgressiveBlurRobolectricTest {
         assertNotNull(blurState.blurLayer.renderEffect)
     }
 
+    @Test
+    fun `bottomExtension extends blur layer strip height below top bar`() {
+        lateinit var listState: LazyListState
+        lateinit var scope: CoroutineScope
+        lateinit var blurState: TopBarBlurState
+        lateinit var hostView: View
+        var fullThresholdPx = 0
+        var expectedExtensionPx = 0
+        var bottomExtension by mutableStateOf(0.dp)
+
+        composeTestRule.setContent {
+            PreviewHost(modifier = Modifier.fillMaxSize()) {
+                hostView = LocalView.current
+                val density = LocalDensity.current
+                fullThresholdPx = with(density) { 450.dp.toPx().roundToInt() }
+                expectedExtensionPx =
+                    with(density) { DefaultTopBarBlurBottomExtension.toPx().roundToInt() }
+                listState = rememberLazyListState()
+                scope = rememberCoroutineScope()
+                val progress by rememberTopBarScrollProgress(listState, hasHeroSlot = true)
+                blurState =
+                    rememberTopBarBlurState(
+                        progress = { progress },
+                        scrollKey = { listState.topBarScrollKey() },
+                    )
+
+                BlurHarness(
+                    listState = listState,
+                    blurState = blurState,
+                    showSource = true,
+                    bottomExtension = bottomExtension,
+                )
+            }
+        }
+
+        fun pumpDraw() {
+            composeTestRule.waitForIdle()
+            composeTestRule.runOnIdle {
+                val bitmap =
+                    Bitmap.createBitmap(
+                        hostView.width.coerceAtLeast(1),
+                        hostView.height.coerceAtLeast(1),
+                        Bitmap.Config.ARGB_8888,
+                    )
+                hostView.draw(Canvas(bitmap))
+                bitmap.recycle()
+            }
+        }
+
+        composeTestRule.runOnIdle {
+            scope.launch { listState.scrollToItem(index = 0, scrollOffset = fullThresholdPx) }
+        }
+        pumpDraw()
+        val heightWithoutExtension = blurState.blurLayer.size.height
+
+        composeTestRule.runOnIdle { bottomExtension = DefaultTopBarBlurBottomExtension }
+        pumpDraw()
+        val heightWithExtension = blurState.blurLayer.size.height
+
+        assertEquals(expectedExtensionPx, heightWithExtension - heightWithoutExtension)
+    }
+
     @Composable
     private fun BlurHarness(
         listState: LazyListState,
         blurState: TopBarBlurState,
         showSource: Boolean,
         maxScrimAlpha: Float = DefaultTopBarMaxScrimAlpha,
+        bottomExtension: Dp = DefaultTopBarBlurBottomExtension,
     ) {
         val backgroundColor = MaterialTheme.colorScheme.background
         Box(modifier = Modifier.fillMaxSize().background(backgroundColor)) {
@@ -288,6 +352,7 @@ class TopBarProgressiveBlurRobolectricTest {
                         blurState,
                         containerColor = backgroundColor,
                         maxScrimAlpha = maxScrimAlpha,
+                        bottomExtension = bottomExtension,
                     ),
                 backgroundOpacity = { 0f },
             )
