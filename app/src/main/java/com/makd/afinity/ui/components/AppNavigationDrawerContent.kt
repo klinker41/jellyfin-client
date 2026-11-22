@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -60,8 +61,10 @@ import com.makd.afinity.data.models.server.ConnectionType
 import com.makd.afinity.data.models.server.Server
 import com.makd.afinity.navigation.Destination
 import com.makd.afinity.ui.settings.ServerSessionGroupItem
+import com.makd.afinity.ui.settings.SessionSwitcherState
 import com.makd.afinity.ui.settings.SessionSwitcherViewModel
 import com.makd.afinity.ui.settings.UserSession
+import java.util.UUID
 
 @Composable
 fun AppNavigationDrawerContent(
@@ -89,13 +92,69 @@ fun AppNavigationDrawerContent(
     sessionSwitcherViewModel: SessionSwitcherViewModel = hiltViewModel(),
 ) {
     val sessionState by sessionSwitcherViewModel.state.collectAsStateWithLifecycle()
+    AppNavigationDrawerContent(
+        currentDestination = currentDestination,
+        userName = userName,
+        userProfileImageUrl = userProfileImageUrl,
+        serverName = serverName,
+        connectionType = connectionType,
+        isAdmin = isAdmin,
+        isOffline = isOffline,
+        favoritesCount = favoritesCount,
+        watchlistCount = watchlistCount,
+        isJellyseerrAuthenticated = isJellyseerrAuthenticated,
+        isAudiobookshelfAuthenticated = isAudiobookshelfAuthenticated,
+        hasLiveTvAccess = hasLiveTvAccess,
+        librariesInDrawer = librariesInDrawer,
+        libraries = libraries,
+        selectedLibraryId = selectedLibraryId,
+        sessionState = sessionState,
+        onDestinationClick = onDestinationClick,
+        onLibraryClick = onLibraryClick,
+        onSettingsClick = onSettingsClick,
+        onAddAccountClick = onAddAccountClick,
+        onSwitchSession = sessionSwitcherViewModel::switchSession,
+        onForgetSession = sessionSwitcherViewModel::forgetSession,
+        onCloseDrawer = onCloseDrawer,
+        modifier = modifier,
+    )
+}
+
+@Composable
+fun AppNavigationDrawerContent(
+    currentDestination: NavDestination?,
+    userName: String?,
+    userProfileImageUrl: String?,
+    serverName: String?,
+    connectionType: ConnectionType,
+    isAdmin: Boolean,
+    isOffline: Boolean,
+    favoritesCount: Int,
+    watchlistCount: Int,
+    isJellyseerrAuthenticated: Boolean,
+    isAudiobookshelfAuthenticated: Boolean,
+    hasLiveTvAccess: Boolean,
+    librariesInDrawer: Boolean,
+    libraries: List<AfinityCollection>,
+    selectedLibraryId: String?,
+    sessionState: SessionSwitcherState,
+    onDestinationClick: (Destination) -> Unit,
+    onLibraryClick: (AfinityCollection) -> Unit,
+    onSettingsClick: () -> Unit,
+    onAddAccountClick: (Server) -> Unit,
+    onSwitchSession: (serverId: String, userId: UUID) -> Unit,
+    onForgetSession: (UserSession) -> Unit,
+    onCloseDrawer: () -> Unit,
+    modifier: Modifier = Modifier,
+    appVersionName: String = BuildConfig.VERSION_NAME,
+) {
     var accountSwitcherExpanded by remember { mutableStateOf(false) }
     var sessionToForget by remember { mutableStateOf<UserSession?>(null) }
 
     sessionToForget?.let { session ->
         ForgetAccountDialog(
             userName = session.username,
-            onConfirm = { sessionSwitcherViewModel.forgetSession(session) },
+            onConfirm = { onForgetSession(session) },
             onDismiss = { sessionToForget = null },
         )
     }
@@ -122,6 +181,7 @@ fun AppNavigationDrawerContent(
                                         ),
                                 ),
                         )
+                        .statusBarsPadding()
                         .windowInsetsPadding(
                             WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal),
                         )
@@ -236,10 +296,7 @@ fun AppNavigationDrawerContent(
                             ServerSessionGroupItem(
                                 sessionGroup = sessionGroup,
                                 onSessionClick = { session ->
-                                    sessionSwitcherViewModel.switchSession(
-                                        session.serverId,
-                                        session.userId,
-                                    )
+                                    onSwitchSession(session.serverId, session.userId)
                                     accountSwitcherExpanded = false
                                     onCloseDrawer()
                                 },
@@ -365,7 +422,7 @@ fun AppNavigationDrawerContent(
             }
 
             Text(
-                text = stringResource(R.string.drawer_app_version, BuildConfig.VERSION_NAME),
+                text = stringResource(R.string.drawer_app_version, appVersionName),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier =
