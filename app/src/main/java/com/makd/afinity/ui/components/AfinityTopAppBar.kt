@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -30,6 +32,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -37,6 +40,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -290,11 +294,27 @@ fun AfinityTopBar(
     backgroundOpacity: () -> Float = { 0f },
 ) {
     val fillColor = MaterialTheme.colorScheme.surface
+    val drawerStartInset = LocalPinnedDrawerStartInset.current
+    val layoutDirection = LocalLayoutDirection.current
+    val baseInsets = TopAppBarDefaults.windowInsets
+    val effectiveInsets =
+        if (drawerStartInset > 0.dp) {
+            val drawerInsets =
+                if (layoutDirection == LayoutDirection.Ltr) {
+                    WindowInsets(left = drawerStartInset)
+                } else {
+                    WindowInsets(right = drawerStartInset)
+                }
+            baseInsets.add(drawerInsets)
+        } else {
+            baseInsets
+        }
     TopAppBar(
         title = title,
         navigationIcon = navigationIcon,
         actions = actions,
         expandedHeight = afinityTopAppBarHeight(),
+        windowInsets = effectiveInsets,
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
         modifier = modifier.drawBehind { drawRect(fillColor.copy(alpha = backgroundOpacity())) },
     )

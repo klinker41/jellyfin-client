@@ -892,12 +892,17 @@ private fun MadeForYouCarousel(
     modifier: Modifier = Modifier,
 ) {
     if (slots.isEmpty()) return
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
+    Column(modifier = modifier) {
         Text(
             text = title,
             style = afinitySectionTitleStyle(),
             color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(bottom = 12.dp),
+            modifier =
+                Modifier.padding(
+                    start = CardDimensions.rowStartGutter,
+                    end = CardDimensions.RowGutter,
+                    bottom = 12.dp,
+                ),
         )
 
         val isLandscape = isLandscapeWindow()
@@ -905,7 +910,11 @@ private fun MadeForYouCarousel(
         val windowHeight = windowHeightDp()
         val state = rememberCarouselState { slots.size }
 
-        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        BoxWithConstraints(
+            modifier =
+                Modifier.fillMaxWidth()
+                    .padding(start = CardDimensions.rowStartGutter, end = CardDimensions.RowGutter),
+        ) {
             val itemSize =
                 CardDimensions.carouselItemSize(
                     availableWidth = maxWidth,
@@ -1113,11 +1122,16 @@ internal fun MusicArtistsRow(
     onViewAllClick: (() -> Unit)? = null,
 ) {
     val cardSize = CardDimensions.posterCardWidth
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
+    Column(modifier = modifier) {
         if (onViewAllClick != null) {
             SectionRowHeader(
                 title = title,
-                modifier = Modifier.padding(bottom = 12.dp),
+                modifier =
+                    Modifier.padding(
+                        start = CardDimensions.rowStartGutter,
+                        end = CardDimensions.RowGutter,
+                        bottom = 12.dp,
+                    ),
                 onViewAllClick = onViewAllClick,
             )
         } else {
@@ -1125,10 +1139,18 @@ internal fun MusicArtistsRow(
                 text = title,
                 style = afinitySectionTitleStyle(),
                 color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(bottom = 12.dp),
+                modifier =
+                    Modifier.padding(
+                        start = CardDimensions.rowStartGutter,
+                        end = CardDimensions.RowGutter,
+                        bottom = 12.dp,
+                    ),
             )
         }
-        CardRow {
+        CardRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(artists.take(15), key = { it.id }) { artist ->
                 MusicArtistCard(
                     name = artist.name,
@@ -1155,15 +1177,21 @@ fun CompactTrackGridSection(
     val itemWidth = if (isLandscape) 320.dp else 280.dp
     val gridHeight = rowHeight * rowsCount + 12.dp * (rowsCount - 1)
 
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
+    Column(modifier = modifier) {
         Text(
             text = title,
             style = afinitySectionTitleStyle(),
-            modifier = Modifier.padding(bottom = 12.dp),
+            modifier =
+                Modifier.padding(
+                    start = CardDimensions.rowStartGutter,
+                    end = CardDimensions.RowGutter,
+                    bottom = 12.dp,
+                ),
         )
         LazyHorizontalGrid(
             rows = GridCells.Fixed(rowsCount),
-            modifier = Modifier.height(gridHeight),
+            modifier = Modifier.fillMaxWidth().height(gridHeight),
+            contentPadding = CardDimensions.RowContentPadding,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {

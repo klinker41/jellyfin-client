@@ -1,6 +1,7 @@
 package com.makd.afinity.ui.livetv.components
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -25,10 +26,16 @@ fun ProgramCategoryRow(
     if (programs.isEmpty()) return
     val cardWidth = widthSizeClass.landscapeWidth
 
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = stringResource(category.displayNameRes))
+    Column(modifier = modifier) {
+        HomeSectionHeader(
+            title = stringResource(category.displayNameRes),
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+        )
 
-        CardRow {
+        CardRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(items = programs, key = { it.id }) { program ->
                 ProgramCard(
                     program = program,

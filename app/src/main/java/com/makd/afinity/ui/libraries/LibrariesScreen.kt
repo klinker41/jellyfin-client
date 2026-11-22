@@ -86,8 +86,8 @@ fun LibrariesScreen(
                     state = lazyGridState,
                     contentPadding =
                         PaddingValues(
-                            start = 16.dp,
-                            end = 16.dp,
+                            start = CardDimensions.rowStartGutter,
+                            end = CardDimensions.RowGutter,
                             top = 16.dp,
                             bottom = 16.dp + bottomClearance,
                         ),

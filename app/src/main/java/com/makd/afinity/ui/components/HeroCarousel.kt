@@ -379,6 +379,7 @@ fun HeroCarousel(
     val density = LocalDensity.current
     val screenWidthDp = windowWidthDp()
     val screenHeightDp = windowHeightDp()
+    val pinnedDrawerInset = LocalPinnedDrawerStartInset.current
 
     val infinitePageCount = Int.MAX_VALUE
     val middleStart = infinitePageCount / 2
@@ -387,7 +388,9 @@ fun HeroCarousel(
     val pagerState =
         rememberPagerState(initialPage = adjustedStart, pageCount = { infinitePageCount })
 
-    val cardWidth = screenWidthDp - heroCardSidePadding(isLandscape, peek) * 2
+    val cardWidth =
+        (screenWidthDp - pinnedDrawerInset - heroCardSidePadding(isLandscape, peek) * 2)
+            .coerceAtLeast(1.dp)
     val peekMetrics = if (isCard) heroPeekMetrics(screenHeightDp, isLandscape) else null
     val logoSize =
         if (peekMetrics != null) {
@@ -549,6 +552,8 @@ private fun HeroFullBleed(
 
     val overlap = if (isLandscape) HeroBottomOverlap else 0.dp
 
+    val pinnedDrawerInset = LocalPinnedDrawerStartInset.current
+
     Box(
         modifier =
             modifier.bottomOverlap(overlap).fillMaxWidth().height(heroHeight).onPlaced {
@@ -563,33 +568,35 @@ private fun HeroFullBleed(
             height = heroHeight,
         )
 
-        HeroTextColors(tone = textTone, shadow = true) {
-            if (isLandscape) {
-                HeroContentRich(
-                    currentItem = currentItem,
-                    items = items,
-                    pagerState = pagerState,
-                    contentAlpha = contentAlphaProvider,
-                    toneTracker = toneTracker,
-                    screenWidthDp = screenWidthDp,
-                    logoHeight = logoHeight,
-                    onWatchNowClick = onWatchNowClick,
-                    onPlayTrailerClick = onPlayTrailerClick,
-                    onMoreInformationClick = onMoreInformationClick,
-                )
-            } else {
-                HeroContentCentered(
-                    currentItem = currentItem,
-                    items = items,
-                    pagerState = pagerState,
-                    contentAlpha = contentAlphaProvider,
-                    toneTracker = toneTracker,
-                    screenWidthDp = screenWidthDp,
-                    logoHeight = logoHeight,
-                    onWatchNowClick = onWatchNowClick,
-                    onPlayTrailerClick = onPlayTrailerClick,
-                    onMoreInformationClick = onMoreInformationClick,
-                )
+        Box(modifier = Modifier.fillMaxSize().padding(start = pinnedDrawerInset)) {
+            HeroTextColors(tone = textTone, shadow = true) {
+                if (isLandscape) {
+                    HeroContentRich(
+                        currentItem = currentItem,
+                        items = items,
+                        pagerState = pagerState,
+                        contentAlpha = contentAlphaProvider,
+                        toneTracker = toneTracker,
+                        screenWidthDp = screenWidthDp,
+                        logoHeight = logoHeight,
+                        onWatchNowClick = onWatchNowClick,
+                        onPlayTrailerClick = onPlayTrailerClick,
+                        onMoreInformationClick = onMoreInformationClick,
+                    )
+                } else {
+                    HeroContentCentered(
+                        currentItem = currentItem,
+                        items = items,
+                        pagerState = pagerState,
+                        contentAlpha = contentAlphaProvider,
+                        toneTracker = toneTracker,
+                        screenWidthDp = screenWidthDp,
+                        logoHeight = logoHeight,
+                        onWatchNowClick = onWatchNowClick,
+                        onPlayTrailerClick = onPlayTrailerClick,
+                        onMoreInformationClick = onMoreInformationClick,
+                    )
+                }
             }
         }
     }
@@ -775,6 +782,7 @@ private fun HeroCardCarousel(
 ) {
     val cardShape = MaterialTheme.shapes.extraLarge
     val sidePadding = heroCardSidePadding(isLandscape, peek)
+    val pinnedDrawerInset = LocalPinnedDrawerStartInset.current
     val sideScale = if (peek) HeroPeekSideScale else 1f
 
     Box(modifier = modifier.fillMaxWidth().height(metrics.total)) {
@@ -790,7 +798,8 @@ private fun HeroCardCarousel(
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = sidePadding),
+                contentPadding =
+                    PaddingValues(start = sidePadding + pinnedDrawerInset, end = sidePadding),
                 pageSpacing = if (peek) HeroPeekPageSpacing else HeroInsetPageSpacing,
                 beyondViewportPageCount = 1,
                 key = { page -> "hero_page_$page" },

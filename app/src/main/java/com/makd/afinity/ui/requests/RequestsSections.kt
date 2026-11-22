@@ -5,6 +5,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -33,6 +34,7 @@ import com.makd.afinity.data.models.jellyseerr.Network
 import com.makd.afinity.data.models.jellyseerr.SearchResultItem
 import com.makd.afinity.data.models.jellyseerr.Studio
 import com.makd.afinity.ui.components.CardRow
+import com.makd.afinity.ui.components.LocalPinnedDrawerStartInset
 import com.makd.afinity.ui.components.afinitySectionChevronSize
 import com.makd.afinity.ui.components.afinitySectionTitleStyle
 import com.makd.afinity.ui.home.components.HomeSectionHeader
@@ -55,10 +57,16 @@ fun MyRequestsSection(
     val cardWidth = widthSizeClass.landscapeWidth
     val fixedRowHeight = CardDimensions.rowHeight(cardWidth, CardDimensions.ASPECT_RATIO_LANDSCAPE)
 
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = stringResource(R.string.section_recent_requests))
+    Column(modifier = modifier) {
+        HomeSectionHeader(
+            title = stringResource(R.string.section_recent_requests),
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+        )
 
-        CardRow(modifier = Modifier.height(fixedRowHeight)) {
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(items = requests, key = { request -> "request_${request.id}" }) { request ->
                 LaunchedEffect(request.id) { onRequestVisible(request) }
                 RequestCard(
@@ -86,10 +94,16 @@ fun AvailableRequestsSection(
     val cardWidth = widthSizeClass.portraitWidth
     val fixedRowHeight = CardDimensions.rowHeight(cardWidth, CardDimensions.ASPECT_RATIO_PORTRAIT)
 
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = stringResource(R.string.section_available_requests))
+    Column(modifier = modifier) {
+        HomeSectionHeader(
+            title = stringResource(R.string.section_available_requests),
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+        )
 
-        CardRow(modifier = Modifier.height(fixedRowHeight)) {
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(
                 items = requests,
                 key = { displayItem -> "available_request_${displayItem.request.id}" },
@@ -121,9 +135,15 @@ fun DiscoverSection(
     val fixedRowHeight = CardDimensions.rowHeight(cardWidth, CardDimensions.ASPECT_RATIO_PORTRAIT)
     val headerBottomPadding = if (onViewAllClick != null) 4.dp else 16.dp
 
-    Column(modifier = modifier.padding(horizontal = horizontalPadding)) {
+    Column(modifier = modifier) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = headerBottomPadding),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .padding(
+                        start = horizontalPadding + LocalPinnedDrawerStartInset.current,
+                        end = horizontalPadding,
+                        bottom = headerBottomPadding,
+                    ),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -157,7 +177,14 @@ fun DiscoverSection(
             }
         }
 
-        CardRow(modifier = Modifier.height(fixedRowHeight)) {
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding =
+                PaddingValues(
+                    start = horizontalPadding + LocalPinnedDrawerStartInset.current,
+                    end = horizontalPadding,
+                ),
+        ) {
             items(
                 items = items,
                 key = { item -> "${title.replace(" ", "_")}_${item.mediaType}_${item.id}" },
@@ -186,10 +213,16 @@ fun StudiosSection(
     val cardHeight =
         CardDimensions.calculateHeight(cardWidth, CardDimensions.ASPECT_RATIO_LANDSCAPE)
 
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = stringResource(R.string.section_studios))
+    Column(modifier = modifier) {
+        HomeSectionHeader(
+            title = stringResource(R.string.section_studios),
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+        )
 
-        CardRow(modifier = Modifier.height(cardHeight)) {
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(cardHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(items = studios, key = { studio -> "studio_${studio.id}" }) { studio ->
                 StudioCard(
                     studio = studio,
@@ -212,10 +245,16 @@ fun NetworksSection(
     val cardHeight =
         CardDimensions.calculateHeight(cardWidth, CardDimensions.ASPECT_RATIO_LANDSCAPE)
 
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = stringResource(R.string.section_networks))
+    Column(modifier = modifier) {
+        HomeSectionHeader(
+            title = stringResource(R.string.section_networks),
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+        )
 
-        CardRow(modifier = Modifier.height(cardHeight)) {
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(cardHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(items = networks, key = { network -> "network_${network.id}" }) { network ->
                 NetworkCard(
                     network = network,
@@ -239,10 +278,16 @@ fun MovieGenresSection(
     val cardHeight =
         CardDimensions.calculateHeight(cardWidth, CardDimensions.ASPECT_RATIO_LANDSCAPE)
 
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = stringResource(R.string.section_movie_genres))
+    Column(modifier = modifier) {
+        HomeSectionHeader(
+            title = stringResource(R.string.section_movie_genres),
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+        )
 
-        CardRow(modifier = Modifier.height(cardHeight)) {
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(cardHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(items = genres, key = { genre -> "movie_genre_${genre.id}" }) { genre ->
                 GenreCard(
                     genre = genre,
@@ -267,10 +312,16 @@ fun TvGenresSection(
     val cardHeight =
         CardDimensions.calculateHeight(cardWidth, CardDimensions.ASPECT_RATIO_LANDSCAPE)
 
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = stringResource(R.string.section_tv_genres))
+    Column(modifier = modifier) {
+        HomeSectionHeader(
+            title = stringResource(R.string.section_tv_genres),
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+        )
 
-        CardRow(modifier = Modifier.height(cardHeight)) {
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(cardHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(items = genres, key = { genre -> "tv_genre_${genre.id}" }) { genre ->
                 GenreCard(
                     genre = genre,

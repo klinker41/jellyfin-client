@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -12,6 +13,7 @@ import com.makd.afinity.data.models.media.AfinityItem
 import com.makd.afinity.ui.components.CardRow
 import com.makd.afinity.ui.components.ContinueWatchingCard
 import com.makd.afinity.ui.components.MediaItemCard
+import com.makd.afinity.ui.components.rememberCardRowListState
 import com.makd.afinity.ui.theme.CardDimensions
 
 @Composable
@@ -23,6 +25,7 @@ fun ItemsRowSection(
     modifier: Modifier = Modifier,
     cardStyle: CustomSectionCardStyle = CustomSectionCardStyle.PORTRAIT,
     onViewAllClick: (() -> Unit)? = null,
+    scrollState: LazyListState = rememberCardRowListState(),
 ) {
     val isLandscape = cardStyle == CustomSectionCardStyle.LANDSCAPE
     val cardWidth = CardDimensions.cardWidthFor(cardStyle)
@@ -37,6 +40,7 @@ fun ItemsRowSection(
         )
 
         CardRow(
+            state = scrollState,
             modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
             contentPadding = CardDimensions.RowContentPadding,
         ) {

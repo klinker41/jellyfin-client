@@ -69,9 +69,17 @@ private fun MusicCarouselSection(
     val windowHeight = windowHeightDp()
     val state = rememberCarouselState { count }
 
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = title, bottomPadding = 12.dp)
-        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+    Column(modifier = modifier) {
+        HomeSectionHeader(
+            title = title,
+            bottomPadding = 12.dp,
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+        )
+        BoxWithConstraints(
+            modifier =
+                Modifier.fillMaxWidth()
+                    .padding(start = CardDimensions.rowStartGutter, end = CardDimensions.RowGutter),
+        ) {
             val itemSize =
                 CardDimensions.carouselItemSize(
                     availableWidth = maxWidth,
@@ -222,12 +230,16 @@ fun MostPlayedAlbumsSection(
             metadataHeight = CardDimensions.subtitleLine,
         )
 
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
+    Column(modifier = modifier) {
         HomeSectionHeader(
             title = stringResource(R.string.music_section_most_played),
             bottomPadding = 12.dp,
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
         )
-        CardRow(modifier = Modifier.height(rowHeight)) {
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(rowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             itemsIndexed(
                 items = albums,
                 key = { _, album -> album.id },
@@ -306,17 +318,29 @@ fun MusicAlbumRowSection(
 ) {
     if (albums.isEmpty()) return
     val cardWidth = CardDimensions.posterCardWidth
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
+    Column(modifier = modifier) {
         if (onViewAllClick != null) {
             SectionRowHeader(
                 title = title,
-                modifier = Modifier.padding(bottom = 12.dp),
+                modifier =
+                    Modifier.padding(
+                        start = CardDimensions.rowStartGutter,
+                        end = CardDimensions.RowGutter,
+                        bottom = 12.dp,
+                    ),
                 onViewAllClick = onViewAllClick,
             )
         } else {
-            HomeSectionHeader(title = title, bottomPadding = 12.dp)
+            HomeSectionHeader(
+                title = title,
+                bottomPadding = 12.dp,
+                modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+            )
         }
-        CardRow {
+        CardRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(
                 items = albums,
                 key = { it.id },
@@ -342,17 +366,29 @@ fun MusicPlaylistRowSection(
 ) {
     if (playlists.isEmpty()) return
     val cardWidth = CardDimensions.posterCardWidth
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
+    Column(modifier = modifier) {
         if (onViewAllClick != null) {
             SectionRowHeader(
                 title = title,
-                modifier = Modifier.padding(bottom = 12.dp),
+                modifier =
+                    Modifier.padding(
+                        start = CardDimensions.rowStartGutter,
+                        end = CardDimensions.RowGutter,
+                        bottom = 12.dp,
+                    ),
                 onViewAllClick = onViewAllClick,
             )
         } else {
-            HomeSectionHeader(title = title, bottomPadding = 12.dp)
+            HomeSectionHeader(
+                title = title,
+                bottomPadding = 12.dp,
+                modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+            )
         }
-        CardRow {
+        CardRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(
                 items = playlists,
                 key = { it.id },
@@ -383,12 +419,17 @@ fun ArtistAlbumsCarousel(
     val windowHeight = windowHeightDp()
     val state = rememberCarouselState { albums.size }
 
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
+    Column(modifier = modifier) {
         HomeSectionHeader(
             title = stringResource(R.string.home_more_from_artist_fmt, artist.name),
             bottomPadding = 12.dp,
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
         )
-        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        BoxWithConstraints(
+            modifier =
+                Modifier.fillMaxWidth()
+                    .padding(start = CardDimensions.rowStartGutter, end = CardDimensions.RowGutter),
+        ) {
             val itemSize =
                 CardDimensions.carouselItemSize(
                     availableWidth = maxWidth,

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -90,15 +91,23 @@ fun AudiobookshelfSeriesTab(
                 items(items = seriesList, key = { it.id }) { series ->
                     Column {
                         Spacer(modifier = Modifier.height(24.dp))
-                        Column(modifier = Modifier.padding(horizontal = CardDimensions.RowGutter)) {
+                        Column {
                             Text(
                                 text = series.name,
                                 style = afinitySectionTitleStyle(),
                                 color = MaterialTheme.colorScheme.onBackground,
-                                modifier = Modifier.padding(bottom = 16.dp),
+                                modifier =
+                                    Modifier.padding(
+                                        start = CardDimensions.rowStartGutter,
+                                        end = CardDimensions.RowGutter,
+                                        bottom = 16.dp,
+                                    ),
                             )
 
-                            CardRow(modifier = Modifier.height(fixedRowHeight)) {
+                            CardRow(
+                                modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+                                contentPadding = CardDimensions.RowContentPadding,
+                            ) {
                                 items(
                                     items = series.books,
                                     key = { item -> "${series.id}_${item.id}" },

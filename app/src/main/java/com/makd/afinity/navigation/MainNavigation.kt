@@ -97,11 +97,17 @@ import com.makd.afinity.ui.components.AFinitySnackbar
 import com.makd.afinity.ui.components.AfinitySplashScreen
 import com.makd.afinity.ui.components.AppModalNavigationDrawer
 import com.makd.afinity.ui.components.AppNavigationDrawerContent
+import com.makd.afinity.ui.components.AppPinnedNavigationDrawer
 import com.makd.afinity.ui.components.LocalNetworkPermissionGrantButton
 import com.makd.afinity.ui.components.LocalOriginalImages
+import com.makd.afinity.ui.components.LocalPinnedDrawerStartInset
+import com.makd.afinity.ui.components.PinnedDrawerStartOccupancy
 import com.makd.afinity.ui.components.UnsupportedServerDialog
 import com.makd.afinity.ui.components.afinityDialogProperties
+import com.makd.afinity.ui.components.pinnedDrawerBlurSource
 import com.makd.afinity.ui.components.rememberAfinitySheetState
+import com.makd.afinity.ui.components.rememberPinnedDrawerBlurState
+import com.makd.afinity.ui.components.shouldPinNavigationDrawer
 import com.makd.afinity.ui.downloads.DownloadedCategory
 import com.makd.afinity.ui.downloads.DownloadedCategoryScreen
 import com.makd.afinity.ui.favorites.FavoritesCategory
@@ -279,8 +285,9 @@ fun MainNavigation(
             ?: false
 
     val useNavRail = widthSizeClass != WindowWidthSizeClass.Compact
+    val shouldPinDrawer = shouldPinNavigationDrawer(navigationDrawerEnabled)
     val onMenuClick: (() -> Unit)? =
-        if (navigationDrawerEnabled) {
+        if (navigationDrawerEnabled && !shouldPinDrawer) {
             { coroutineScope.launch { railState.expand() } }
         } else null
     val showIndividualLibraries =
@@ -291,6 +298,20 @@ fun MainNavigation(
             currentRoute == Destination.MUSIC_LIBRARY_ROUTE
     val selectedLibraryId =
         if (isOnLibraryEntry) navBackStackEntry?.arguments?.getString("libraryId") else null
+    val isTopLevelDrawerDestination =
+        shouldShowNavigation || (showIndividualLibraries && isOnLibraryEntry)
+    val isPinnedDrawerVisible =
+        shouldPinDrawer &&
+            isTopLevelDrawerDestination &&
+            !isPreAuth &&
+            authState is AuthenticationState.Authenticated
+    val pinnedDrawerStartInset = if (isPinnedDrawerVisible) PinnedDrawerStartOccupancy else 0.dp
+
+    LaunchedEffect(shouldPinDrawer) {
+        if (shouldPinDrawer) {
+            railState.collapse()
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.sessionCleared.collect {
@@ -454,6 +475,7 @@ fun MainNavigation(
                 CompositionLocalProvider(
                     LocalPlayerOffset provides globalPlayerOffset,
                     LocalSideSheetEnabled provides sideSheetEnabled,
+                    LocalPinnedDrawerStartInset provides pinnedDrawerStartInset,
                     LocalShowRatings provides showRatings,
                     LocalBlurUnwatchedEpisodes provides blurUnwatchedEpisodes,
                     LocalShowAwards provides showAwards,
@@ -2351,6 +2373,7 @@ fun MainNavigation(
                                 modifier =
                                     Modifier.align(Alignment.BottomCenter)
                                         .padding(
+                                            start = pinnedDrawerStartInset,
                                             bottom = max(globalPlayerOffset, navBarBottom) + 8.dp,
                                         ),
                             )
@@ -2364,69 +2387,95 @@ fun MainNavigation(
                                 castManager = viewModel.castManager,
                                 navController = navController,
                                 onMeasuredHeightDp = { miniPlayerCardHeight = it },
-                                modifier = Modifier.align(Alignment.BottomCenter),
+                                modifier =
+                                    Modifier.align(Alignment.BottomCenter)
+                                        .padding(start = pinnedDrawerStartInset),
                             )
                         }
                     }
                 }
             }
 
-            Box(modifier = Modifier.fillMaxSize()) {
-                drawerBody()
-
-                if (navigationDrawerEnabled) {
-                    AppModalNavigationDrawer(state = railState) {
-                        AppNavigationDrawerContent(
-                            currentDestination = currentDestination,
-                            userName = mainUiState.userName,
-                            userProfileImageUrl = mainUiState.userProfileImageUrl,
-                            serverName = serverName,
-                            connectionType = connectionType,
-                            isAdmin = isAdmin,
-                            isOffline = isOffline,
-                            favoritesCount = favoritesCount,
-                            watchlistCount = watchlistCount,
-                            isJellyseerrAuthenticated = isJellyseerrAuthenticated,
-                            isAudiobookshelfAuthenticated = isAudiobookshelfAuthenticated,
-                            hasLiveTvAccess = hasLiveTvAccess,
-                            librariesInDrawer = drawerLibrariesMode == DrawerLibrariesMode.SCREEN,
-                            libraries = if (showIndividualLibraries) libraries else emptyList(),
-                            selectedLibraryId = selectedLibraryId,
-                            onDestinationClick = { destination ->
-                                coroutineScope.launch { railState.collapse() }
-                                navController.navigate(destination.route) {
-                                    popUpTo(Destination.HOME.route) {
-                                        saveState = !isOnLibraryEntry
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            onLibraryClick = { library ->
-                                coroutineScope.launch { railState.collapse() }
-                                if (library.id.toString() != selectedLibraryId) {
-                                    navController.navigate(
-                                        Destination.createLibraryRoute(library),
-                                    ) {
-                                        popUpTo(Destination.HOME.route) {
-                                            saveState = !isOnLibraryEntry
-                                        }
-                                    }
-                                }
-                            },
-                            onSettingsClick = {
-                                coroutineScope.launch { railState.collapse() }
-                                navController.navigate(Destination.createSettingsRoute())
-                            },
-                            onAddAccountClick = { server ->
-                                coroutineScope.launch { railState.collapse() }
-                                navController.navigate(
-                                    Destination.createLoginRoute(serverUrl = server.address),
-                                )
-                            },
-                            onCloseDrawer = { coroutineScope.launch { railState.collapse() } },
+            val pinnedDrawerBlurState =
+                rememberPinnedDrawerBlurState(enabled = { isPinnedDrawerVisible })
+            val renderDrawerContent: @Composable (Boolean) -> Unit = { isPinned ->
+                AppNavigationDrawerContent(
+                    currentDestination = currentDestination,
+                    userName = mainUiState.userName,
+                    userProfileImageUrl = mainUiState.userProfileImageUrl,
+                    serverName = serverName,
+                    connectionType = connectionType,
+                    isAdmin = isAdmin,
+                    isOffline = isOffline,
+                    favoritesCount = favoritesCount,
+                    watchlistCount = watchlistCount,
+                    isJellyseerrAuthenticated = isJellyseerrAuthenticated,
+                    isAudiobookshelfAuthenticated = isAudiobookshelfAuthenticated,
+                    hasLiveTvAccess = hasLiveTvAccess,
+                    librariesInDrawer = drawerLibrariesMode == DrawerLibrariesMode.SCREEN,
+                    libraries = if (showIndividualLibraries) libraries else emptyList(),
+                    selectedLibraryId = selectedLibraryId,
+                    onDestinationClick = { destination ->
+                        if (!isPinned) {
+                            coroutineScope.launch { railState.collapse() }
+                        }
+                        navController.navigate(destination.route) {
+                            popUpTo(Destination.HOME.route) { saveState = !isOnLibraryEntry }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onLibraryClick = { library ->
+                        if (!isPinned) {
+                            coroutineScope.launch { railState.collapse() }
+                        }
+                        if (library.id.toString() != selectedLibraryId) {
+                            navController.navigate(
+                                Destination.createLibraryRoute(library),
+                            ) {
+                                popUpTo(Destination.HOME.route) { saveState = !isOnLibraryEntry }
+                            }
+                        }
+                    },
+                    onSettingsClick = {
+                        if (!isPinned) {
+                            coroutineScope.launch { railState.collapse() }
+                        }
+                        navController.navigate(Destination.createSettingsRoute())
+                    },
+                    onAddAccountClick = { server ->
+                        if (!isPinned) {
+                            coroutineScope.launch { railState.collapse() }
+                        }
+                        navController.navigate(
+                            Destination.createLoginRoute(serverUrl = server.address),
                         )
+                    },
+                    onCloseDrawer = {
+                        if (!isPinned) {
+                            coroutineScope.launch { railState.collapse() }
+                        }
+                    },
+                    isPinned = isPinned,
+                )
+            }
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier.fillMaxSize().pinnedDrawerBlurSource(pinnedDrawerBlurState),
+                ) {
+                    drawerBody()
+                }
+
+                if (isPinnedDrawerVisible) {
+                    AppPinnedNavigationDrawer(
+                        blurState = pinnedDrawerBlurState,
+                        modifier = Modifier.align(Alignment.TopStart),
+                    ) {
+                        renderDrawerContent(true)
                     }
+                } else if (navigationDrawerEnabled && !shouldPinDrawer) {
+                    AppModalNavigationDrawer(state = railState) { renderDrawerContent(false) }
                 }
             }
         }

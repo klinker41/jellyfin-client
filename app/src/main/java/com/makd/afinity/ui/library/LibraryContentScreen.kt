@@ -80,6 +80,7 @@ import com.makd.afinity.ui.components.FilterSortToolbar
 import com.makd.afinity.ui.components.FullScreenEmpty
 import com.makd.afinity.ui.components.FullScreenError
 import com.makd.afinity.ui.components.FullScreenLoading
+import com.makd.afinity.ui.components.LocalPinnedDrawerStartInset
 import com.makd.afinity.ui.components.MasonryMediaGrid
 import com.makd.afinity.ui.components.MediaItemGridCard
 import com.makd.afinity.ui.components.PaginatedMediaGrid
@@ -266,8 +267,8 @@ fun LibraryContentScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentPadding =
                                 PaddingValues(
-                                    start = 16.dp,
-                                    end = 16.dp,
+                                    start = CardDimensions.rowStartGutter,
+                                    end = CardDimensions.RowGutter,
                                     top = 16.dp,
                                     bottom = FAB_CONTENT_BOTTOM_PADDING + bottomClearance,
                                 ),
@@ -302,8 +303,8 @@ fun LibraryContentScreen(
                                     },
                                 contentPadding =
                                     PaddingValues(
-                                        start = 16.dp,
-                                        end = 16.dp,
+                                        start = CardDimensions.rowStartGutter,
+                                        end = CardDimensions.RowGutter,
                                         top = 16.dp,
                                         bottom = FAB_CONTENT_BOTTOM_PADDING + bottomClearance,
                                     ),
@@ -347,7 +348,10 @@ fun LibraryContentScreen(
             FilterSortToolbar(
                 modifier =
                     Modifier.align(Alignment.BottomCenter)
-                        .padding(bottom = 16.dp + bottomClearance),
+                        .padding(
+                            start = LocalPinnedDrawerStartInset.current,
+                            bottom = 16.dp + bottomClearance,
+                        ),
                 onFilterClick =
                     if (uiState.filtersLocked) null
                     else {

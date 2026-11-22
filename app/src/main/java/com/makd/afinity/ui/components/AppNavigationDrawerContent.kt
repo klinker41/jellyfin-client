@@ -32,6 +32,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -89,6 +91,7 @@ fun AppNavigationDrawerContent(
     onAddAccountClick: (Server) -> Unit,
     onCloseDrawer: () -> Unit,
     modifier: Modifier = Modifier,
+    isPinned: Boolean = false,
     sessionSwitcherViewModel: SessionSwitcherViewModel = hiltViewModel(),
 ) {
     val sessionState by sessionSwitcherViewModel.state.collectAsStateWithLifecycle()
@@ -117,6 +120,7 @@ fun AppNavigationDrawerContent(
         onForgetSession = sessionSwitcherViewModel::forgetSession,
         onCloseDrawer = onCloseDrawer,
         modifier = modifier,
+        isPinned = isPinned,
     )
 }
 
@@ -146,6 +150,7 @@ fun AppNavigationDrawerContent(
     onForgetSession: (UserSession) -> Unit,
     onCloseDrawer: () -> Unit,
     modifier: Modifier = Modifier,
+    isPinned: Boolean = false,
     appVersionName: String = BuildConfig.VERSION_NAME,
 ) {
     var accountSwitcherExpanded by remember { mutableStateOf(false) }
@@ -164,8 +169,33 @@ fun AppNavigationDrawerContent(
             label = "chevron",
         )
 
+    val drawerItemColors =
+        if (isPinned) {
+            NavigationDrawerItemDefaults.colors(
+                unselectedContainerColor = Color.Transparent,
+                selectedContainerColor =
+                    MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.80f),
+            )
+        } else {
+            NavigationDrawerItemDefaults.colors()
+        }
+    val itemHorizontalPadding = if (isPinned) 10.dp else 12.dp
+    val cutoutModifier =
+        if (isPinned) {
+            Modifier
+        } else {
+            Modifier.windowInsetsPadding(
+                WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal),
+            )
+        }
+
     Box(
-        modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerLow),
+        modifier =
+            if (isPinned) {
+                modifier.fillMaxSize()
+            } else {
+                modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerLow)
+            },
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Column(
@@ -177,34 +207,39 @@ fun AppNavigationDrawerContent(
                                     colors =
                                         listOf(
                                             MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                            MaterialTheme.colorScheme.surfaceContainerLow,
+                                            if (isPinned) {
+                                                Color.Transparent
+                                            } else {
+                                                MaterialTheme.colorScheme.surfaceContainerLow
+                                            },
                                         ),
                                 ),
                         )
-                        .statusBarsPadding()
-                        .windowInsetsPadding(
-                            WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal),
-                        )
-                        .padding(bottom = 16.dp),
+                        .then(if (isPinned) Modifier else Modifier.statusBarsPadding())
+                        .then(cutoutModifier)
+                        .padding(bottom = if (isPinned) 12.dp else 16.dp),
             ) {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(if (isPinned) 12.dp else 16.dp))
 
                 Row(
                     modifier =
                         Modifier.fillMaxWidth()
-                            .padding(horizontal = 16.dp)
+                            .padding(horizontal = if (isPinned) 12.dp else 16.dp)
                             .clip(RoundedCornerShape(16.dp))
                             .clickable(role = Role.Button) {
                                 accountSwitcherExpanded = !accountSwitcherExpanded
                             }
-                            .padding(horizontal = 8.dp, vertical = 8.dp),
+                            .padding(
+                                horizontal = if (isPinned) 6.dp else 8.dp,
+                                vertical = 8.dp,
+                            ),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(if (isPinned) 10.dp else 12.dp),
                 ) {
                     UserAvatar(
                         imageUrl = userProfileImageUrl,
                         name = userName,
-                        size = 48.dp,
+                        size = if (isPinned) 40.dp else 48.dp,
                         contentDescription = stringResource(R.string.cd_profile_icon),
                     )
 
@@ -215,7 +250,9 @@ fun AppNavigationDrawerContent(
                         ) {
                             Text(
                                 text = userName ?: stringResource(R.string.app_name),
-                                style = MaterialTheme.typography.titleLarge,
+                                style =
+                                    if (isPinned) MaterialTheme.typography.titleMedium
+                                    else MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
@@ -285,11 +322,7 @@ fun AppNavigationDrawerContent(
                 ) {
                     Column(
                         modifier =
-                            Modifier.fillMaxWidth()
-                                .windowInsetsPadding(
-                                    WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal),
-                                )
-                                .padding(bottom = 16.dp),
+                            Modifier.fillMaxWidth().then(cutoutModifier).padding(bottom = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         sessionState.sessionGroups.forEach { sessionGroup ->
@@ -308,11 +341,7 @@ fun AppNavigationDrawerContent(
                 }
 
                 Column(
-                    modifier =
-                        Modifier.fillMaxWidth()
-                            .windowInsetsPadding(
-                                WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal),
-                            ),
+                    modifier = Modifier.fillMaxWidth().then(cutoutModifier),
                 ) {
                     Destination.entries.forEach { destination ->
                         if (destination == Destination.LIBRARIES && !isOffline) {
@@ -334,8 +363,12 @@ fun AppNavigationDrawerContent(
                                             contentDescription = library.name,
                                         )
                                     },
+                                    colors = drawerItemColors,
                                     modifier =
-                                        Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
+                                        Modifier.padding(
+                                            horizontal = itemHorizontalPadding,
+                                            vertical = 2.dp,
+                                        ),
                                     shape = RoundedCornerShape(16.dp),
                                 )
                             }
@@ -370,6 +403,8 @@ fun AppNavigationDrawerContent(
                                 Text(
                                     text = stringResource(destination.titleRes),
                                     style = MaterialTheme.typography.labelLarge,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                             },
                             selected = selected,
@@ -393,7 +428,12 @@ fun AppNavigationDrawerContent(
                                     )
                                 }
                             },
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
+                            colors = drawerItemColors,
+                            modifier =
+                                Modifier.padding(
+                                    horizontal = itemHorizontalPadding,
+                                    vertical = 2.dp,
+                                ),
                             shape = RoundedCornerShape(16.dp),
                         )
                     }
@@ -405,6 +445,8 @@ fun AppNavigationDrawerContent(
                             Text(
                                 text = stringResource(R.string.settings_title),
                                 style = MaterialTheme.typography.labelLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         },
                         selected = false,
@@ -415,7 +457,12 @@ fun AppNavigationDrawerContent(
                                 contentDescription = stringResource(R.string.settings_title),
                             )
                         },
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
+                        colors = drawerItemColors,
+                        modifier =
+                            Modifier.padding(
+                                horizontal = itemHorizontalPadding,
+                                vertical = 2.dp,
+                            ),
                         shape = RoundedCornerShape(16.dp),
                     )
                 }
@@ -426,11 +473,13 @@ fun AppNavigationDrawerContent(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier =
-                    Modifier.windowInsetsPadding(
-                            WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal),
-                        )
-                        .navigationBarsPadding()
-                        .padding(start = 24.dp, top = 16.dp, bottom = 16.dp),
+                    if (isPinned) {
+                        Modifier.padding(start = 20.dp, top = 12.dp, bottom = 14.dp)
+                    } else {
+                        Modifier.then(cutoutModifier)
+                            .navigationBarsPadding()
+                            .padding(start = 24.dp, top = 16.dp, bottom = 16.dp)
+                    },
             )
         }
     }

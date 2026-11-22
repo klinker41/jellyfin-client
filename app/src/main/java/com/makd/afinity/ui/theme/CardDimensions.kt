@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import com.makd.afinity.data.models.CustomSectionCardStyle
 import com.makd.afinity.data.models.common.CardSize
+import com.makd.afinity.ui.components.LocalPinnedDrawerStartInset
 import com.makd.afinity.ui.components.windowHeightDp
 import com.makd.afinity.ui.components.windowWidthDp
 import kotlin.math.roundToInt
@@ -102,7 +103,22 @@ object CardDimensions {
     private const val LANDSCAPE_CARD_SPAN = 2
 
     val RowGutter = 16.dp
-    val RowContentPadding = PaddingValues(horizontal = RowGutter)
+    private val DefaultRowContentPadding = PaddingValues(horizontal = RowGutter)
+    val rowStartGutter: Dp
+        @Composable @ReadOnlyComposable get() = RowGutter + LocalPinnedDrawerStartInset.current
+
+    val RowContentPadding: PaddingValues
+        @Composable
+        @ReadOnlyComposable
+        get() {
+            val drawerInset = LocalPinnedDrawerStartInset.current
+            return if (drawerInset > 0.dp) {
+                PaddingValues(start = RowGutter + drawerInset, end = RowGutter)
+            } else {
+                DefaultRowContentPadding
+            }
+        }
+
     val RowGap = 12.dp
     val GridRowGap = 16.dp
 

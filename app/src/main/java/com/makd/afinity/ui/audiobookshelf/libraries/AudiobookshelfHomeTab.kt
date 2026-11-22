@@ -132,7 +132,7 @@ fun AudiobookshelfHomeTab(
 
                     Column {
                         Spacer(modifier = Modifier.height(24.dp))
-                        Column(modifier = Modifier.padding(horizontal = CardDimensions.RowGutter)) {
+                        Column {
                             Text(
                                 text =
                                     if (section.id == "recent-series") {
@@ -142,12 +142,18 @@ fun AudiobookshelfHomeTab(
                                     },
                                 style = afinitySectionTitleStyle(),
                                 color = MaterialTheme.colorScheme.onBackground,
-                                modifier = Modifier.padding(bottom = 16.dp),
+                                modifier =
+                                    Modifier.padding(
+                                        start = CardDimensions.rowStartGutter,
+                                        end = CardDimensions.RowGutter,
+                                        bottom = 16.dp,
+                                    ),
                             )
 
                             CardRow(
                                 state = rowListState,
-                                modifier = Modifier.height(fixedRowHeight),
+                                modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+                                contentPadding = CardDimensions.RowContentPadding,
                             ) {
                                 if (section.series.isNotEmpty()) {
                                     items(

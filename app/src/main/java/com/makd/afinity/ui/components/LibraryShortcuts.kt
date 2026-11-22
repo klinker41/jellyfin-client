@@ -41,14 +41,23 @@ fun LibraryShortcutsRow(
     modifier: Modifier = Modifier,
     content: LazyListScope.() -> Unit,
 ) {
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
+    Column(modifier = modifier) {
         Text(
             text = title,
             style = afinitySectionTitleStyle(),
             color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(bottom = 12.dp),
+            modifier =
+                Modifier.padding(
+                    start = CardDimensions.rowStartGutter,
+                    end = CardDimensions.RowGutter,
+                    bottom = 12.dp,
+                ),
         )
-        CardRow(content = content)
+        CardRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = CardDimensions.RowContentPadding,
+            content = content,
+        )
     }
 }
 

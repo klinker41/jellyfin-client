@@ -19,6 +19,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.makd.afinity.R
+import com.makd.afinity.ui.components.LocalPinnedDrawerStartInset
 import com.makd.afinity.ui.components.afinitySectionChevronSize
 import com.makd.afinity.ui.components.afinitySectionTitleStyle
 
@@ -33,6 +34,7 @@ fun HomeSectionHeader(
     Row(
         modifier =
             modifier
+                .padding(start = LocalPinnedDrawerStartInset.current)
                 .then(
                     if (onViewAllClick != null) {
                         Modifier.clickable(

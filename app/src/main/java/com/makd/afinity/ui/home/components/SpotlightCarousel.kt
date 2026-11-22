@@ -74,7 +74,12 @@ fun SpotlightCarousel(
     Column(modifier = modifier) {
         HomeSectionHeader(title = title, startPadding = CardDimensions.RowGutter)
         BoxWithConstraints(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = CardDimensions.RowGutter),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .padding(
+                        start = CardDimensions.rowStartGutter,
+                        end = CardDimensions.RowGutter,
+                    ),
         ) {
             val itemSize =
                 CardDimensions.carouselItemSize(

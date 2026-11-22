@@ -460,11 +460,21 @@ private fun FavoritePeopleSection(
             metadataHeight = 0.dp,
         )
     Column(
-        modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        SectionRowHeader(title = title, onViewAllClick = onViewAllClick)
-        CardRow(modifier = Modifier.height(fixedRowHeight)) {
+        SectionRowHeader(
+            title = title,
+            onViewAllClick = onViewAllClick,
+            modifier =
+                Modifier.padding(
+                    start = CardDimensions.rowStartGutter,
+                    end = CardDimensions.RowGutter,
+                ),
+        )
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(people, key = { it.id.toString() }) { person ->
                 FavoritePersonCard(
                     person = person,
@@ -524,11 +534,21 @@ private fun FavoriteChannelsSection(
 ) {
     val fixedRowHeight = CardDimensions.rowHeight(cardWidth, CardDimensions.ASPECT_RATIO_LANDSCAPE)
     Column(
-        modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        SectionRowHeader(title = title, onViewAllClick = onViewAllClick)
-        CardRow(modifier = Modifier.height(fixedRowHeight)) {
+        SectionRowHeader(
+            title = title,
+            onViewAllClick = onViewAllClick,
+            modifier =
+                Modifier.padding(
+                    start = CardDimensions.rowStartGutter,
+                    end = CardDimensions.RowGutter,
+                ),
+        )
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(channels, key = { it.id.toString() }) { channel ->
                 FavoriteChannelCard(
                     channel = channel,
@@ -611,14 +631,21 @@ private fun FavoriteTracksSection(
             CardDimensions.ASPECT_RATIO_SQUARE,
         )
     Column(
-        modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         SectionRowHeader(
             title = stringResource(R.string.favorites_songs),
             onViewAllClick = onViewAllClick,
+            modifier =
+                Modifier.padding(
+                    start = CardDimensions.rowStartGutter,
+                    end = CardDimensions.RowGutter,
+                ),
         )
-        CardRow(modifier = Modifier.height(fixedRowHeight)) {
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(tracks, key = { it.id }) { track ->
                 FavoriteTrackCard(
                     track = track,
