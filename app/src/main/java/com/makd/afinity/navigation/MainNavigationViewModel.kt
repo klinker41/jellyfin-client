@@ -150,7 +150,7 @@ constructor(
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
-                initialValue = false,
+                initialValue = true,
             )
 
     val drawerLibrariesMode =
@@ -159,7 +159,7 @@ constructor(
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
-                initialValue = DrawerLibrariesMode.OFF,
+                initialValue = DrawerLibrariesMode.EACH,
             )
 
     val libraries = appDataRepository.libraries

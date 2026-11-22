@@ -71,11 +71,10 @@ import com.makd.afinity.data.models.audiobookshelf.LibraryItem
 import com.makd.afinity.data.models.audiobookshelf.PodcastEpisode
 import com.makd.afinity.data.models.media.AfinitySource
 import com.makd.afinity.data.models.music.AfinityTrack
-import com.makd.afinity.navigation.LocalSideSheetEnabled
 import com.makd.afinity.ui.components.AfinityModalBottomSheet
 import com.makd.afinity.ui.components.AsyncImage
 import com.makd.afinity.ui.components.ModalSideSheet
-import com.makd.afinity.ui.components.isLandscapeWindow
+import com.makd.afinity.ui.components.shouldUseSideSheet
 import com.makd.afinity.ui.item.components.shared.MediaStreamBadges
 import com.makd.afinity.ui.item.components.shared.VideoMetadataChip
 
@@ -301,7 +300,7 @@ private fun MediaInfoStatusSheet(
 
 @Composable
 private fun MediaInfoContainer(onDismiss: () -> Unit, content: @Composable (Modifier) -> Unit) {
-    if (LocalSideSheetEnabled.current && isLandscapeWindow()) {
+    if (shouldUseSideSheet()) {
         ModalSideSheet(
             onDismissRequest = onDismiss,
             title = stringResource(R.string.media_info_title),

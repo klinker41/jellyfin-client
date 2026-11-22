@@ -483,12 +483,13 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
     }
 
     override suspend fun getNavigationDrawerEnabled(): Boolean {
-        return dataStore.data.first()[Keys.NAVIGATION_DRAWER_ENABLED] ?: false
+        return dataStore.data.first()[Keys.NAVIGATION_DRAWER_ENABLED]
+            ?: DEFAULT_NAVIGATION_DRAWER_ENABLED
     }
 
     override fun getNavigationDrawerEnabledFlow(): Flow<Boolean> {
         return dataStore.data.map { preferences ->
-            preferences[Keys.NAVIGATION_DRAWER_ENABLED] ?: false
+            preferences[Keys.NAVIGATION_DRAWER_ENABLED] ?: DEFAULT_NAVIGATION_DRAWER_ENABLED
         }
     }
 
@@ -521,11 +522,10 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
 
     override fun getDrawerLibrariesModeFlow(): Flow<DrawerLibrariesMode> {
         return dataStore.data.map { preferences ->
-            when {
-                preferences[Keys.LIBRARIES_IN_DRAWER] != true -> DrawerLibrariesMode.OFF
-                preferences[Keys.INDIVIDUAL_LIBRARIES_IN_DRAWER] == true -> DrawerLibrariesMode.EACH
-                else -> DrawerLibrariesMode.SCREEN
-            }
+            resolveDrawerLibrariesMode(
+                librariesInDrawer = preferences[Keys.LIBRARIES_IN_DRAWER],
+                individualLibrariesInDrawer = preferences[Keys.INDIVIDUAL_LIBRARIES_IN_DRAWER],
+            )
         }
     }
 

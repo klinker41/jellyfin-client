@@ -192,7 +192,7 @@ constructor(
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
-                initialValue = false,
+                initialValue = true,
             )
 
     val sideSheetEnabled: StateFlow<Boolean> =
@@ -210,7 +210,7 @@ constructor(
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
-                initialValue = DrawerLibrariesMode.OFF,
+                initialValue = DrawerLibrariesMode.EACH,
             )
 
     val episodeLayout: StateFlow<EpisodeLayout> =

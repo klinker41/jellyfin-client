@@ -50,7 +50,6 @@ import com.makd.afinity.data.models.download.DownloadInfo
 import com.makd.afinity.data.models.download.DownloadStatus
 import com.makd.afinity.data.models.media.AfinityEpisode
 import com.makd.afinity.navigation.LocalShowRatings
-import com.makd.afinity.navigation.LocalSideSheetEnabled
 import com.makd.afinity.ui.components.AfinityModalBottomSheet
 import com.makd.afinity.ui.components.DetailMenuAction
 import com.makd.afinity.ui.components.DetailMoreMenu
@@ -60,10 +59,10 @@ import com.makd.afinity.ui.components.ModalSideSheet
 import com.makd.afinity.ui.components.WatchedToggleButton
 import com.makd.afinity.ui.components.WatchlistToggleButton
 import com.makd.afinity.ui.components.formatRuntimeTicks
-import com.makd.afinity.ui.components.isLandscapeWindow
 import com.makd.afinity.ui.components.mediainfo.JellyfinMediaInfoSheet
 import com.makd.afinity.ui.components.rememberAfinitySheetState
 import com.makd.afinity.ui.components.rememberRatingMetadataScale
+import com.makd.afinity.ui.components.shouldUseSideSheet
 import com.makd.afinity.ui.item.components.shared.AdminAction
 import com.makd.afinity.ui.item.components.shared.CastRibbon
 import com.makd.afinity.ui.item.components.shared.EpisodeFrame
@@ -107,7 +106,7 @@ fun EpisodeDetailOverlay(
     onPersonClick: ((UUID) -> Unit)? = null,
 ) {
     val context = LocalContext.current
-    val isWide = LocalSideSheetEnabled.current && isLandscapeWindow()
+    val isWide = shouldUseSideSheet()
     val sheetState = rememberAfinitySheetState()
     var showPeopleDialog by remember { mutableStateOf(false) }
     var showMediaInfo by remember { mutableStateOf(false) }

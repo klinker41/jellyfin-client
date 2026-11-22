@@ -49,6 +49,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import okhttp3.ResponseBody.Companion.toResponseBody
@@ -347,4 +348,44 @@ class SettingsViewModelTest {
             )
         }
     }
+
+    @Test
+    fun `initial navigation state defaults match drawer, each library, and side sheet enabled`() =
+        runTest {
+            val harness = Harness()
+            every { harness.preferencesRepository.getNavigationDrawerEnabledFlow() } returns
+                emptyFlow()
+            every { harness.preferencesRepository.getDrawerLibrariesModeFlow() } returns emptyFlow()
+            every { harness.preferencesRepository.getSideSheetEnabledFlow() } returns emptyFlow()
+
+            val vm =
+                SettingsViewModel(
+                    context = harness.context,
+                    authRepository = harness.authRepository,
+                    preferencesRepository = harness.preferencesRepository,
+                    securePreferencesRepository = harness.securePreferencesRepository,
+                    appDataRepository = harness.appDataRepository,
+                    homeLayoutPreferencesRepository = harness.homeLayoutPreferencesRepository,
+                    serverRepository = harness.serverRepository,
+                    sessionManager = harness.sessionManager,
+                    offlineModeManager = harness.offlineModeManager,
+                    networkConnectivityMonitor = harness.networkConnectivityMonitor,
+                    jellyseerrRepository = harness.jellyseerrRepository,
+                    audiobookshelfRepository = harness.audiobookshelfRepository,
+                    audiobookshelfPlayer = harness.audiobookshelfPlayer,
+                    tmdbApiService = harness.tmdbApiService,
+                    mdbListApiService = harness.mdbListApiService,
+                    omdbApiService = harness.omdbApiService,
+                    lastFmApiService = harness.lastFmApiService,
+                    downloadRepository = harness.downloadRepository,
+                    absDownloadRepository = harness.absDownloadRepository,
+                    adminRepository = harness.adminRepository,
+                    deviceSubtitleStore = harness.deviceSubtitleStore,
+                    deletedItemsRepository = harness.deletedItemsRepository,
+                )
+
+            assertTrue(vm.navigationDrawerEnabled.value)
+            assertEquals(DrawerLibrariesMode.EACH, vm.drawerLibrariesMode.value)
+            assertTrue(vm.sideSheetEnabled.value)
+        }
 }
