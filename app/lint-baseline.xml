@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<issues format="6" by="lint 9.5.1" type="baseline" client="gradle" dependencies="false" name="AGP (9.5.1)" variant="all" version="9.5.1">
+<issues format="6" by="lint 9.5.2" type="baseline" client="gradle" dependencies="false" name="AGP (9.5.2)" variant="all" version="9.5.2">
 
     <issue
         id="EmptySuperCall"
@@ -41,7 +41,7 @@
         errorLine2="                                                               ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/images/EditImagesScreen.kt"
-            line="689"
+            line="691"
             column="64"/>
     </issue>
 
@@ -52,7 +52,7 @@
         errorLine2="                                                             ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/images/EditImagesScreen.kt"
-            line="690"
+            line="692"
             column="62"/>
     </issue>
 
@@ -63,7 +63,7 @@
         errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/widget/AudioWidgetConfigScreen.kt"
-            line="128"
+            line="122"
             column="21"/>
     </issue>
 
@@ -74,7 +74,7 @@
         errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/widget/AudioWidgetConfigScreen.kt"
-            line="167"
+            line="161"
             column="17"/>
     </issue>
 
@@ -85,7 +85,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/AudiobookshelfBottomSheet.kt"
-            line="265"
+            line="255"
             column="9"/>
     </issue>
 
@@ -118,7 +118,7 @@
         errorLine2="        ^">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/backup/BackupScreen.kt"
-            line="72"
+            line="73"
             column="9"/>
     </issue>
 
@@ -129,7 +129,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/backup/BackupScreen.kt"
-            line="102"
+            line="103"
             column="9"/>
     </issue>
 
@@ -217,7 +217,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/servers/ControlPanelView.kt"
-            line="115"
+            line="116"
             column="9"/>
     </issue>
 
@@ -228,7 +228,7 @@
         errorLine2="                ^">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/servers/ControlPanelView.kt"
-            line="140"
+            line="141"
             column="17"/>
     </issue>
 
@@ -239,7 +239,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/servers/ControlPanelView.kt"
-            line="338"
+            line="339"
             column="5"/>
     </issue>
 
@@ -250,7 +250,7 @@
         errorLine2="            ^">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/servers/ControlPanelView.kt"
-            line="353"
+            line="354"
             column="13"/>
     </issue>
 
@@ -261,7 +261,7 @@
         errorLine2="                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/metadata/EditMetadataScreen.kt"
-            line="390"
+            line="392"
             column="29"/>
     </issue>
 
@@ -272,7 +272,7 @@
         errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/metadata/EditMetadataScreen.kt"
-            line="391"
+            line="393"
             column="45"/>
     </issue>
 
@@ -283,7 +283,7 @@
         errorLine2="                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/metadata/EditMetadataScreen.kt"
-            line="393"
+            line="395"
             column="29"/>
     </issue>
 
@@ -294,7 +294,7 @@
         errorLine2="            ^">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/metadata/EditMetadataScreen.kt"
-            line="494"
+            line="496"
             column="13"/>
     </issue>
 
@@ -305,7 +305,7 @@
         errorLine2="            ^">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/metadata/EditMetadataScreen.kt"
-            line="503"
+            line="505"
             column="13"/>
     </issue>
 
@@ -316,7 +316,7 @@
         errorLine2="            ^">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/metadata/EditMetadataScreen.kt"
-            line="601"
+            line="603"
             column="13"/>
     </issue>
 
@@ -327,7 +327,7 @@
         errorLine2="        ^">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/metadata/EditMetadataScreen.kt"
-            line="609"
+            line="611"
             column="9"/>
     </issue>
 
@@ -338,7 +338,7 @@
         errorLine2="            ^">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/metadata/EditMetadataScreen.kt"
-            line="617"
+            line="619"
             column="13"/>
     </issue>
 
@@ -349,7 +349,7 @@
         errorLine2="                    ^">
         <location
             file="src/main/java/com/makd/afinity/ui/item/ItemDetailScreen.kt"
-            line="283"
+            line="281"
             column="21"/>
     </issue>
 
@@ -360,30 +360,30 @@
         errorLine2="                ^">
         <location
             file="src/main/java/com/makd/afinity/ui/item/ItemDetailScreen.kt"
-            line="419"
+            line="431"
             column="17"/>
     </issue>
 
     <issue
         id="ComposeViewModelForwarding"
         message="Forwarding a ViewModel through multiple @Composable functions should be avoided. Consider using state hoisting.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#hoist-all-the-things for more information."
-        errorLine1="                LandscapeItemDetailContent("
-        errorLine2="                ^">
+        errorLine1="            LandscapeItemDetailContent("
+        errorLine2="            ^">
         <location
             file="src/main/java/com/makd/afinity/ui/item/ItemDetailScreen.kt"
-            line="588"
-            column="17"/>
+            line="612"
+            column="13"/>
     </issue>
 
     <issue
         id="ComposeViewModelForwarding"
         message="Forwarding a ViewModel through multiple @Composable functions should be avoided. Consider using state hoisting.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#hoist-all-the-things for more information."
-        errorLine1="                PortraitItemDetailContent("
-        errorLine2="                ^">
+        errorLine1="            PortraitItemDetailContent("
+        errorLine2="            ^">
         <location
             file="src/main/java/com/makd/afinity/ui/item/ItemDetailScreen.kt"
-            line="633"
-            column="17"/>
+            line="670"
+            column="13"/>
     </issue>
 
     <issue
@@ -393,7 +393,7 @@
         errorLine2="                            ^">
         <location
             file="src/main/java/com/makd/afinity/ui/item/ItemDetailScreen.kt"
-            line="923"
+            line="967"
             column="29"/>
     </issue>
 
@@ -404,7 +404,7 @@
         errorLine2="                ^">
         <location
             file="src/main/java/com/makd/afinity/ui/item/ItemDetailScreen.kt"
-            line="1210"
+            line="1252"
             column="17"/>
     </issue>
 
@@ -415,7 +415,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/JellyseerrBottomSheet.kt"
-            line="379"
+            line="369"
             column="9"/>
     </issue>
 
@@ -426,7 +426,7 @@
         errorLine2="    ^">
         <location
             file="src/main/java/com/makd/afinity/ui/livetv/channels/LiveTvChannelsScreen.kt"
-            line="79"
+            line="81"
             column="5"/>
     </issue>
 
@@ -437,7 +437,7 @@
         errorLine2="    ^">
         <location
             file="src/main/java/com/makd/afinity/ui/livetv/guide/LiveTvGuideScreen.kt"
-            line="107"
+            line="109"
             column="5"/>
     </issue>
 
@@ -448,7 +448,7 @@
         errorLine2="            ^">
         <location
             file="src/main/java/com/makd/afinity/ui/livetv/guide/LiveTvGuideScreen.kt"
-            line="129"
+            line="131"
             column="13"/>
     </issue>
 
@@ -536,7 +536,7 @@
         errorLine2="    ^">
         <location
             file="src/main/java/com/makd/afinity/ui/music/library/MusicBrowseScreen.kt"
-            line="114"
+            line="112"
             column="5"/>
     </issue>
 
@@ -547,7 +547,7 @@
         errorLine2="                ^">
         <location
             file="src/main/java/com/makd/afinity/ui/music/library/MusicBrowseScreen.kt"
-            line="243"
+            line="215"
             column="17"/>
     </issue>
 
@@ -657,7 +657,7 @@
         errorLine2="            ^">
         <location
             file="src/main/java/com/makd/afinity/ui/player/PlayerScreen.kt"
-            line="238"
+            line="235"
             column="13"/>
     </issue>
 
@@ -668,7 +668,7 @@
         errorLine2="    ^">
         <location
             file="src/main/java/com/makd/afinity/ui/playlist/PlaylistScreen.kt"
-            line="143"
+            line="144"
             column="5"/>
     </issue>
 
@@ -679,7 +679,7 @@
         errorLine2="                        ^">
         <location
             file="src/main/java/com/makd/afinity/ui/playlist/PlaylistScreen.kt"
-            line="407"
+            line="408"
             column="25"/>
     </issue>
 
@@ -690,7 +690,7 @@
         errorLine2="        ^">
         <location
             file="src/main/java/com/makd/afinity/ui/playlist/PlaylistScreen.kt"
-            line="516"
+            line="517"
             column="9"/>
     </issue>
 
@@ -811,7 +811,7 @@
         errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/onboarding/ServicesHubScreen.kt"
-            line="865"
+            line="869"
             column="21"/>
     </issue>
 
@@ -822,7 +822,7 @@
         errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/onboarding/ServicesHubScreen.kt"
-            line="921"
+            line="925"
             column="35"/>
     </issue>
 
@@ -844,7 +844,7 @@
         errorLine2="                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/navigation/MainNavigation.kt"
-            line="1392"
+            line="1359"
             column="37"/>
     </issue>
 
@@ -855,7 +855,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/player/components/PlayerControls.kt"
-            line="194"
+            line="195"
             column="5"/>
     </issue>
 
@@ -877,7 +877,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/onboarding/ServicesHubScreen.kt"
-            line="164"
+            line="165"
             column="5"/>
     </issue>
 
@@ -888,7 +888,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/onboarding/ServicesHubScreen.kt"
-            line="175"
+            line="176"
             column="5"/>
     </issue>
 
@@ -899,7 +899,7 @@
         errorLine2="                 ~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/components/AdminSchedulePickers.kt"
-            line="44"
+            line="45"
             column="18"/>
     </issue>
 
@@ -910,7 +910,7 @@
         errorLine2="                 ~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/components/AdminSchedulePickers.kt"
-            line="56"
+            line="57"
             column="18"/>
     </issue>
 
@@ -1130,7 +1130,7 @@
         errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/item/ItemDetailScreen.kt"
-            line="1684"
+            line="1725"
             column="35"/>
     </issue>
 
@@ -1141,7 +1141,7 @@
         errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/item/ItemDetailScreen.kt"
-            line="1694"
+            line="1735"
             column="35"/>
     </issue>
 
@@ -1207,7 +1207,7 @@
         errorLine2="    ~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/config/ConfigFormScreen.kt"
-            line="749"
+            line="751"
             column="5"/>
     </issue>
 
@@ -1273,7 +1273,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/AndroidManifest.xml"
-            line="58"
+            line="56"
             column="13"/>
     </issue>
 
@@ -1284,7 +1284,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-fr/strings.xml"
-            line="3506"
+            line="3424"
             column="5"/>
     </issue>
 
@@ -1301,23 +1301,12 @@
 
     <issue
         id="MissingQuantity"
-        message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`"
-        errorLine1="    &lt;plurals name=&quot;hero_season_plural&quot;>"
-        errorLine2="    ^">
-        <location
-            file="src/main/res/values-pt/strings.xml"
-            line="60"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="MissingQuantity"
         message="For locale &quot;es&quot; (Spanish) the following quantity should also be defined: `many`"
         errorLine1="    &lt;plurals name=&quot;hero_season_plural&quot;>"
         errorLine2="    ^">
         <location
             file="src/main/res/values-es/strings.xml"
-            line="61"
+            line="60"
             column="5"/>
     </issue>
 
@@ -1328,7 +1317,18 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-pt-rBR/strings.xml"
-            line="61"
+            line="60"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="MissingQuantity"
+        message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`"
+        errorLine1="    &lt;plurals name=&quot;hero_season_plural&quot;>"
+        errorLine2="    ^">
+        <location
+            file="src/main/res/values-pt/strings.xml"
+            line="60"
             column="5"/>
     </issue>
 
@@ -1372,7 +1372,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-es/strings.xml"
-            line="83"
+            line="82"
             column="5"/>
     </issue>
 
@@ -1383,7 +1383,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-pt-rBR/strings.xml"
-            line="83"
+            line="82"
             column="5"/>
     </issue>
 
@@ -1416,7 +1416,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-pt-rBR/strings.xml"
-            line="90"
+            line="89"
             column="5"/>
     </issue>
 
@@ -1460,7 +1460,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-pt-rBR/strings.xml"
-            line="122"
+            line="121"
             column="5"/>
     </issue>
 
@@ -1471,7 +1471,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-es/strings.xml"
-            line="123"
+            line="122"
             column="5"/>
     </issue>
 
@@ -1493,7 +1493,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-pt-rBR/strings.xml"
-            line="126"
+            line="125"
             column="5"/>
     </issue>
 
@@ -1504,7 +1504,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-es/strings.xml"
-            line="127"
+            line="126"
             column="5"/>
     </issue>
 
@@ -1559,7 +1559,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-pt-rBR/strings.xml"
-            line="183"
+            line="182"
             column="5"/>
     </issue>
 
@@ -1592,7 +1592,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-pt-rBR/strings.xml"
-            line="197"
+            line="196"
             column="5"/>
     </issue>
 
@@ -1614,7 +1614,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-pt-rBR/strings.xml"
-            line="202"
+            line="201"
             column="5"/>
     </issue>
 
@@ -1669,7 +1669,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-it/strings.xml"
-            line="286"
+            line="285"
             column="5"/>
     </issue>
 
@@ -1680,7 +1680,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-it/strings.xml"
-            line="290"
+            line="289"
             column="5"/>
     </issue>
 
@@ -1691,7 +1691,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-it/strings.xml"
-            line="298"
+            line="297"
             column="5"/>
     </issue>
 
@@ -1713,7 +1713,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-pt-rBR/strings.xml"
-            line="321"
+            line="320"
             column="5"/>
     </issue>
 
@@ -1724,7 +1724,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-es/strings.xml"
-            line="325"
+            line="324"
             column="5"/>
     </issue>
 
@@ -1746,7 +1746,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-it/strings.xml"
-            line="366"
+            line="365"
             column="5"/>
     </issue>
 
@@ -1757,7 +1757,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-it/strings.xml"
-            line="381"
+            line="375"
             column="5"/>
     </issue>
 
@@ -1768,7 +1768,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-pt/strings.xml"
-            line="453"
+            line="433"
             column="5"/>
     </issue>
 
@@ -1779,7 +1779,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-pt-rBR/strings.xml"
-            line="459"
+            line="438"
             column="5"/>
     </issue>
 
@@ -1790,7 +1790,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-es/strings.xml"
-            line="463"
+            line="442"
             column="5"/>
     </issue>
 
@@ -1801,7 +1801,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-pl/strings.xml"
-            line="499"
+            line="479"
             column="5"/>
     </issue>
 
@@ -1812,7 +1812,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-es/strings.xml"
-            line="599"
+            line="558"
             column="5"/>
     </issue>
 
@@ -1823,7 +1823,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-pl/strings.xml"
-            line="661"
+            line="621"
             column="5"/>
     </issue>
 
@@ -1834,7 +1834,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-pl/strings.xml"
-            line="803"
+            line="763"
             column="5"/>
     </issue>
 
@@ -1845,7 +1845,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-pl/strings.xml"
-            line="1013"
+            line="965"
             column="5"/>
     </issue>
 
@@ -1856,7 +1856,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-pl/strings.xml"
-            line="1017"
+            line="969"
             column="5"/>
     </issue>
 
@@ -1867,7 +1867,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-pl/strings.xml"
-            line="1021"
+            line="973"
             column="5"/>
     </issue>
 
@@ -1878,7 +1878,7 @@
         errorLine2="    ^">
         <location
             file="src/main/res/values-pl/strings.xml"
-            line="1035"
+            line="987"
             column="5"/>
     </issue>
 
@@ -1889,7 +1889,7 @@
         errorLine2="                                      ~~~~~~~~~">
         <location
             file="src/main/res/values-pt-rBR/strings.xml"
-            line="12"
+            line="11"
             column="39"/>
     </issue>
 
@@ -1900,7 +1900,7 @@
         errorLine2="                           ~~~~">
         <location
             file="src/main/res/values-es/strings.xml"
-            line="44"
+            line="43"
             column="28"/>
     </issue>
 
@@ -1911,7 +1911,7 @@
         errorLine2="                                               ~~~~">
         <location
             file="src/main/res/values-es/strings.xml"
-            line="161"
+            line="160"
             column="48"/>
     </issue>
 
@@ -1922,7 +1922,7 @@
         errorLine2="                                                                            ~~~~~~">
         <location
             file="src/main/res/values-it/strings.xml"
-            line="282"
+            line="281"
             column="77"/>
     </issue>
 
@@ -1933,7 +1933,7 @@
         errorLine2="                                                                                                           ~~~~~">
         <location
             file="src/main/res/values-es/strings.xml"
-            line="613"
+            line="572"
             column="108"/>
     </issue>
 
@@ -1944,74 +1944,8 @@
         errorLine2="                                              ~~~~~~~">
         <location
             file="src/main/res/values-tr/strings.xml"
-            line="853"
+            line="810"
             column="47"/>
-    </issue>
-
-    <issue
-        id="Untranslatable"
-        message="The resource string &quot;app_name&quot; is marked as translatable=&quot;false&quot;, but is translated to &quot;bn&quot; (Bangla) here"
-        errorLine1="    &lt;string name=&quot;app_name&quot; translatable=&quot;false&quot;>AFinity&lt;/string>"
-        errorLine2="                            ~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-bn/strings.xml"
-            line="10"
-            column="29"/>
-    </issue>
-
-    <issue
-        id="Untranslatable"
-        message="The resource string &quot;app_name&quot; is marked as translatable=&quot;false&quot;, but is translated to &quot;es&quot; (Spanish) here"
-        errorLine1="    &lt;string name=&quot;app_name&quot; translatable=&quot;false&quot;>AFinity&lt;/string>"
-        errorLine2="                            ~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-es/strings.xml"
-            line="10"
-            column="29"/>
-    </issue>
-
-    <issue
-        id="Untranslatable"
-        message="The resource string &quot;app_name&quot; is marked as translatable=&quot;false&quot;, but is translated to &quot;hi&quot; (Hindi) here"
-        errorLine1="    &lt;string name=&quot;app_name&quot; translatable=&quot;false&quot;>AFinity&lt;/string>"
-        errorLine2="                            ~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-hi/strings.xml"
-            line="10"
-            column="29"/>
-    </issue>
-
-    <issue
-        id="Untranslatable"
-        message="The resource string &quot;app_name&quot; is marked as translatable=&quot;false&quot;, but is translated to &quot;ja&quot; (Japanese) here"
-        errorLine1="    &lt;string name=&quot;app_name&quot; translatable=&quot;false&quot;>AFinity&lt;/string>"
-        errorLine2="                            ~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-ja/strings.xml"
-            line="10"
-            column="29"/>
-    </issue>
-
-    <issue
-        id="Untranslatable"
-        message="The resource string &quot;app_name&quot; is marked as translatable=&quot;false&quot;, but is translated to &quot;nl&quot; (Dutch) here"
-        errorLine1="    &lt;string name=&quot;app_name&quot; translatable=&quot;false&quot;>AFinity&lt;/string>"
-        errorLine2="                            ~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-nl/strings.xml"
-            line="10"
-            column="29"/>
-    </issue>
-
-    <issue
-        id="Untranslatable"
-        message="The resource string &quot;app_name&quot; is marked as translatable=&quot;false&quot;, but is translated to &quot;pt&quot; (Portuguese) here"
-        errorLine1="    &lt;string name=&quot;app_name&quot; translatable=&quot;false&quot;>AFinity&lt;/string>"
-        errorLine2="                            ~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-pt-rBR/strings.xml"
-            line="10"
-            column="29"/>
     </issue>
 
     <issue
@@ -2021,7 +1955,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="564"
+            line="563"
             column="5"/>
     </issue>
 
@@ -2032,7 +1966,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1323"
+            line="1286"
             column="5"/>
     </issue>
 
@@ -2043,7 +1977,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1326"
+            line="1289"
             column="5"/>
     </issue>
 
@@ -2054,7 +1988,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1487"
+            line="1443"
             column="5"/>
     </issue>
 
@@ -2065,7 +1999,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1488"
+            line="1444"
             column="5"/>
     </issue>
 
@@ -2076,7 +2010,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1489"
+            line="1445"
             column="5"/>
     </issue>
 
@@ -2087,7 +2021,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1805"
+            line="1722"
             column="5"/>
     </issue>
 
@@ -2098,7 +2032,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1874"
+            line="1791"
             column="5"/>
     </issue>
 
@@ -2109,7 +2043,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1993"
+            line="1910"
             column="5"/>
     </issue>
 
@@ -2120,7 +2054,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="2652"
+            line="2569"
             column="5"/>
     </issue>
 
@@ -2131,7 +2065,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="3704"
+            line="3647"
             column="5"/>
     </issue>
 
@@ -2142,7 +2076,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="3705"
+            line="3648"
             column="5"/>
     </issue>
 
@@ -2153,7 +2087,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="3717"
+            line="3660"
             column="5"/>
     </issue>
 
@@ -2164,7 +2098,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="3723"
+            line="3666"
             column="5"/>
     </issue>
 
@@ -2175,7 +2109,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="3734"
+            line="3677"
             column="5"/>
     </issue>
 
@@ -2186,7 +2120,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="3735"
+            line="3678"
             column="5"/>
     </issue>
 
@@ -2197,7 +2131,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="3752"
+            line="3695"
             column="5"/>
     </issue>
 
@@ -2208,7 +2142,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="3757"
+            line="3700"
             column="5"/>
     </issue>
 
@@ -2219,7 +2153,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="3768"
+            line="3711"
             column="5"/>
     </issue>
 
@@ -2230,11 +2164,11 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-tr/strings.xml"
-            line="820"
+            line="777"
             column="5"/>
         <location
             file="src/main/res/values/strings.xml"
-            line="3780"
+            line="3723"
             column="5"
             message="Conflicting number of arguments (0) here"/>
     </issue>
@@ -2246,11 +2180,11 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-ta/strings.xml"
-            line="850"
+            line="807"
             column="5"/>
         <location
             file="src/main/res/values/strings.xml"
-            line="3780"
+            line="3723"
             column="5"
             message="Conflicting number of arguments (0) here"/>
     </issue>
@@ -2262,11 +2196,11 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-pl/strings.xml"
-            line="856"
+            line="813"
             column="5"/>
         <location
             file="src/main/res/values/strings.xml"
-            line="3780"
+            line="3723"
             column="5"
             message="Conflicting number of arguments (0) here"/>
     </issue>
@@ -2278,27 +2212,11 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-nl/strings.xml"
-            line="1235"
+            line="1172"
             column="5"/>
         <location
             file="src/main/res/values/strings.xml"
-            line="3780"
-            column="5"
-            message="Conflicting number of arguments (0) here"/>
-    </issue>
-
-    <issue
-        id="StringFormatCount"
-        message="Inconsistent number of arguments in formatting string `error_set_server_url_fmt`; found both 1 here and 0 in values/strings.xml"
-        errorLine1="    &lt;string name=&quot;error_set_server_url_fmt&quot;>Szerver URL-jének beállítása nem sikerült: %1$s&lt;/string>"
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-hu/strings.xml"
-            line="1306"
-            column="5"/>
-        <location
-            file="src/main/res/values/strings.xml"
-            line="3780"
+            line="3723"
             column="5"
             message="Conflicting number of arguments (0) here"/>
     </issue>
@@ -2310,27 +2228,11 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-nl/strings.xml"
-            line="1423"
+            line="1360"
             column="5"/>
         <location
             file="src/main/res/values/strings.xml"
-            line="3650"
-            column="5"
-            message="Conflicting number of arguments (2) here"/>
-    </issue>
-
-    <issue
-        id="StringFormatCount"
-        message="Inconsistent number of arguments in formatting string `services_hub_status_ratings_count`; found both 1 here and 2 in values/strings.xml"
-        errorLine1="    &lt;string name=&quot;services_hub_status_ratings_count&quot;>%1$d a 3-ból&lt;/string>"
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-hu/strings.xml"
-            line="1447"
-            column="5"/>
-        <location
-            file="src/main/res/values/strings.xml"
-            line="3650"
+            line="3593"
             column="5"
             message="Conflicting number of arguments (2) here"/>
     </issue>
@@ -2342,11 +2244,11 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-in/strings.xml"
-            line="1937"
+            line="1855"
             column="5"/>
         <location
             file="src/main/res/values/strings.xml"
-            line="1872"
+            line="1789"
             column="5"
             message="Conflicting number of arguments (1) here"/>
     </issue>
@@ -2369,7 +2271,7 @@
         errorLine2="         ~~~~~~~~">
         <location
             file="src/main/AndroidManifest.xml"
-            line="138"
+            line="136"
             column="10"/>
     </issue>
 
@@ -2380,7 +2282,7 @@
         errorLine2="         ~~~~~~~">
         <location
             file="src/main/AndroidManifest.xml"
-            line="94"
+            line="92"
             column="10"/>
     </issue>
 
@@ -2402,7 +2304,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/components/mediainfo/MediaInfoSheet.kt"
-            line="630"
+            line="629"
             column="9"/>
     </issue>
 
@@ -2508,7 +2410,7 @@
         errorLine2="                                                                ^">
         <location
             file="src/main/java/com/makd/afinity/ui/components/filter/FilterSheetComponents.kt"
-            line="72"
+            line="73"
             column="65"/>
     </issue>
 
@@ -2530,7 +2432,7 @@
         errorLine2="            ~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/item/components/QualitySelectionDialog.kt"
-            line="89"
+            line="90"
             column="13"/>
     </issue>
 
@@ -2541,7 +2443,7 @@
         errorLine2="                                                            ~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/item/components/QualitySelectionDialog.kt"
-            line="267"
+            line="268"
             column="61"/>
     </issue>
 
@@ -2552,7 +2454,7 @@
         errorLine2="                                                      ~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/item/components/QualitySelectionDialog.kt"
-            line="350"
+            line="351"
             column="55"/>
     </issue>
 
@@ -2562,30 +2464,8 @@
         errorLine1="@Composable"
         errorLine2="~~~~~~~~~~~">
         <location
-            file="src/main/java/com/makd/afinity/ui/components/AfinitySlider.kt"
-            line="31"
-            column="1"/>
-    </issue>
-
-    <issue
-        id="ComposeNonRestartableComposable"
-        message="This composable&apos;s body only delegates to another composable. Consider marking it @NonRestartableComposable when its own restart and skip boundary is unlikely to be useful. The annotation avoids generating that code, but also prevents the wrapper from being restarted or skipped independently.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-unnecessary-restart-groups for more information."
-        errorLine1="@Composable"
-        errorLine2="~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/makd/afinity/ui/components/AfinitySlider.kt"
-            line="54"
-            column="1"/>
-    </issue>
-
-    <issue
-        id="ComposeNonRestartableComposable"
-        message="This composable&apos;s body only delegates to another composable. Consider marking it @NonRestartableComposable when its own restart and skip boundary is unlikely to be useful. The annotation avoids generating that code, but also prevents the wrapper from being restarted or skipped independently.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-unnecessary-restart-groups for more information."
-        errorLine1="@Composable"
-        errorLine2="~~~~~~~~~~~">
-        <location
             file="src/main/java/com/makd/afinity/ui/item/components/shared/CastSection.kt"
-            line="90"
+            line="92"
             column="1"/>
     </issue>
 
@@ -2607,7 +2487,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/item/components/shared/SimilarItemsSection.kt"
-            line="41"
+            line="48"
             column="1"/>
     </issue>
 
@@ -2816,7 +2696,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="319"
+            line="318"
             column="13"/>
     </issue>
 
@@ -2827,7 +2707,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="778"
+            line="777"
             column="13"/>
     </issue>
 
@@ -2838,7 +2718,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="779"
+            line="778"
             column="13"/>
     </issue>
 
@@ -2849,7 +2729,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="934"
+            line="899"
             column="13"/>
     </issue>
 
@@ -2860,7 +2740,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1061"
+            line="1026"
             column="13"/>
     </issue>
 
@@ -2871,7 +2751,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1112"
+            line="1077"
             column="13"/>
     </issue>
 
@@ -2882,7 +2762,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1113"
+            line="1078"
             column="13"/>
     </issue>
 
@@ -2893,7 +2773,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1114"
+            line="1079"
             column="13"/>
     </issue>
 
@@ -2904,7 +2784,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1115"
+            line="1080"
             column="13"/>
     </issue>
 
@@ -2915,7 +2795,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1168"
+            line="1131"
             column="13"/>
     </issue>
 
@@ -2926,7 +2806,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1308"
+            line="1271"
             column="13"/>
     </issue>
 
@@ -2937,7 +2817,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1324"
+            line="1287"
             column="13"/>
     </issue>
 
@@ -2948,7 +2828,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1350"
+            line="1313"
             column="13"/>
     </issue>
 
@@ -2959,7 +2839,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1351"
+            line="1314"
             column="13"/>
     </issue>
 
@@ -2970,7 +2850,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1352"
+            line="1315"
             column="13"/>
     </issue>
 
@@ -2981,7 +2861,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1353"
+            line="1316"
             column="13"/>
     </issue>
 
@@ -2992,7 +2872,7 @@
         errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1354"
+            line="1317"
             column="14"/>
     </issue>
 
@@ -3003,7 +2883,7 @@
         errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1358"
+            line="1321"
             column="14"/>
     </issue>
 
@@ -3014,7 +2894,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1367"
+            line="1330"
             column="13"/>
     </issue>
 
@@ -3025,7 +2905,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1368"
+            line="1331"
             column="13"/>
     </issue>
 
@@ -3036,18 +2916,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1369"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="UnusedResources"
-        message="The resource `R.string.pref_group_exoplayer` appears to be unused"
-        errorLine1="    &lt;string name=&quot;pref_group_exoplayer&quot;>ExoPlayer Options&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="1419"
+            line="1332"
             column="13"/>
     </issue>
 
@@ -3058,7 +2927,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1643"
+            line="1560"
             column="13"/>
     </issue>
 
@@ -3069,7 +2938,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1644"
+            line="1561"
             column="13"/>
     </issue>
 
@@ -3080,7 +2949,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1645"
+            line="1562"
             column="13"/>
     </issue>
 
@@ -3091,7 +2960,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1658"
+            line="1575"
             column="13"/>
     </issue>
 
@@ -3102,7 +2971,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1695"
+            line="1612"
             column="13"/>
     </issue>
 
@@ -3113,7 +2982,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1716"
+            line="1633"
             column="13"/>
     </issue>
 
@@ -3124,7 +2993,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1722"
+            line="1639"
             column="13"/>
     </issue>
 
@@ -3135,7 +3004,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1734"
+            line="1651"
             column="13"/>
     </issue>
 
@@ -3146,7 +3015,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1740"
+            line="1657"
             column="13"/>
     </issue>
 
@@ -3157,7 +3026,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1741"
+            line="1658"
             column="13"/>
     </issue>
 
@@ -3168,7 +3037,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1763"
+            line="1680"
             column="13"/>
     </issue>
 
@@ -3179,7 +3048,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1768"
+            line="1685"
             column="13"/>
     </issue>
 
@@ -3190,7 +3059,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="2404"
+            line="2321"
             column="13"/>
     </issue>
 
@@ -3201,7 +3070,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="2667"
+            line="2584"
             column="13"/>
     </issue>
 
@@ -3212,7 +3081,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="2692"
+            line="2609"
             column="13"/>
     </issue>
 
@@ -3223,7 +3092,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="2725"
+            line="2642"
             column="13"/>
     </issue>
 
@@ -3234,7 +3103,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="2728"
+            line="2645"
             column="13"/>
     </issue>
 
@@ -3245,7 +3114,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="2766"
+            line="2714"
             column="13"/>
     </issue>
 
@@ -3256,7 +3125,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="2767"
+            line="2715"
             column="13"/>
     </issue>
 
@@ -3267,7 +3136,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="2768"
+            line="2716"
             column="13"/>
     </issue>
 
@@ -3278,7 +3147,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="2787"
+            line="2735"
             column="13"/>
     </issue>
 
@@ -3289,7 +3158,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="2803"
+            line="2751"
             column="13"/>
     </issue>
 
@@ -3300,7 +3169,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="2815"
+            line="2763"
             column="13"/>
     </issue>
 
@@ -3311,7 +3180,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="2816"
+            line="2764"
             column="13"/>
     </issue>
 
@@ -3322,7 +3191,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="2838"
+            line="2786"
             column="13"/>
     </issue>
 
@@ -3333,7 +3202,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="2895"
+            line="2843"
             column="13"/>
     </issue>
 
@@ -3344,7 +3213,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="3103"
+            line="3051"
             column="13"/>
     </issue>
 
@@ -3355,7 +3224,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="3105"
+            line="3053"
             column="13"/>
     </issue>
 
@@ -3366,7 +3235,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="3151"
+            line="3094"
             column="13"/>
     </issue>
 
@@ -3377,7 +3246,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="3171"
+            line="3114"
             column="13"/>
     </issue>
 
@@ -3388,7 +3257,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="3454"
+            line="3397"
             column="13"/>
     </issue>
 
@@ -3399,7 +3268,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="3455"
+            line="3398"
             column="13"/>
     </issue>
 
@@ -3410,7 +3279,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="3516"
+            line="3459"
             column="13"/>
     </issue>
 
@@ -3421,7 +3290,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="3713"
+            line="3656"
             column="13"/>
     </issue>
 
@@ -3432,7 +3301,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="3778"
+            line="3721"
             column="13"/>
     </issue>
 
@@ -3443,7 +3312,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="3779"
+            line="3722"
             column="13"/>
     </issue>
 
@@ -3454,7 +3323,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="3780"
+            line="3723"
             column="13"/>
     </issue>
 
@@ -3465,7 +3334,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="3847"
+            line="3790"
             column="13"/>
     </issue>
 
@@ -3476,7 +3345,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="3938"
+            line="3881"
             column="13"/>
     </issue>
 
@@ -3487,7 +3356,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="4017"
+            line="3960"
             column="13"/>
     </issue>
 
@@ -3498,7 +3367,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="4018"
+            line="3961"
             column="13"/>
     </issue>
 
@@ -3597,7 +3466,7 @@
         errorLine2="                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-ru/strings.xml"
-            line="2858"
+            line="2787"
             column="39"/>
     </issue>
 
@@ -4081,7 +3950,7 @@
         errorLine2="                                  ~~~~~~~~">
         <location
             file="src/main/res/values-ja/strings.xml"
-            line="129"
+            line="128"
             column="35"/>
     </issue>
 
@@ -4103,7 +3972,7 @@
         errorLine2="                                  ~~~~~~~~~~~~">
         <location
             file="src/main/res/values-bn/strings.xml"
-            line="134"
+            line="133"
             column="35"/>
     </issue>
 
@@ -4114,7 +3983,7 @@
         errorLine2="                                  ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-hi/strings.xml"
-            line="134"
+            line="133"
             column="35"/>
     </issue>
 
@@ -4125,7 +3994,7 @@
         errorLine2="                                  ~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-pt-rBR/strings.xml"
-            line="134"
+            line="133"
             column="35"/>
     </issue>
 
@@ -4136,7 +4005,7 @@
         errorLine2="                                  ~~~~~~~~~~~">
         <location
             file="src/main/res/values-es/strings.xml"
-            line="135"
+            line="134"
             column="35"/>
     </issue>
 
@@ -4191,7 +4060,7 @@
         errorLine2="                                          ~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-ja/strings.xml"
-            line="250"
+            line="249"
             column="43"/>
     </issue>
 
@@ -4213,7 +4082,7 @@
         errorLine2="                                          ~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-bn/strings.xml"
-            line="258"
+            line="257"
             column="43"/>
     </issue>
 
@@ -4224,7 +4093,7 @@
         errorLine2="                                          ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-hi/strings.xml"
-            line="258"
+            line="257"
             column="43"/>
     </issue>
 
@@ -4235,7 +4104,7 @@
         errorLine2="                                          ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-pt-rBR/strings.xml"
-            line="258"
+            line="257"
             column="43"/>
     </issue>
 
@@ -4279,338 +4148,8 @@
         errorLine2="                                          ~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-it/strings.xml"
-            line="313"
+            line="312"
             column="43"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;btn_downloading&quot;>Wird heruntergeladen...&lt;/string>"
-        errorLine2="                                   ~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-de/strings.xml"
-            line="344"
-            column="36"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;update_status_downloading&quot;>Wird heruntergeladen...&lt;/string>"
-        errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-de/strings.xml"
-            line="345"
-            column="46"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;update_status_checking&quot;>Wird überprüft...&lt;/string>"
-        errorLine2="                                          ~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-de/strings.xml"
-            line="350"
-            column="43"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;btn_downloading&quot;>ダウンロード中...&lt;/string>"
-        errorLine2="                                   ~~~~~~~~~~">
-        <location
-            file="src/main/res/values-ja/strings.xml"
-            line="461"
-            column="36"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;btn_downloading&quot;>A descarregar...&lt;/string>"
-        errorLine2="                                   ~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-pt/strings.xml"
-            line="465"
-            column="36"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;update_status_checking&quot;>チェック中...&lt;/string>"
-        errorLine2="                                          ~~~~~~~~">
-        <location
-            file="src/main/res/values-ja/strings.xml"
-            line="466"
-            column="43"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;update_status_downloading&quot;>ダウンロード中...&lt;/string>"
-        errorLine2="                                             ~~~~~~~~~~">
-        <location
-            file="src/main/res/values-ja/strings.xml"
-            line="467"
-            column="46"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;update_status_checking&quot;>A verificar...&lt;/string>"
-        errorLine2="                                          ~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-pt/strings.xml"
-            line="470"
-            column="43"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;btn_downloading&quot;>ডাউনলোড হচ্ছে...&lt;/string>"
-        errorLine2="                                   ~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-bn/strings.xml"
-            line="471"
-            column="36"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;btn_downloading&quot;>डाउनलोड हो रहा है...&lt;/string>"
-        errorLine2="                                   ~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-hi/strings.xml"
-            line="471"
-            column="36"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;btn_downloading&quot;>Baixando...&lt;/string>"
-        errorLine2="                                   ~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-pt-rBR/strings.xml"
-            line="471"
-            column="36"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;update_status_downloading&quot;>A descarregar...&lt;/string>"
-        errorLine2="                                             ~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-pt/strings.xml"
-            line="471"
-            column="46"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;update_status_checking&quot;>পরীক্ষা করা হচ্ছে...&lt;/string>"
-        errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-bn/strings.xml"
-            line="476"
-            column="43"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;update_status_checking&quot;>जाँच हो रही है...&lt;/string>"
-        errorLine2="                                          ~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-hi/strings.xml"
-            line="476"
-            column="43"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;update_status_checking&quot;>Verificando...&lt;/string>"
-        errorLine2="                                          ~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-pt-rBR/strings.xml"
-            line="476"
-            column="43"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;update_status_downloading&quot;>ডাউনলোড হচ্ছে...&lt;/string>"
-        errorLine2="                                             ~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-bn/strings.xml"
-            line="477"
-            column="46"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;update_status_downloading&quot;>डाउनलोड हो रहा है...&lt;/string>"
-        errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-hi/strings.xml"
-            line="477"
-            column="46"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;update_status_downloading&quot;>Baixando...&lt;/string>"
-        errorLine2="                                             ~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-pt-rBR/strings.xml"
-            line="477"
-            column="46"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;btn_downloading&quot;>Изтегляне...&lt;/string>"
-        errorLine2="                                   ~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-bg/strings.xml"
-            line="483"
-            column="36"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;update_status_checking&quot;>Проверка...&lt;/string>"
-        errorLine2="                                          ~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-bg/strings.xml"
-            line="488"
-            column="43"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;update_status_downloading&quot;>Изтегляне...&lt;/string>"
-        errorLine2="                                             ~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-bg/strings.xml"
-            line="489"
-            column="46"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;btn_downloading&quot;>İndiriliyor...&lt;/string>"
-        errorLine2="                                   ~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-tr/strings.xml"
-            line="493"
-            column="36"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;update_status_checking&quot;>Denetleniyor...&lt;/string>"
-        errorLine2="                                          ~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-tr/strings.xml"
-            line="498"
-            column="43"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;update_status_downloading&quot;>İndirliyor...&lt;/string>"
-        errorLine2="                                             ~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-tr/strings.xml"
-            line="499"
-            column="46"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;btn_downloading&quot;>பதிவிறக்குகிறது...&lt;/string>"
-        errorLine2="                                   ~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-ta/strings.xml"
-            line="510"
-            column="36"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;btn_downloading&quot;>Pobieranie...&lt;/string>"
-        errorLine2="                                   ~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-pl/strings.xml"
-            line="511"
-            column="36"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;update_status_checking&quot;>சரிபார்க்கிறது...&lt;/string>"
-        errorLine2="                                          ~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-ta/strings.xml"
-            line="515"
-            column="43"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;update_status_checking&quot;>Sprawdzanie...&lt;/string>"
-        errorLine2="                                          ~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-pl/strings.xml"
-            line="516"
-            column="43"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;update_status_downloading&quot;>பதிவிறக்குகிறது...&lt;/string>"
-        errorLine2="                                             ~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-ta/strings.xml"
-            line="516"
-            column="46"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;update_status_downloading&quot;>Pobieranie...&lt;/string>"
-        errorLine2="                                             ~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-pl/strings.xml"
-            line="517"
-            column="46"/>
     </issue>
 
     <issue
@@ -4620,7 +4159,7 @@
         errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/strings.xml"
-            line="564"
+            line="527"
             column="43"/>
     </issue>
 
@@ -4631,7 +4170,7 @@
         errorLine2="                                      ~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-tr/strings.xml"
-            line="627"
+            line="587"
             column="39"/>
     </issue>
 
@@ -4642,7 +4181,7 @@
         errorLine2="                                      ~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-es/strings.xml"
-            line="636"
+            line="595"
             column="39"/>
     </issue>
 
@@ -4653,7 +4192,7 @@
         errorLine2="                                      ~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-ta/strings.xml"
-            line="652"
+            line="612"
             column="39"/>
     </issue>
 
@@ -4664,7 +4203,7 @@
         errorLine2="                                      ~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-pl/strings.xml"
-            line="654"
+            line="614"
             column="39"/>
     </issue>
 
@@ -4675,7 +4214,7 @@
         errorLine2="                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-tr/strings.xml"
-            line="863"
+            line="820"
             column="44"/>
     </issue>
 
@@ -4686,7 +4225,7 @@
         errorLine2="                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-ta/strings.xml"
-            line="889"
+            line="846"
             column="44"/>
     </issue>
 
@@ -4814,7 +4353,7 @@
         errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/components/AdminUnsavedChanges.kt"
-            line="22"
+            line="23"
             column="1"/>
     </issue>
 
@@ -4832,8 +4371,8 @@
     <issue
         id="ComposeCompositionLocalUsage"
         message="`CompositionLocal`s are implicit dependencies and creating new ones should be avoided.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#compositionlocals for more information."
-        errorLine1="val LocalOriginalImages = compositionLocalOf { false }"
-        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="val LocalOriginalImages = staticCompositionLocalOf { false }"
+        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/components/AsyncImage.kt"
             line="48"
@@ -4843,11 +4382,11 @@
     <issue
         id="ComposeCompositionLocalUsage"
         message="`CompositionLocal`s are implicit dependencies and creating new ones should be avoided.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#compositionlocals for more information."
-        errorLine1="val LocalCardSize = compositionLocalOf { CardSize.DEFAULT }"
-        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="val LocalCardSize = staticCompositionLocalOf { CardSize.DEFAULT }"
+        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/theme/CardDimensions.kt"
-            line="23"
+            line="24"
             column="1"/>
     </issue>
 
@@ -4876,8 +4415,8 @@
     <issue
         id="ComposeCompositionLocalUsage"
         message="`CompositionLocal`s are implicit dependencies and creating new ones should be avoided.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#compositionlocals for more information."
-        errorLine1="val LocalDetailLayout = compositionLocalOf { DetailLayout.CLASSIC }"
-        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="val LocalDetailLayout = staticCompositionLocalOf { DetailLayout.CLASSIC }"
+        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/item/components/shared/DetailListItems.kt"
             line="21"
@@ -4891,7 +4430,7 @@
         errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/components/HeroCarousel.kt"
-            line="186"
+            line="190"
             column="1"/>
     </issue>
 
@@ -4902,7 +4441,7 @@
         errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/components/HeroCarousel.kt"
-            line="190"
+            line="194"
             column="1"/>
     </issue>
 
@@ -4913,7 +4452,7 @@
         errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/components/HeroCarousel.kt"
-            line="192"
+            line="196"
             column="1"/>
     </issue>
 
@@ -4935,62 +4474,62 @@
         errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/navigation/MainNavigation.kt"
-            line="167"
+            line="160"
             column="1"/>
     </issue>
 
     <issue
         id="ComposeCompositionLocalUsage"
         message="`CompositionLocal`s are implicit dependencies and creating new ones should be avoided.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#compositionlocals for more information."
-        errorLine1="val LocalSideSheetEnabled = compositionLocalOf { true }"
-        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/makd/afinity/navigation/MainNavigation.kt"
-            line="168"
-            column="1"/>
-    </issue>
-
-    <issue
-        id="ComposeCompositionLocalUsage"
-        message="`CompositionLocal`s are implicit dependencies and creating new ones should be avoided.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#compositionlocals for more information."
-        errorLine1="val LocalShowRatings = compositionLocalOf { true }"
-        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/makd/afinity/navigation/MainNavigation.kt"
-            line="169"
-            column="1"/>
-    </issue>
-
-    <issue
-        id="ComposeCompositionLocalUsage"
-        message="`CompositionLocal`s are implicit dependencies and creating new ones should be avoided.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#compositionlocals for more information."
-        errorLine1="val LocalBlurUnwatchedEpisodes = compositionLocalOf { false }"
+        errorLine1="val LocalSideSheetEnabled = staticCompositionLocalOf { true }"
         errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/navigation/MainNavigation.kt"
-            line="170"
+            line="161"
             column="1"/>
     </issue>
 
     <issue
         id="ComposeCompositionLocalUsage"
         message="`CompositionLocal`s are implicit dependencies and creating new ones should be avoided.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#compositionlocals for more information."
-        errorLine1="val LocalShowAwards = compositionLocalOf { true }"
-        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="val LocalShowRatings = staticCompositionLocalOf { true }"
+        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/navigation/MainNavigation.kt"
-            line="172"
+            line="162"
             column="1"/>
     </issue>
 
     <issue
         id="ComposeCompositionLocalUsage"
         message="`CompositionLocal`s are implicit dependencies and creating new ones should be avoided.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#compositionlocals for more information."
-        errorLine1="val LocalHeroStyle = compositionLocalOf { HeroStyle.FULL_BLEED }"
-        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="val LocalBlurUnwatchedEpisodes = staticCompositionLocalOf { false }"
+        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/navigation/MainNavigation.kt"
-            line="174"
+            line="163"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="ComposeCompositionLocalUsage"
+        message="`CompositionLocal`s are implicit dependencies and creating new ones should be avoided.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#compositionlocals for more information."
+        errorLine1="val LocalShowAwards = staticCompositionLocalOf { true }"
+        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/makd/afinity/navigation/MainNavigation.kt"
+            line="165"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="ComposeCompositionLocalUsage"
+        message="`CompositionLocal`s are implicit dependencies and creating new ones should be avoided.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#compositionlocals for more information."
+        errorLine1="val LocalHeroStyle = staticCompositionLocalOf { HeroStyle.FULL_BLEED }"
+        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/makd/afinity/navigation/MainNavigation.kt"
+            line="167"
             column="1"/>
     </issue>
 
@@ -5052,6 +4591,17 @@
     <issue
         id="ComposeModifierMissing"
         message="This @Composable function emits content but doesn&apos;t have a modifier parameter.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#when-should-i-expose-modifier-parameters for more information."
+        errorLine1="fun AbsFilterSheet("
+        errorLine2="    ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/makd/afinity/ui/audiobookshelf/libraries/AbsFilterSheet.kt"
+            line="23"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposeModifierMissing"
+        message="This @Composable function emits content but doesn&apos;t have a modifier parameter.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#when-should-i-expose-modifier-parameters for more information."
         errorLine1="fun &lt;T : Any> AdminLoadContent("
         errorLine2="              ~~~~~~~~~~~~~~~~">
         <location
@@ -5067,7 +4617,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/components/AdminSchedulePickers.kt"
-            line="124"
+            line="125"
             column="5"/>
     </issue>
 
@@ -5089,7 +4639,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/widget/AudioWidgetConfigScreen.kt"
-            line="88"
+            line="82"
             column="5"/>
     </issue>
 
@@ -5122,7 +4672,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/audiobookshelf/item/AudiobookshelfItemScreen.kt"
-            line="110"
+            line="111"
             column="5"/>
     </issue>
 
@@ -5144,7 +4694,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/audiobookshelf/libraries/AudiobookshelfLibraryScreen.kt"
-            line="38"
+            line="50"
             column="5"/>
     </issue>
 
@@ -5166,7 +4716,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/audiobookshelf/libraries/AudiobookshelfSeriesListScreen.kt"
-            line="21"
+            line="32"
             column="5"/>
     </issue>
 
@@ -5188,7 +4738,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/item/components/shared/BaseMediaDetailContent.kt"
-            line="260"
+            line="262"
             column="5"/>
     </issue>
 
@@ -5221,7 +4771,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/player/cast/CastInfoBottomSheet.kt"
-            line="42"
+            line="43"
             column="5"/>
     </issue>
 
@@ -5287,7 +4837,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/config/ConfigFormScreen.kt"
-            line="207"
+            line="208"
             column="5"/>
     </issue>
 
@@ -5342,7 +4892,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/requests/DiscoverFilterBottomSheet.kt"
-            line="89"
+            line="90"
             column="5"/>
     </issue>
 
@@ -5353,7 +4903,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/downloads/DownloadSettingsScreen.kt"
-            line="966"
+            line="967"
             column="5"/>
     </issue>
 
@@ -5364,7 +4914,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/downloads/DownloadSettingsScreen.kt"
-            line="1255"
+            line="1256"
             column="5"/>
     </issue>
 
@@ -5375,7 +4925,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/downloads/DownloadSettingsScreen.kt"
-            line="1411"
+            line="1410"
             column="5"/>
     </issue>
 
@@ -5386,7 +4936,7 @@
         errorLine2="    ~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/downloads/DownloadSettingsScreen.kt"
-            line="1554"
+            line="1553"
             column="5"/>
     </issue>
 
@@ -5397,7 +4947,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/images/EditImagesScreen.kt"
-            line="156"
+            line="157"
             column="5"/>
     </issue>
 
@@ -5408,7 +4958,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/lyrics/EditLyricsScreen.kt"
-            line="83"
+            line="84"
             column="5"/>
     </issue>
 
@@ -5419,7 +4969,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/metadata/EditMetadataScreen.kt"
-            line="239"
+            line="240"
             column="5"/>
     </issue>
 
@@ -5474,7 +5024,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/item/components/shared/ExternalTitlesSection.kt"
-            line="33"
+            line="35"
             column="5"/>
     </issue>
 
@@ -5496,7 +5046,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/components/filter/FilterSheetComponents.kt"
-            line="81"
+            line="82"
             column="5"/>
     </issue>
 
@@ -5507,7 +5057,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/components/filter/FilterSheetComponents.kt"
-            line="93"
+            line="94"
             column="5"/>
     </issue>
 
@@ -5518,7 +5068,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/components/filter/FilterSheetComponents.kt"
-            line="147"
+            line="148"
             column="9"/>
     </issue>
 
@@ -5540,7 +5090,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/home/components/HighestRatedSection.kt"
-            line="50"
+            line="52"
             column="5"/>
     </issue>
 
@@ -5551,7 +5101,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/home/components/HighestRatedSection.kt"
-            line="78"
+            line="90"
             column="5"/>
     </issue>
 
@@ -5562,7 +5112,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/home/components/HomeSections.kt"
-            line="76"
+            line="77"
             column="5"/>
     </issue>
 
@@ -5573,7 +5123,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/home/components/HomeSections.kt"
-            line="101"
+            line="113"
             column="5"/>
     </issue>
 
@@ -5584,7 +5134,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/home/components/HomeSections.kt"
-            line="196"
+            line="219"
             column="5"/>
     </issue>
 
@@ -5595,7 +5145,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/home/components/HomeSections.kt"
-            line="241"
+            line="275"
             column="5"/>
     </issue>
 
@@ -5606,7 +5156,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/home/components/HomeSections.kt"
-            line="253"
+            line="294"
             column="5"/>
     </issue>
 
@@ -5617,7 +5167,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/home/components/HomeSections.kt"
-            line="380"
+            line="433"
             column="5"/>
     </issue>
 
@@ -5628,7 +5178,7 @@
         errorLine2="                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/home/components/HomeSections.kt"
-            line="459"
+            line="533"
             column="23"/>
     </issue>
 
@@ -5738,7 +5288,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/components/mediainfo/MediaInfoSheet.kt"
-            line="108"
+            line="107"
             column="5"/>
     </issue>
 
@@ -5749,7 +5299,7 @@
         errorLine2="    ~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/components/mediainfo/MediaInfoSheet.kt"
-            line="216"
+            line="215"
             column="5"/>
     </issue>
 
@@ -5771,7 +5321,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/home/components/MediaRowSkeleton.kt"
-            line="26"
+            line="27"
             column="5"/>
     </issue>
 
@@ -5822,17 +5372,6 @@
     <issue
         id="ComposeModifierMissing"
         message="This @Composable function emits content but doesn&apos;t have a modifier parameter.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#when-should-i-expose-modifier-parameters for more information."
-        errorLine1="fun MpvDeviceCheckEntry("
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/makd/afinity/ui/settings/player/MpvDeviceCheckItem.kt"
-            line="80"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="ComposeModifierMissing"
-        message="This @Composable function emits content but doesn&apos;t have a modifier parameter.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#when-should-i-expose-modifier-parameters for more information."
         errorLine1="fun MusicAlbumScreen("
         errorLine2="    ~~~~~~~~~~~~~~~~">
         <location
@@ -5859,7 +5398,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/music/library/MusicBrowseScreen.kt"
-            line="55"
+            line="53"
             column="5"/>
     </issue>
 
@@ -5954,17 +5493,6 @@
     <issue
         id="ComposeModifierMissing"
         message="This @Composable function emits content but doesn&apos;t have a modifier parameter.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#when-should-i-expose-modifier-parameters for more information."
-        errorLine1="fun MusicSortDialog("
-        errorLine2="    ~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/makd/afinity/ui/music/library/MusicSortDialog.kt"
-            line="43"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="ComposeModifierMissing"
-        message="This @Composable function emits content but doesn&apos;t have a modifier parameter.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#when-should-i-expose-modifier-parameters for more information."
         errorLine1="fun NextUpSection("
         errorLine2="    ~~~~~~~~~~~~~">
         <location
@@ -5991,7 +5519,7 @@
         errorLine2="    ~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/item/components/shared/PeopleDialog.kt"
-            line="40"
+            line="41"
             column="5"/>
     </issue>
 
@@ -6035,7 +5563,7 @@
         errorLine2="    ~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/player/components/PlayerControls.kt"
-            line="162"
+            line="163"
             column="5"/>
     </issue>
 
@@ -6079,7 +5607,7 @@
         errorLine2="    ~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/playlist/PlaylistScreen.kt"
-            line="105"
+            line="106"
             column="5"/>
     </issue>
 
@@ -6101,7 +5629,7 @@
         errorLine2="    ~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/home/components/PopularStudiosSection.kt"
-            line="65"
+            line="75"
             column="5"/>
     </issue>
 
@@ -6167,7 +5695,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/components/RequestConfirmationDialog.kt"
-            line="1081"
+            line="1082"
             column="9"/>
     </issue>
 
@@ -6178,7 +5706,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/components/RequestConfirmationDialog.kt"
-            line="1176"
+            line="1177"
             column="9"/>
     </issue>
 
@@ -6189,7 +5717,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/components/RequestConfirmationDialog.kt"
-            line="1257"
+            line="1258"
             column="5"/>
     </issue>
 
@@ -6211,7 +5739,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/servers/components/SessionRemoteSheet.kt"
-            line="106"
+            line="108"
             column="5"/>
     </issue>
 
@@ -6233,7 +5761,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/item/components/shared/SimilarItemsSection.kt"
-            line="21"
+            line="22"
             column="5"/>
     </issue>
 
@@ -6246,6 +5774,17 @@
             file="src/main/java/com/makd/afinity/ui/player/components/SleepTimerPanel.kt"
             line="65"
             column="5"/>
+    </issue>
+
+    <issue
+        id="ComposeModifierMissing"
+        message="This @Composable function emits content but doesn&apos;t have a modifier parameter.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#when-should-i-expose-modifier-parameters for more information."
+        errorLine1="fun &lt;T> SortOptionsDialog("
+        errorLine2="        ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/makd/afinity/ui/components/SortOptionsDialog.kt"
+            line="40"
+            column="9"/>
     </issue>
 
     <issue
@@ -6299,7 +5838,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/item/components/VersionPickerDialog.kt"
-            line="31"
+            line="32"
             column="5"/>
     </issue>
 
@@ -6343,7 +5882,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/config/ConfigFormScreen.kt"
-            line="749"
+            line="751"
             column="5"/>
     </issue>
 
@@ -6354,7 +5893,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/home/components/FranchisesSection.kt"
-            line="203"
+            line="213"
             column="5"/>
     </issue>
 
@@ -6365,7 +5904,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/components/HeroCarousel.kt"
-            line="836"
+            line="903"
             column="5"/>
     </issue>
 
@@ -6376,7 +5915,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/components/HeroCarousel.kt"
-            line="912"
+            line="979"
             column="5"/>
     </issue>
 
@@ -6409,7 +5948,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/onboarding/ServicesHubScreen.kt"
-            line="585"
+            line="589"
             column="5"/>
     </issue>
 
@@ -6431,7 +5970,7 @@
         errorLine2="^">
         <location
             file="src/main/java/com/makd/afinity/ui/components/DetailBackdrop.kt"
-            line="69"
+            line="72"
             column="1"/>
     </issue>
 
@@ -6453,7 +5992,7 @@
         errorLine2="^">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/player/PlayerOptionsScreen.kt"
-            line="1359"
+            line="1154"
             column="1"/>
     </issue>
 
@@ -6464,7 +6003,7 @@
         errorLine2="^">
         <location
             file="src/main/java/com/makd/afinity/ui/playlist/PlaylistScreen.kt"
-            line="802"
+            line="806"
             column="1"/>
     </issue>
 
@@ -6488,17 +6027,6 @@
             file="src/main/java/com/makd/afinity/ui/music/components/TracksHeaderPanel.kt"
             line="167"
             column="1"/>
-    </issue>
-
-    <issue
-        id="ComposeMutableParameters"
-        message="Using mutable objects as state in Compose will cause your users to see incorrect or stale data in your app. Mutable objects that are not observable, such as ArrayList&lt;T> or a mutable data class, cannot be observed by Compose to trigger recomposition when they change.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#do-not-use-inherently-mutable-types-as-parameters for more information."
-        errorLine1="    codeState: MutableState&lt;String>,"
-        errorLine2="               ~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/makd/afinity/ui/settings/QuickConnectDigitEntry.kt"
-            line="53"
-            column="16"/>
     </issue>
 
     <issue
@@ -6530,7 +6058,7 @@
         errorLine2="                    ^">
         <location
             file="src/main/java/com/makd/afinity/ui/item/components/shared/CastSection.kt"
-            line="77"
+            line="78"
             column="21"/>
     </issue>
 
@@ -6541,7 +6069,7 @@
         errorLine2="                          ^">
         <location
             file="src/main/java/com/makd/afinity/ui/item/components/shared/CastSection.kt"
-            line="138"
+            line="144"
             column="27"/>
     </issue>
 
@@ -6563,7 +6091,7 @@
         errorLine2="                          ^">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/downloads/DownloadSettingsScreen.kt"
-            line="117"
+            line="118"
             column="27"/>
     </issue>
 
@@ -6574,7 +6102,7 @@
         errorLine2="                        ^">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/downloads/DownloadSettingsScreen.kt"
-            line="966"
+            line="967"
             column="25"/>
     </issue>
 
@@ -6585,7 +6113,7 @@
         errorLine2="                           ^">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/downloads/DownloadSettingsScreen.kt"
-            line="1411"
+            line="1410"
             column="28"/>
     </issue>
 
@@ -6596,7 +6124,7 @@
         errorLine2="            ^">
         <location
             file="src/main/java/com/makd/afinity/ui/audiobookshelf/item/components/EpisodeList.kt"
-            line="352"
+            line="353"
             column="13"/>
     </issue>
 
@@ -6629,7 +6157,7 @@
         errorLine2="                       ^">
         <location
             file="src/main/java/com/makd/afinity/ui/requests/FilteredMediaScreen.kt"
-            line="66"
+            line="68"
             column="24"/>
     </issue>
 
@@ -6646,7 +6174,7 @@
 
     <issue
         id="ComposeParameterOrder"
-        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: `[modifier: Modifier = Modifier, isSeekEnabled: Boolean = true, onSingleTap: () -> Unit, onDoubleTap: (isForward: Boolean, xFraction: Float, offset: Offset) -> Boolean, onLongPressStart: (xFraction: Float) -> Unit = {}, onLongPressEnd: () -> Unit = {}, onBrightnessGesture: (percent: Float, isActive: Boolean) -> Unit, onVolumeGesture: (percent: Float, isActive: Boolean) -> Unit, onSeekGesture: (delta: Float) -> Unit, onSeekPreview: (isActive: Boolean) -> Unit = {}, content: @Composable () -> Unit]` but should be `[onSingleTap: () -> Unit, onDoubleTap: (isForward: Boolean, xFraction: Float, offset: Offset) -> Boolean, onBrightnessGesture: (percent: Float, isActive: Boolean) -> Unit, onVolumeGesture: (percent: Float, isActive: Boolean) -> Unit, onSeekGesture: (delta: Float) -> Unit, modifier: Modifier = Modifier, isSeekEnabled: Boolean = true, onLongPressStart: (xFraction: Float) -> Unit = {}, onLongPressEnd: () -> Unit = {}, onSeekPreview: (isActive: Boolean) -> Unit = {}, content: @Composable () -> Unit]`.&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: `[modifier: Modifier = Modifier, isSeekEnabled: Boolean = true, isSwipeSeekEnabled: Boolean = true, isBrightnessEnabled: Boolean = true, isVolumeEnabled: Boolean = true, onSingleTap: () -> Unit, onDoubleTap: (isForward: Boolean, xFraction: Float, offset: Offset) -> Boolean, onLongPressStart: (xFraction: Float) -> Unit = {}, onLongPressEnd: () -> Unit = {}, onBrightnessGesture: (percent: Float, isActive: Boolean) -> Unit, onVolumeGesture: (percent: Float, isActive: Boolean) -> Unit, onSeekGesture: (delta: Float) -> Unit, onSeekPreview: (isActive: Boolean) -> Unit = {}, content: @Composable () -> Unit]` but should be `[onSingleTap: () -> Unit, onDoubleTap: (isForward: Boolean, xFraction: Float, offset: Offset) -> Boolean, onBrightnessGesture: (percent: Float, isActive: Boolean) -> Unit, onVolumeGesture: (percent: Float, isActive: Boolean) -> Unit, onSeekGesture: (delta: Float) -> Unit, modifier: Modifier = Modifier, isSeekEnabled: Boolean = true, isSwipeSeekEnabled: Boolean = true, isBrightnessEnabled: Boolean = true, isVolumeEnabled: Boolean = true, onLongPressStart: (xFraction: Float) -> Unit = {}, onLongPressEnd: () -> Unit = {}, onSeekPreview: (isActive: Boolean) -> Unit = {}, content: @Composable () -> Unit]`.&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
         errorLine1="fun GestureHandler("
         errorLine2="                  ^">
         <location
@@ -6662,19 +6190,8 @@
         errorLine2="              ^">
         <location
             file="src/main/java/com/makd/afinity/ui/home/HomeScreen.kt"
-            line="124"
+            line="130"
             column="15"/>
-    </issue>
-
-    <issue
-        id="ComposeParameterOrder"
-        message="    Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;    Current params are: `[onPlayClick: (AfinityItem, PlaybackSelection?) -> Unit, onItemClick: (AfinityItem) -> Unit, onSeriesClick: (String) -> Unit, onSeasonClick: (AfinitySeason) -> Unit, onPersonClick: (String) -> Unit, onNavigateToSeerrMedia: (SearchResultItem) -> Unit, onMusicArtistClick: (String) -> Unit, onMusicAlbumClick: (String) -> Unit, onEditMetadataClick: (String) -> Unit, onEditImagesClick: (String) -> Unit, onIdentifyClick: (itemId: String, itemType: String) -> Unit, onItemDeleted: () -> Unit, onHomeClick: () -> Unit, modifier: Modifier = Modifier, onShowSnackbar: (String) -> Unit = {}, onCollectionCreated: (collectionId: String, message: String) -> Unit = { _, message ->&#xA;    onShowSnackbar(message)&#xA;}, viewModel: ItemDetailViewModel = hiltViewModel(), widthSizeClass: WindowWidthSizeClass]` but should be `[onPlayClick: (AfinityItem, PlaybackSelection?) -> Unit, onItemClick: (AfinityItem) -> Unit, onSeriesClick: (String) -> Unit, onSeasonClick: (AfinitySeason) -> Unit, onPersonClick: (String) -> Unit, onNavigateToSeerrMedia: (SearchResultItem) -> Unit, onMusicArtistClick: (String) -> Unit, onMusicAlbumClick: (String) -> Unit, onEditMetadataClick: (String) -> Unit, onEditImagesClick: (String) -> Unit, onIdentifyClick: (itemId: String, itemType: String) -> Unit, onItemDeleted: () -> Unit, onHomeClick: () -> Unit, widthSizeClass: WindowWidthSizeClass, modifier: Modifier = Modifier, onShowSnackbar: (String) -> Unit = {}, onCollectionCreated: (collectionId: String, message: String) -> Unit = { _, message ->&#xA;    onShowSnackbar(message)&#xA;}, viewModel: ItemDetailViewModel = hiltViewModel()]`.&#xA;    See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
-        errorLine1="fun ItemDetailScreen("
-        errorLine2="                    ^">
-        <location
-            file="src/main/java/com/makd/afinity/ui/item/ItemDetailScreen.kt"
-            line="133"
-            column="21"/>
     </issue>
 
     <issue
@@ -6684,7 +6201,7 @@
         errorLine2="                     ^">
         <location
             file="src/main/java/com/makd/afinity/ui/audiobookshelf/item/components/ItemHeader.kt"
-            line="65"
+            line="66"
             column="22"/>
     </issue>
 
@@ -6695,41 +6212,8 @@
         errorLine2="               ^">
         <location
             file="src/main/java/com/makd/afinity/ui/login/LoginScreen.kt"
-            line="111"
+            line="109"
             column="16"/>
-    </issue>
-
-    <issue
-        id="ComposeParameterOrder"
-        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: `[modifier: Modifier = Modifier, viewModel: AuthViewModel = hiltViewModel(), updateManager: UpdateManager, offlineModeManager: OfflineModeManager, widthSizeClass: WindowWidthSizeClass]` but should be `[updateManager: UpdateManager, offlineModeManager: OfflineModeManager, widthSizeClass: WindowWidthSizeClass, modifier: Modifier = Modifier, viewModel: AuthViewModel = hiltViewModel()]`.&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
-        errorLine1="private fun MainContent("
-        errorLine2="                       ^">
-        <location
-            file="src/main/java/com/makd/afinity/MainActivity.kt"
-            line="255"
-            column="24"/>
-    </issue>
-
-    <issue
-        id="ComposeParameterOrder"
-        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: `[modifier: Modifier = Modifier, mainViewModel: MainViewModel = hiltViewModel(), viewModel: MainNavigationViewModel = hiltViewModel(), updateManager: UpdateManager, offlineModeManager: OfflineModeManager, widthSizeClass: WindowWidthSizeClass, authState: AuthenticationState]` but should be `[updateManager: UpdateManager, offlineModeManager: OfflineModeManager, widthSizeClass: WindowWidthSizeClass, authState: AuthenticationState, modifier: Modifier = Modifier, mainViewModel: MainViewModel = hiltViewModel(), viewModel: MainNavigationViewModel = hiltViewModel()]`.&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
-        errorLine1="fun MainNavigation("
-        errorLine2="                  ^">
-        <location
-            file="src/main/java/com/makd/afinity/navigation/MainNavigation.kt"
-            line="178"
-            column="19"/>
-    </issue>
-
-    <issue
-        id="ComposeParameterOrder"
-        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: `[modifier: Modifier = Modifier, mpv: MPVLib, videoOutput: String = &quot;gpu&quot;, aspectRatio: Float = 0f, fitToVideo: Boolean = true, onSurfaceCreated: () -> Unit = {}, onSurfaceDestroyed: () -> Unit = {}]` but should be `[mpv: MPVLib, modifier: Modifier = Modifier, videoOutput: String = &quot;gpu&quot;, aspectRatio: Float = 0f, fitToVideo: Boolean = true, onSurfaceCreated: () -> Unit = {}, onSurfaceDestroyed: () -> Unit = {}]`.&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
-        errorLine1="fun MpvSurface("
-        errorLine2="              ^">
-        <location
-            file="src/main/java/com/makd/afinity/ui/player/components/MpvSurface.kt"
-            line="18"
-            column="15"/>
     </issue>
 
     <issue
@@ -6838,7 +6322,7 @@
         errorLine2="                       ^">
         <location
             file="src/main/java/com/makd/afinity/ui/player/components/PlayerControls.kt"
-            line="1213"
+            line="1214"
             column="24"/>
     </issue>
 
@@ -6849,7 +6333,7 @@
         errorLine2="                            ^">
         <location
             file="src/main/java/com/makd/afinity/ui/player/components/PlayerControls.kt"
-            line="1328"
+            line="1329"
             column="29"/>
     </issue>
 
@@ -6860,7 +6344,7 @@
         errorLine2="                          ^">
         <location
             file="src/main/java/com/makd/afinity/ui/player/components/PlayerControls.kt"
-            line="1436"
+            line="1437"
             column="27"/>
     </issue>
 
@@ -6871,7 +6355,7 @@
         errorLine2="                ^">
         <location
             file="src/main/java/com/makd/afinity/ui/player/PlayerScreen.kt"
-            line="71"
+            line="68"
             column="17"/>
     </issue>
 
@@ -6926,7 +6410,7 @@
         errorLine2="                    ^">
         <location
             file="src/main/java/com/makd/afinity/ui/components/RequestConfirmationDialog.kt"
-            line="1316"
+            line="1317"
             column="21"/>
     </issue>
 
@@ -6981,7 +6465,7 @@
         errorLine2="                 ^">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/SettingsScreen.kt"
-            line="786"
+            line="785"
             column="18"/>
     </issue>
 
@@ -6992,19 +6476,8 @@
         errorLine2="                              ^">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/servers/components/SharedComponents.kt"
-            line="514"
+            line="515"
             column="31"/>
-    </issue>
-
-    <issue
-        id="ComposeParameterOrder"
-        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: `[currentVersionName: String, release: GitHubRelease, downloadedFile: File? = null, isDownloading: Boolean, verification: ApkVerification = ApkVerification.UNVERIFIED, expectedSha256: String? = null, computedSha256: String? = null, onDownload: () -> Unit, onVerify: () -> Unit = {}, onInstall: (File) -> Unit, onDismiss: () -> Unit]` but should be `[currentVersionName: String, release: GitHubRelease, isDownloading: Boolean, onDownload: () -> Unit, onInstall: (File) -> Unit, downloadedFile: File? = null, verification: ApkVerification = ApkVerification.UNVERIFIED, expectedSha256: String? = null, computedSha256: String? = null, onVerify: () -> Unit = {}, onDismiss: () -> Unit]`.&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
-        errorLine1="fun UpdateAvailableDialog("
-        errorLine2="                         ^">
-        <location
-            file="src/main/java/com/makd/afinity/ui/settings/update/UpdateAvailableDialog.kt"
-            line="76"
-            column="26"/>
     </issue>
 
     <issue
@@ -7025,7 +6498,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/users/AccessScheduleDialog.kt"
-            line="215"
+            line="217"
             column="1"/>
     </issue>
 
@@ -7047,7 +6520,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/appearance/AppearanceOptionsScreen.kt"
-            line="553"
+            line="555"
             column="1"/>
     </issue>
 
@@ -7058,7 +6531,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/appearance/AppearanceOptionsScreen.kt"
-            line="614"
+            line="616"
             column="1"/>
     </issue>
 
@@ -7069,7 +6542,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/appearance/AppearanceOptionsScreen.kt"
-            line="730"
+            line="732"
             column="1"/>
     </issue>
 
@@ -7080,7 +6553,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/appearance/AppearanceOptionsScreen.kt"
-            line="739"
+            line="741"
             column="1"/>
     </issue>
 
@@ -7091,7 +6564,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/appearance/AppearanceOptionsScreen.kt"
-            line="799"
+            line="801"
             column="1"/>
     </issue>
 
@@ -7102,7 +6575,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/appearance/AppearanceOptionsScreen.kt"
-            line="809"
+            line="811"
             column="1"/>
     </issue>
 
@@ -7113,7 +6586,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/appearance/AppearanceOptionsScreen.kt"
-            line="866"
+            line="868"
             column="1"/>
     </issue>
 
@@ -7157,7 +6630,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/backup/BackupScreen.kt"
-            line="259"
+            line="262"
             column="1"/>
     </issue>
 
@@ -7289,7 +6762,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/config/ConfigFormScreen.kt"
-            line="512"
+            line="514"
             column="1"/>
     </issue>
 
@@ -7300,7 +6773,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/config/ConfigFormScreen.kt"
-            line="881"
+            line="883"
             column="1"/>
     </issue>
 
@@ -7344,7 +6817,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/home/CustomSectionsScreen.kt"
-            line="856"
+            line="857"
             column="1"/>
     </issue>
 
@@ -7355,7 +6828,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/home/CustomSectionsScreen.kt"
-            line="1074"
+            line="1075"
             column="1"/>
     </issue>
 
@@ -7366,7 +6839,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/requests/DiscoverFilterBottomSheet.kt"
-            line="68"
+            line="69"
             column="1"/>
     </issue>
 
@@ -7421,7 +6894,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/images/EditImagesScreen.kt"
-            line="141"
+            line="142"
             column="1"/>
     </issue>
 
@@ -7432,7 +6905,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/metadata/EditMetadataScreen.kt"
-            line="160"
+            line="161"
             column="1"/>
     </issue>
 
@@ -7443,7 +6916,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/metadata/EditMetadataScreen.kt"
-            line="173"
+            line="174"
             column="1"/>
     </issue>
 
@@ -7454,7 +6927,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/metadata/EditMetadataScreen.kt"
-            line="185"
+            line="186"
             column="1"/>
     </issue>
 
@@ -7465,7 +6938,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/metadata/EditMetadataScreen.kt"
-            line="204"
+            line="205"
             column="1"/>
     </issue>
 
@@ -7476,7 +6949,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/home/components/HomeSections.kt"
-            line="363"
+            line="416"
             column="1"/>
     </issue>
 
@@ -7597,7 +7070,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/player/PlayerOptionsScreen.kt"
-            line="133"
+            line="123"
             column="1"/>
     </issue>
 
@@ -7608,7 +7081,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/player/PlayerOptionsScreen.kt"
-            line="995"
+            line="883"
             column="1"/>
     </issue>
 
@@ -7619,7 +7092,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/player/PlayerOptionsScreen.kt"
-            line="1006"
+            line="894"
             column="1"/>
     </issue>
 
@@ -7630,7 +7103,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/player/PlayerOptionsScreen.kt"
-            line="1017"
+            line="905"
             column="1"/>
     </issue>
 
@@ -7641,7 +7114,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/player/PlayerOptionsScreen.kt"
-            line="2323"
+            line="1947"
             column="1"/>
     </issue>
 
@@ -7652,29 +7125,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/settings/player/PlayerOptionsScreen.kt"
-            line="2332"
-            column="1"/>
-    </issue>
-
-    <issue
-        id="ComposeReadOnlyComposable"
-        message="All composable functions and properties used by this declaration are marked @ReadOnlyComposable, so this declaration can be marked @ReadOnlyComposable too.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#remove-unnecessary-composable-annotations for more information."
-        errorLine1="@Composable"
-        errorLine2="~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/makd/afinity/ui/settings/player/PlayerOptionsScreen.kt"
-            line="2344"
-            column="1"/>
-    </issue>
-
-    <issue
-        id="ComposeReadOnlyComposable"
-        message="All composable functions and properties used by this declaration are marked @ReadOnlyComposable, so this declaration can be marked @ReadOnlyComposable too.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#remove-unnecessary-composable-annotations for more information."
-        errorLine1="@Composable"
-        errorLine2="~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/makd/afinity/ui/settings/player/PlayerOptionsScreen.kt"
-            line="2353"
+            line="1956"
             column="1"/>
     </issue>
 
@@ -7861,7 +7312,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/admin/tasks/TaskScheduleDialog.kt"
-            line="390"
+            line="393"
             column="1"/>
     </issue>
 
@@ -7912,17 +7363,6 @@
     <issue
         id="ComposeReadOnlyComposable"
         message="All composable functions and properties used by this declaration are marked @ReadOnlyComposable, so this declaration can be marked @ReadOnlyComposable too.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#remove-unnecessary-composable-annotations for more information."
-        errorLine1="@Composable"
-        errorLine2="~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/makd/afinity/ui/settings/update/UpdateSection.kt"
-            line="308"
-            column="1"/>
-    </issue>
-
-    <issue
-        id="ComposeReadOnlyComposable"
-        message="All composable functions and properties used by this declaration are marked @ReadOnlyComposable, so this declaration can be marked @ReadOnlyComposable too.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#remove-unnecessary-composable-annotations for more information."
         errorLine1="    @Composable get() = if (isDarkSurface()) Color(0xFF81C784) else Color(0xFF1B6E22)"
         errorLine2="    ~~~~~~~~~~~">
         <location
@@ -7938,7 +7378,7 @@
         errorLine2="~~~~~~~~~~~">
         <location
             file="src/main/java/com/makd/afinity/ui/item/components/VersionPickerDialog.kt"
-            line="114"
+            line="115"
             column="1"/>
     </issue>
 
