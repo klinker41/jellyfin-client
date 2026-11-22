@@ -2,6 +2,7 @@ package com.makd.afinity.ui.home.components
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,8 +30,12 @@ fun MediaRowSkeleton(
     itemCount: Int = 6,
     aspectRatio: Float = CardDimensions.ASPECT_RATIO_PORTRAIT,
     showText: Boolean = true,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
-    CardRow(modifier = Modifier.height(height)) {
+    CardRow(
+        modifier = Modifier.fillMaxWidth().height(height),
+        contentPadding = contentPadding,
+    ) {
         items(itemCount) {
             Column(modifier = Modifier.width(cardWidth)) {
                 Card(

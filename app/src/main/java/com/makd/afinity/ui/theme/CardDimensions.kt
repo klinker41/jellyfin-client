@@ -1,5 +1,6 @@
 package com.makd.afinity.ui.theme
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.material3.MaterialTheme
@@ -101,6 +102,7 @@ object CardDimensions {
     private const val LANDSCAPE_CARD_SPAN = 2
 
     val RowGutter = 16.dp
+    val RowContentPadding = PaddingValues(horizontal = RowGutter)
     val RowGap = 12.dp
     val GridRowGap = 16.dp
 

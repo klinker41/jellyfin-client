@@ -83,10 +83,17 @@ fun OptimizedContinueWatchingSection(
     val cardWidth = widthSizeClass.landscapeWidth
     val fixedRowHeight = CardDimensions.rowHeight(cardWidth, CardDimensions.ASPECT_RATIO_LANDSCAPE)
 
-    Column(modifier = Modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = stringResource(R.string.home_continue_watching))
+    Column {
+        HomeSectionHeader(
+            title = stringResource(R.string.home_continue_watching),
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+        )
 
-        CardRow(state = scrollState, modifier = Modifier.height(fixedRowHeight)) {
+        CardRow(
+            state = scrollState,
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(
                 items = items,
                 key = { item -> "continue_${item.id}" },
@@ -116,8 +123,11 @@ fun ContinueReadingSection(
             metadataHeight = CardDimensions.subtitleLine,
         )
 
-    Column(modifier = Modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = stringResource(R.string.home_continue_reading))
+    Column {
+        HomeSectionHeader(
+            title = stringResource(R.string.home_continue_reading),
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+        )
 
         val firstBookId = books.firstOrNull()?.id
         val scrollState = rememberCardRowListState()
@@ -133,7 +143,11 @@ fun ContinueReadingSection(
             }
         }
 
-        CardRow(state = scrollState, modifier = Modifier.height(fixedRowHeight)) {
+        CardRow(
+            state = scrollState,
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(
                 items = books,
                 key = { book -> "continue_reading_${book.id}" },
@@ -216,8 +230,11 @@ fun LatestGalleryRowSection(
             metadataHeight = 0.dp,
         )
 
-    Column(modifier = Modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = title)
+    Column {
+        HomeSectionHeader(
+            title = title,
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+        )
 
         val scrollState = rememberCardRowListState()
         val firstId = items.firstOrNull()?.id
@@ -230,7 +247,11 @@ fun LatestGalleryRowSection(
             if (firstId != null) lastKnownFirstId.value = firstId
         }
 
-        CardRow(state = scrollState, modifier = Modifier.height(fixedRowHeight)) {
+        CardRow(
+            state = scrollState,
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(
                 items = items,
                 key = { item -> "gallery_${item.id}" },
@@ -256,9 +277,16 @@ fun LatestMusicVideoRowSection(
     videos: List<AfinityMusicVideo>,
     onVideoClick: (AfinityMusicVideo) -> Unit,
 ) {
-    Column(modifier = Modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = title)
-        MusicVideoCardRow(videos = videos, onVideoClick = onVideoClick)
+    Column {
+        HomeSectionHeader(
+            title = title,
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+        )
+        MusicVideoCardRow(
+            videos = videos,
+            onVideoClick = onVideoClick,
+            contentPadding = CardDimensions.RowContentPadding,
+        )
     }
 }
 
@@ -279,8 +307,12 @@ fun AudiobookRowSection(
             metadataHeight = CardDimensions.subtitleLine,
         )
 
-    Column(modifier = Modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = title, onViewAllClick = onViewAllClick)
+    Column {
+        HomeSectionHeader(
+            title = title,
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+            onViewAllClick = onViewAllClick,
+        )
 
         val firstBookId = books.firstOrNull()?.id
         val scrollState = rememberCardRowListState()
@@ -296,7 +328,11 @@ fun AudiobookRowSection(
             }
         }
 
-        CardRow(state = scrollState, modifier = Modifier.height(fixedRowHeight)) {
+        CardRow(
+            state = scrollState,
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(
                 items = books,
                 key = { book -> "audiobook_${book.id}" },
@@ -404,8 +440,11 @@ fun OptimizedLatestMoviesSection(
     val cardWidth = widthSizeClass.portraitWidth
     val fixedRowHeight = CardDimensions.rowHeight(cardWidth, CardDimensions.ASPECT_RATIO_PORTRAIT)
 
-    Column(modifier = Modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = title)
+    Column {
+        HomeSectionHeader(
+            title = title,
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+        )
 
         val firstItemId = items.firstOrNull()?.id
         val scrollState = rememberCardRowListState()
@@ -421,7 +460,11 @@ fun OptimizedLatestMoviesSection(
             }
         }
 
-        CardRow(state = scrollState, modifier = Modifier.height(fixedRowHeight)) {
+        CardRow(
+            state = scrollState,
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(
                 items = items,
                 key = { item -> "latest_movie_${item.id}" },
@@ -454,10 +497,16 @@ fun LibrariesSection(
             metadataHeight = 0.dp,
         )
 
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = stringResource(R.string.libraries_title))
+    Column(modifier = modifier) {
+        HomeSectionHeader(
+            title = stringResource(R.string.libraries_title),
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+        )
 
-        CardRow(modifier = Modifier.height(fixedRowHeight)) {
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(
                 items = libraries,
                 key = { library -> "lib_${library.id}" },
@@ -502,8 +551,12 @@ fun <T : AfinityItem> OptimizedLatestTvSeriesSection(
             CardDimensions.rowHeight(cardWidth, CardDimensions.ASPECT_RATIO_PORTRAIT)
         }
 
-    Column(modifier = Modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = title, onViewAllClick = onViewAllClick)
+    Column {
+        HomeSectionHeader(
+            title = title,
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+            onViewAllClick = onViewAllClick,
+        )
 
         val firstItemId = items.firstOrNull()?.id
         val scrollState = rememberCardRowListState()
@@ -519,7 +572,11 @@ fun <T : AfinityItem> OptimizedLatestTvSeriesSection(
             }
         }
 
-        CardRow(state = scrollState, modifier = Modifier.height(fixedRowHeight)) {
+        CardRow(
+            state = scrollState,
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(
                 items = items,
                 key = { item -> "latest_tv_${item.id}" },
@@ -548,10 +605,16 @@ fun UpcomingEpisodesSection(
     val cardWidth = widthSizeClass.landscapeWidth
     val fixedRowHeight = CardDimensions.rowHeight(cardWidth, CardDimensions.ASPECT_RATIO_LANDSCAPE)
 
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = title)
+    Column(modifier = modifier) {
+        HomeSectionHeader(
+            title = title,
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+        )
 
-        CardRow(modifier = Modifier.height(fixedRowHeight)) {
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(
                 items = items,
                 key = { item -> "upcoming_${item.id}" },
@@ -685,9 +748,16 @@ fun DownloadedAudiobooksSection(
 ) {
     val fixedRowHeight =
         CardDimensions.rowHeight(CardDimensions.posterCardWidth, CardDimensions.ASPECT_RATIO_SQUARE)
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = title, onViewAllClick = onViewAllClick)
-        CardRow(modifier = Modifier.height(fixedRowHeight)) {
+    Column(modifier = modifier) {
+        HomeSectionHeader(
+            title = title,
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+            onViewAllClick = onViewAllClick,
+        )
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(
                 items = items,
                 key = { "abs_${it.id}" },
@@ -714,9 +784,16 @@ fun DownloadedMusicAlbumsSection(
 ) {
     val fixedRowHeight =
         CardDimensions.rowHeight(CardDimensions.posterCardWidth, CardDimensions.ASPECT_RATIO_SQUARE)
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = title, onViewAllClick = onViewAllClick)
-        CardRow(modifier = Modifier.height(fixedRowHeight)) {
+    Column(modifier = modifier) {
+        HomeSectionHeader(
+            title = title,
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+            onViewAllClick = onViewAllClick,
+        )
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(
                 items = albums,
                 key = { "album_${it.id}" },
@@ -744,9 +821,16 @@ fun DownloadedMusicTracksSection(
 ) {
     val fixedRowHeight =
         CardDimensions.rowHeight(CardDimensions.posterCardWidth, CardDimensions.ASPECT_RATIO_SQUARE)
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = title, onViewAllClick = onViewAllClick)
-        CardRow(modifier = Modifier.height(fixedRowHeight)) {
+    Column(modifier = modifier) {
+        HomeSectionHeader(
+            title = title,
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+            onViewAllClick = onViewAllClick,
+        )
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(
                 items = tracks,
                 key = { "track_${it.id}" },

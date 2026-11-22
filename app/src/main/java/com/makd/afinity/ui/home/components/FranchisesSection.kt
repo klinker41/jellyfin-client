@@ -69,10 +69,16 @@ fun FranchisesSection(
             metadataHeight = 0.dp,
         )
 
-    Column(modifier = Modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = stringResource(R.string.home_franchises))
+    Column {
+        HomeSectionHeader(
+            title = stringResource(R.string.home_franchises),
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+        )
 
-        CardRow(modifier = Modifier.height(fixedRowHeight)) {
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(
                 items = franchises,
                 key = { it.franchise.id },

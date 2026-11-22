@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -57,12 +58,18 @@ fun HighestRatedSection(
     val cardWidth = widthSizeClass.portraitWidth
     val fixedRowHeight = CardDimensions.rowHeight(cardWidth, CardDimensions.ASPECT_RATIO_PORTRAIT)
 
-    Column(modifier = Modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = title)
+    Column {
+        HomeSectionHeader(
+            title = title,
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+        )
 
         val uniqueItems = remember(items) { items.distinctBy { it.id } }
 
-        CardRow(modifier = Modifier.height(fixedRowHeight)) {
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             itemsIndexed(
                 items = uniqueItems,
                 key = { _, item -> item.id },

@@ -1,6 +1,7 @@
 package com.makd.afinity.ui.home.components
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
@@ -37,10 +38,17 @@ fun NextUpSection(
         }
     }
 
-    Column(modifier = Modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = stringResource(R.string.home_next_up))
+    Column(modifier = modifier) {
+        HomeSectionHeader(
+            title = stringResource(R.string.home_next_up),
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+        )
 
-        CardRow(state = scrollState, modifier = Modifier.height(fixedRowHeight)) {
+        CardRow(
+            state = scrollState,
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(
                 items = episodes,
                 key = { episode -> "nextup_${episode.id}" },

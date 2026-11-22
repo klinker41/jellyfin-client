@@ -46,10 +46,16 @@ fun PopularStudiosSection(
             metadataHeight = 0.dp,
         )
 
-    Column(modifier = Modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = stringResource(R.string.home_popular_studios))
+    Column {
+        HomeSectionHeader(
+            title = stringResource(R.string.home_popular_studios),
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+        )
 
-        CardRow(modifier = Modifier.height(fixedRowHeight)) {
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             itemsIndexed(
                 items = studios,
                 key = { _, studio -> studio.id },

@@ -1,6 +1,7 @@
 package com.makd.afinity.ui.home.components
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
@@ -28,10 +29,17 @@ fun ItemsRowSection(
     val aspectRatio = CardDimensions.aspectRatioFor(cardStyle)
     val fixedRowHeight = CardDimensions.rowHeight(cardWidth, aspectRatio)
 
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = title, onViewAllClick = onViewAllClick)
+    Column(modifier = modifier) {
+        HomeSectionHeader(
+            title = title,
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+            onViewAllClick = onViewAllClick,
+        )
 
-        CardRow(modifier = Modifier.height(fixedRowHeight)) {
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(
                 items = items,
                 key = { item -> "${sectionKey}_${item.id}" },

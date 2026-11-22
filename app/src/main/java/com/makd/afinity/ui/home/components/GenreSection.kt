@@ -1,6 +1,7 @@
 package com.makd.afinity.ui.home.components
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
@@ -38,13 +39,23 @@ fun GenreSection(
     val cardWidth = widthSizeClass.portraitWidth
     val fixedRowHeight = CardDimensions.rowHeight(cardWidth, CardDimensions.ASPECT_RATIO_PORTRAIT)
 
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
-        HomeSectionHeader(title = stringResource(R.string.home_genre_movies_title, genre))
+    Column(modifier = modifier) {
+        HomeSectionHeader(
+            title = stringResource(R.string.home_genre_movies_title, genre),
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+        )
 
         if (!loaded) {
-            MediaRowSkeleton(cardWidth = cardWidth, height = fixedRowHeight)
+            MediaRowSkeleton(
+                cardWidth = cardWidth,
+                height = fixedRowHeight,
+                contentPadding = CardDimensions.RowContentPadding,
+            )
         } else {
-            CardRow(modifier = Modifier.height(fixedRowHeight)) {
+            CardRow(
+                modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+                contentPadding = CardDimensions.RowContentPadding,
+            ) {
                 items(
                     items = movies,
                     key = { movie -> "genre_${genre}_${movie.id}" },

@@ -1,6 +1,7 @@
 package com.makd.afinity.ui.home.components
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
@@ -31,7 +32,7 @@ fun PersonSection(
     val cardWidth = widthSizeClass.portraitWidth
     val fixedRowHeight = CardDimensions.rowHeight(cardWidth, CardDimensions.ASPECT_RATIO_PORTRAIT)
 
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
+    Column(modifier = modifier) {
         val title =
             when (section.sectionType) {
                 PersonSectionType.STARRING ->
@@ -41,9 +42,15 @@ fun PersonSection(
                 PersonSectionType.WRITTEN_BY ->
                     stringResource(R.string.home_person_written_by, section.person.name)
             }
-        HomeSectionHeader(title = title)
+        HomeSectionHeader(
+            title = title,
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+        )
 
-        CardRow(modifier = Modifier.height(fixedRowHeight)) {
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(
                 items = section.items,
                 key = { movie ->
@@ -67,7 +74,7 @@ fun MovieRecommendationSection(
     val cardWidth = widthSizeClass.portraitWidth
     val fixedRowHeight = CardDimensions.rowHeight(cardWidth, CardDimensions.ASPECT_RATIO_PORTRAIT)
 
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
+    Column(modifier = modifier) {
         val title =
             when (section.sectionType) {
                 MovieSectionType.BECAUSE_YOU_WATCHED ->
@@ -81,9 +88,15 @@ fun MovieRecommendationSection(
                         section.referenceMovie.name,
                     )
             }
-        HomeSectionHeader(title = title)
+        HomeSectionHeader(
+            title = title,
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
+        )
 
-        CardRow(modifier = Modifier.height(fixedRowHeight)) {
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(
                 items = section.recommendedItems,
                 key = { movie ->
@@ -107,7 +120,7 @@ fun PersonFromMovieSection(
     val cardWidth = widthSizeClass.portraitWidth
     val fixedRowHeight = CardDimensions.rowHeight(cardWidth, CardDimensions.ASPECT_RATIO_PORTRAIT)
 
-    Column(modifier = modifier.padding(horizontal = CardDimensions.RowGutter)) {
+    Column(modifier = modifier) {
         val titleRes =
             when (section.sectionType) {
                 PersonSectionType.STARRING -> R.string.home_starring_from_watched
@@ -116,9 +129,13 @@ fun PersonFromMovieSection(
             }
         HomeSectionHeader(
             title = stringResource(titleRes, section.person.name, section.referenceMovie.name),
+            modifier = Modifier.padding(horizontal = CardDimensions.RowGutter),
         )
 
-        CardRow(modifier = Modifier.height(fixedRowHeight)) {
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = CardDimensions.RowContentPadding,
+        ) {
             items(
                 items = section.items,
                 key = { movie ->
