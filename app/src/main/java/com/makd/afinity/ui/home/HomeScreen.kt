@@ -85,6 +85,9 @@ import com.makd.afinity.ui.components.HeroCarousel
 import com.makd.afinity.ui.components.afinityTopAppBarHeight
 import com.makd.afinity.ui.components.heroCarouselLayoutHeight
 import com.makd.afinity.ui.components.rememberCardRowListState
+import com.makd.afinity.ui.components.rememberTopBarBlurState
+import com.makd.afinity.ui.components.topBarBlurBackdrop
+import com.makd.afinity.ui.components.topBarBlurSource
 import com.makd.afinity.ui.downloads.DownloadedCategory
 import com.makd.afinity.ui.home.components.AudiobookRowSection
 import com.makd.afinity.ui.home.components.ContinueReadingSection
@@ -117,7 +120,8 @@ import com.makd.afinity.ui.music.player.MusicPlayerViewModel
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.landscapeWidth
 import com.makd.afinity.ui.theme.CardDimensions.portraitWidth
-import com.makd.afinity.ui.utils.rememberTopBarOpacity
+import com.makd.afinity.ui.utils.rememberTopBarScrollProgress
+import com.makd.afinity.ui.utils.topBarScrollKey
 import com.makd.afinity.util.ReportHomeDrawn
 import kotlinx.coroutines.launch
 
@@ -198,7 +202,16 @@ fun HomeScreen(
         }
     }
 
-    val topBarOpacity by rememberTopBarOpacity(lazyListState)
+    val heroEnabled = !uiState.isOffline && HomeRow.HERO_CAROUSEL !in uiState.hiddenRows
+    val showCarousel = heroEnabled && uiState.heroCarouselItems.isNotEmpty()
+    val heroPending = heroEnabled && !uiState.heroLoaded
+    val topBarBlurProgress by
+        rememberTopBarScrollProgress(lazyListState, hasHeroSlot = showCarousel || heroPending)
+    val topBarBlurState =
+        rememberTopBarBlurState(
+            progress = { topBarBlurProgress },
+            scrollKey = { lazyListState.topBarScrollKey() },
+        )
 
     DisposableEffect(Unit) { onDispose { viewModel.clearSelectedEpisode() } }
 
@@ -256,6 +269,11 @@ fun HomeScreen(
                         }
                     }
                 },
+                modifier =
+                    Modifier.topBarBlurBackdrop(
+                        topBarBlurState,
+                        containerColor = MaterialTheme.colorScheme.background,
+                    ),
                 onMenuClick = onMenuClick,
                 onSearchClick = onSearchClick,
                 onRandomClick = {
@@ -280,7 +298,6 @@ fun HomeScreen(
         },
         modifier = modifier,
         mode = AfinityScreenMode.Immersive,
-        scrollOpacity = { topBarOpacity },
     ) {
         val offlineAndEmpty =
             uiState.isOffline &&
@@ -339,10 +356,6 @@ fun HomeScreen(
                         WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
                     val bottomPadding =
                         WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-                    val heroEnabled =
-                        !uiState.isOffline && HomeRow.HERO_CAROUSEL !in uiState.hiddenRows
-                    val showCarousel = heroEnabled && uiState.heroCarouselItems.isNotEmpty()
-                    val heroPending = heroEnabled && !uiState.heroLoaded
                     val heroHeight = heroCarouselLayoutHeight()
 
                     val baseModifier =
@@ -353,7 +366,7 @@ fun HomeScreen(
 
                     LazyColumn(
                         state = lazyListState,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier.fillMaxSize().topBarBlurSource(topBarBlurState),
                         contentPadding =
                             PaddingValues(
                                 top =
