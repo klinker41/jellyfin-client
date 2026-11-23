@@ -12,6 +12,7 @@ import com.makd.afinity.data.manager.Session
 import com.makd.afinity.data.manager.SessionManager
 import com.makd.afinity.data.manager.UserImageStore
 import com.makd.afinity.data.models.HeroContentSource
+import com.makd.afinity.data.models.HomeRow
 import com.makd.afinity.data.models.common.CollectionType
 import com.makd.afinity.data.repository.home.HomeCacheRepository
 import com.makd.afinity.data.repository.home.HomeLayoutPreferencesRepository
@@ -27,6 +28,7 @@ import com.makd.afinity.testutil.TestMediaFixtures.testCollection
 import com.makd.afinity.testutil.TestMediaFixtures.testEpisode
 import com.makd.afinity.testutil.TestMediaFixtures.testMovie
 import com.makd.afinity.testutil.TestMediaFixtures.testShow
+import com.makd.afinity.testutil.TestMediaFixtures.testTrack
 import com.makd.afinity.testutil.TestMediaFixtures.testUuid
 import com.makd.afinity.util.JellyfinImageUrlBuilder
 import io.mockk.coEvery
@@ -49,6 +51,10 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import org.jellyfin.sdk.model.api.BaseItemDto
+import org.jellyfin.sdk.model.api.BaseItemDtoQueryResult
+import org.jellyfin.sdk.model.api.BaseItemKind
+import org.jellyfin.sdk.model.api.UserItemDataDto
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -82,6 +88,7 @@ class AppDataRepositoryTest {
                 every { getLibrariesFlow() } returns MutableStateFlow(emptyList())
                 every { continueReading } returns MutableStateFlow(emptyList())
                 every { continueListening } returns MutableStateFlow(emptyList())
+                every { continueListeningPodcasts } returns MutableStateFlow(emptyList())
                 every { libraries } returns MutableStateFlow(emptyList())
                 coEvery { getFavoritesCountResult() } returns Result.success(0)
                 coEvery { getUserDataByIds(any()) } returns emptyList()
@@ -308,6 +315,80 @@ class AppDataRepositoryTest {
                         h.deletedItemsRepository.deletedIds(),
                 )
                 verify { h.homeSectionsRepository.removeItem(cachedMovie.id.toString()) }
+            } finally {
+                h.dispose()
+            }
+        }
+
+    @Test
+    fun `latestPodcastSections loads unplayed episodes only from podcast libraries and updates continue listening filled state`() =
+        runTest(timeout = 30.seconds) {
+            val h = Harness()
+            try {
+                val podcastLib = testCollection(testUuid(80), "Podcasts", CollectionType.Music)
+                val musicLib = testCollection(testUuid(81), "Music", CollectionType.Music)
+                val episodeId = testUuid(82)
+                val podcastDto =
+                    BaseItemDto(
+                        id = episodeId,
+                        type = BaseItemKind.AUDIO,
+                        name = "Unplayed Episode",
+                        userData =
+                            UserItemDataDto(
+                                playbackPositionTicks = 0L,
+                                playCount = 0,
+                                isFavorite = false,
+                                played = false,
+                                key = episodeId.toString(),
+                                itemId = episodeId,
+                            ),
+                    )
+                val resumedPodcast =
+                    testTrack(
+                        id = testUuid(83),
+                        name = "In Progress",
+                        playbackPositionTicks = 500_000L,
+                    )
+
+                every { h.mediaRepository.continueListeningPodcasts } returns
+                    MutableStateFlow(listOf(resumedPodcast))
+                coEvery { h.mediaRepository.getLibrariesResult() } returns
+                    Result.success(listOf(podcastLib, musicLib))
+                coEvery {
+                    h.mediaRepository.getItemsResult(
+                        parentId = podcastLib.id,
+                        sortBy = any(),
+                        sortDescending = any(),
+                        limit = any(),
+                        includeItemTypes = listOf("AUDIO"),
+                        fields = any(),
+                        recursive = true,
+                        criteria = match { it.isPlayed == false },
+                        enableImages = true,
+                        enableImageTypes = listOf("PRIMARY"),
+                        enableUserData = true,
+                    )
+                } returns
+                    Result.success(
+                        BaseItemDtoQueryResult(
+                            items = listOf(podcastDto),
+                            startIndex = 0,
+                            totalRecordCount = 1,
+                        ),
+                    )
+
+                val repo = h.createRepository()
+                runCurrent()
+                repo.loadInitialData()
+                runCurrent()
+
+                val sections = repo.latestPodcastSections.value
+                assertEquals(1, sections.size)
+                assertEquals(podcastLib.id, sections.single().first.id)
+                assertEquals(listOf(episodeId), sections.single().second.map { it.id })
+                coVerify {
+                    h.homeSectionsRepository.recordRowFilled(HomeRow.CONTINUE_LISTENING, true)
+                }
             } finally {
                 h.dispose()
             }

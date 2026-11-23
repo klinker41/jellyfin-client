@@ -308,10 +308,20 @@ constructor(
         _lyricsLoading.value = false
     }
 
-    fun playQueue(tracks: List<AfinityTrack>, startIndex: Int = 0, shuffle: Boolean = false) {
+    fun playQueue(
+        tracks: List<AfinityTrack>,
+        startIndex: Int = 0,
+        shuffle: Boolean = false,
+        startPositionMs: Long = 0L,
+    ) {
         if (tracks.isEmpty()) return
         radioManager.stopRadio()
-        queueManager.loadQueue(tracks, startIndex, shuffle = shuffle)
+        queueManager.loadQueue(
+            tracks = tracks,
+            startIndex = startIndex,
+            startPositionMs = startPositionMs,
+            shuffle = shuffle,
+        )
     }
 
     fun play() {

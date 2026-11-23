@@ -543,6 +543,14 @@ class AudioService : MediaLibraryService() {
                             )
                         } else {
                             lastPlaybackStore.recordMusicPosition(positionMs)
+                            val player = exoPlayer
+                            if (
+                                player != null &&
+                                    !player.playWhenReady &&
+                                    player.playbackState == Player.STATE_READY
+                            ) {
+                                musicProgressReporter.onPlaybackPaused(positionMs)
+                            }
                             stopPositionUpdates()
                             musicProgressReporter.stopProgressUpdates()
                         }
@@ -626,6 +634,7 @@ class AudioService : MediaLibraryService() {
                         trackId = track.id,
                         playSessionId = musicQueueManager.playSessionIdFor(track.id),
                         playMethod = musicQueueManager.playMethodFor(track.id),
+                        track = track,
                     )
                 }
                 radioManager.onTrackChanged(track)

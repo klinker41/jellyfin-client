@@ -52,12 +52,15 @@ import com.makd.afinity.data.models.media.asBook
 import com.makd.afinity.data.models.media.toAfinityCollection
 import com.makd.afinity.data.models.media.withPatchedImages
 import com.makd.afinity.data.models.music.AfinityPlaylistContents
+import com.makd.afinity.data.models.music.AfinityTrack
 import com.makd.afinity.data.models.omdb.OmdbApiResult
 import com.makd.afinity.data.network.MdbListApiService
 import com.makd.afinity.data.network.OmdbApiService
 import com.makd.afinity.data.paging.BookLibraryPagingSource
 import com.makd.afinity.data.paging.JellyfinItemsPagingSource
 import com.makd.afinity.data.paging.RandomOrder
+import com.makd.afinity.data.podcasts.CONTINUE_LISTENING_LIMIT
+import com.makd.afinity.data.podcasts.PODCAST_EPISODE_FIELDS
 import com.makd.afinity.data.repository.DatabaseRepository
 import com.makd.afinity.data.repository.FieldSets
 import com.makd.afinity.data.repository.JellyfinApiInvoker
@@ -138,8 +141,6 @@ private const val PLAYED_EPISODES_PAGE_SIZE = 100
 private const val CONTINUE_READING_LIMIT = 12
 
 private const val AUDIOBOOK_PAGE_SIZE = 500
-
-private const val CONTINUE_LISTENING_LIMIT = 12
 
 private const val PLAYED_EPISODES_MAX_PAGES = 3
 
@@ -271,26 +272,25 @@ constructor(
         withContext(Dispatchers.IO) {
             try {
                 val sessionKeyAtStart = currentSessionKey() ?: return@withContext
-                val apiClient = sessionManager.getCurrentApiClient() ?: return@withContext
-                val userId = getCurrentUserId() ?: return@withContext
+                sessionManager.getCurrentApiClient() ?: return@withContext
+                getCurrentUserId() ?: return@withContext
                 val baseUrl = getBaseUrl()
-                val (resumed, recentlyFinished) =
+                val (resumed, recentlyFinished, resumedAudio) =
                     coroutineScope {
                         val resumedDeferred = async {
-                            LibraryApi(apiClient)
-                                .getResumeItems(
-                                    userId = userId,
+                            getItemsResult(
+                                    sortBy = SortBy.DATE_PLAYED,
+                                    sortDescending = true,
                                     limit = CONTINUE_LISTENING_LIMIT,
+                                    includeItemTypes = listOf("AUDIO_BOOK"),
                                     fields = FieldSets.AUDIOBOOK_GRID,
-                                    includeItemTypes = listOf(BaseItemKind.AUDIO_BOOK),
-                                    enableImages = true,
-                                    enableUserData = true,
-                                    enableTotalRecordCount = false,
-                                    imageTypeLimit = 1,
-                                    enableImageTypes = listOf(ImageType.PRIMARY),
+                                    recursive = true,
+                                    criteria = ItemFilterCriteria(isResumable = true),
+                                    enableImageTypes = listOf("PRIMARY"),
                                 )
-                                .content
-                                .items
+                                .getOrNull()
+                                ?.items
+                                .orEmpty()
                         }
                         val finishedDeferred = async {
                             getItemsResult(
@@ -306,7 +306,26 @@ constructor(
                                 ?.items
                                 .orEmpty()
                         }
-                        resumedDeferred.await() to finishedDeferred.await()
+                        val resumedAudioDeferred = async {
+                            getItemsResult(
+                                    sortBy = SortBy.DATE_PLAYED,
+                                    sortDescending = true,
+                                    limit = CONTINUE_LISTENING_LIMIT,
+                                    includeItemTypes = listOf("AUDIO"),
+                                    fields = PODCAST_EPISODE_FIELDS,
+                                    recursive = true,
+                                    criteria = ItemFilterCriteria(isResumable = true),
+                                    enableImageTypes = listOf("PRIMARY"),
+                                )
+                                .getOrNull()
+                                ?.items
+                                .orEmpty()
+                        }
+                        Triple(
+                            resumedDeferred.await(),
+                            finishedDeferred.await(),
+                            resumedAudioDeferred.await(),
+                        )
                     }
                 val candidates =
                     (resumed + recentlyFinished)
@@ -332,12 +351,34 @@ constructor(
                     .filter { !it.played && it.playbackPositionTicks > 0 }
                     .sortedByDescending { it.lastPlayedDate }
                     .take(CONTINUE_LISTENING_LIMIT)
+                val podcasts =
+                    resumedAudio
+                        .filter { it.type == BaseItemKind.AUDIO }
+                        .map { it.toAfinityTrack(baseUrl) }
+                        .distinctBy { it.id }
+                        .filter { !it.played && it.playbackPositionTicks > 0 }
+                        .sortedByDescending { it.lastPlayedDate }
+                        .take(CONTINUE_LISTENING_LIMIT)
                 if (currentSessionKey() != sessionKeyAtStart) return@withContext
                 _continueListening.value = books
+                _continueListeningPodcasts.value = podcasts
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Timber.e(e, "Failed to refresh continue listening cache")
+            }
+        }
+    }
+
+    override fun updateContinueListeningPodcast(track: AfinityTrack) {
+        _continueListeningPodcasts.update { current ->
+            val without = current.filterNot { it.id == track.id }
+            if (!track.played && track.playbackPositionTicks > 0L) {
+                (listOf(track) + without)
+                    .sortedByDescending { it.lastPlayedDate }
+                    .take(CONTINUE_LISTENING_LIMIT)
+            } else {
+                without
             }
         }
     }
@@ -701,6 +742,7 @@ constructor(
         _continueWatching.value = emptyList()
         _continueReading.value = emptyList()
         _continueListening.value = emptyList()
+        _continueListeningPodcasts.value = emptyList()
         _nextUp.value = emptyList()
         playedEpisodesCursor = null
         _continueWatchingOrder.value = ContinueWatchingOrder()
@@ -724,6 +766,7 @@ constructor(
         _continueListening.update { list ->
             list.filterNot { book -> matches(book.id) || book.parts.any { matches(it.id) } }
         }
+        _continueListeningPodcasts.update { list -> list.filterNot { matches(it.id) } }
         _nextUp.update { list -> list.filterNot { matches(it.id) || matches(it.seriesId) } }
     }
 
@@ -735,6 +778,10 @@ constructor(
 
     private val _continueListening = MutableStateFlow<List<AfinityAudiobook>>(emptyList())
     override val continueListening: Flow<List<AfinityAudiobook>> = _continueListening.asStateFlow()
+
+    private val _continueListeningPodcasts = MutableStateFlow<List<AfinityTrack>>(emptyList())
+    override val continueListeningPodcasts: Flow<List<AfinityTrack>> =
+        _continueListeningPodcasts.asStateFlow()
 
     private val _nextUp = MutableStateFlow<List<AfinityEpisode>>(emptyList())
     override val nextUp: Flow<List<AfinityEpisode>> = _nextUp.asStateFlow()

@@ -1,5 +1,6 @@
 package com.makd.afinity.player.music
 
+import com.makd.afinity.data.models.music.AfinityTrack
 import com.makd.afinity.data.repository.playback.PlaybackRepository
 import java.util.UUID
 import javax.inject.Inject
@@ -20,12 +21,16 @@ import timber.log.Timber
 @Singleton
 class MusicProgressReporter
 @Inject
-constructor(private val playbackRepository: PlaybackRepository) {
+constructor(
+    private val playbackRepository: PlaybackRepository,
+    private val podcastProgressTracker: PodcastProgressTracker,
+) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val reportOrder = Mutex()
     private val countedSessions = mutableMapOf<String, Boolean>()
     private var progressJob: Job? = null
     @Volatile private var currentTrackId: UUID? = null
+    @Volatile private var currentTrack: AfinityTrack? = null
     @Volatile private var playSessionId: String = UUID.randomUUID().toString()
     @Volatile private var playMethod: String = "DirectPlay"
 
@@ -37,10 +42,12 @@ constructor(private val playbackRepository: PlaybackRepository) {
         trackId: UUID,
         playSessionId: String? = null,
         playMethod: String = "DirectPlay",
+        track: AfinityTrack? = null,
     ) {
         this.playSessionId = playSessionId ?: UUID.randomUUID().toString()
         this.playMethod = playMethod
         currentTrackId = trackId
+        currentTrack = track
         val sessionId = this.playSessionId
         inOrder {
             countedSessions[sessionId] =
@@ -95,6 +102,16 @@ constructor(private val playbackRepository: PlaybackRepository) {
         progressJob = null
     }
 
+    fun onPlaybackPaused(positionMs: Long) {
+        val track = currentTrack ?: return
+        inOrder {
+            val updated = podcastProgressTracker.syncProgress(track, positionMs, isEnded = false)
+            if (updated != null && currentTrackId == track.id) {
+                currentTrack = updated
+            }
+        }
+    }
+
     fun onTrackTransition(previousPositionMs: Long, previousEnded: Boolean) {
         reportStop(previousPositionMs, previousEnded)
     }
@@ -106,7 +123,9 @@ constructor(private val playbackRepository: PlaybackRepository) {
 
     private fun reportStop(positionMs: Long, isEnded: Boolean) {
         val trackId = currentTrackId ?: return
+        val track = currentTrack
         currentTrackId = null
+        currentTrack = null
         val sessionId = playSessionId
         inOrder {
             val counted = countedSessions.remove(sessionId) == true
@@ -122,6 +141,9 @@ constructor(private val playbackRepository: PlaybackRepository) {
                 )
             }
                 .onFailure { Timber.w(it, "Failed to report playback stop for $trackId") }
+            if (track != null) {
+                podcastProgressTracker.syncProgress(track, positionMs, isEnded = isEnded)
+            }
         }
     }
 }

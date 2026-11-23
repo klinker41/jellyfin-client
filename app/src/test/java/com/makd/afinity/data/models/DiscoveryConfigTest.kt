@@ -79,6 +79,7 @@ class DiscoveryConfigTest {
             setOf(
                 HomeRow.LATEST_BOOKS,
                 HomeRow.LATEST_AUDIOBOOKS,
+                HomeRow.LATEST_PODCASTS,
                 HomeRow.LATEST_HOME_VIDEOS,
                 HomeRow.LATEST_MUSIC_VIDEOS,
                 HomeRow.UPCOMING_EPISODES,

@@ -23,6 +23,11 @@ enum class HomeRow(
         R.string.home_row_latest_audiobooks,
         defaultVisible = false,
     ),
+    LATEST_PODCASTS(
+        "latest_podcasts",
+        R.string.home_row_latest_podcasts,
+        defaultVisible = false,
+    ),
     LATEST_HOME_VIDEOS(
         "latest_home_videos",
         R.string.home_row_latest_home_videos,

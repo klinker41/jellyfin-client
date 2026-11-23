@@ -22,6 +22,7 @@ import com.makd.afinity.data.models.extensions.toAfinityAudiobook
 import com.makd.afinity.data.models.extensions.toAfinityBook
 import com.makd.afinity.data.models.extensions.toAfinityItem
 import com.makd.afinity.data.models.extensions.toAfinityMusicVideo
+import com.makd.afinity.data.models.extensions.toAfinityTrack
 import com.makd.afinity.data.models.livetv.AfinityChannel
 import com.makd.afinity.data.models.media.AfinityAudiobook
 import com.makd.afinity.data.models.media.AfinityBook
@@ -48,6 +49,10 @@ import com.makd.afinity.data.models.music.AfinityArtist
 import com.makd.afinity.data.models.music.AfinityPlaylist
 import com.makd.afinity.data.models.music.AfinityTrack
 import com.makd.afinity.data.models.user.AfinityUserDataDto
+import com.makd.afinity.data.podcasts.LATEST_PODCASTS_LIMIT
+import com.makd.afinity.data.podcasts.PODCAST_EPISODE_FIELDS
+import com.makd.afinity.data.podcasts.isPodcastLibrary
+import com.makd.afinity.data.podcasts.podcastLibraries
 import com.makd.afinity.data.repository.home.HomeCacheRepository
 import com.makd.afinity.data.repository.home.HomeLayoutPreferencesRepository
 import com.makd.afinity.data.repository.home.HomeSectionsRepository
@@ -354,6 +359,11 @@ constructor(
         MutableStateFlow<List<Pair<AfinityCollection, List<AfinityAudiobook>>>>(emptyList())
     val latestAudiobookSections: StateFlow<List<Pair<AfinityCollection, List<AfinityAudiobook>>>> =
         _latestAudiobookSections.asStateFlow()
+
+    private val _latestPodcastSections =
+        MutableStateFlow<List<Pair<AfinityCollection, List<AfinityTrack>>>>(emptyList())
+    val latestPodcastSections: StateFlow<List<Pair<AfinityCollection, List<AfinityTrack>>>> =
+        _latestPodcastSections.asStateFlow()
 
     private val _latestHomeVideoSections =
         MutableStateFlow<List<Pair<AfinityCollection, List<AfinityItem>>>>(emptyList())
@@ -664,6 +674,91 @@ constructor(
         applyBookShelves(books, audiobooks)
     }
 
+    private suspend fun loadPodcastShelves(
+        libraries: List<AfinityCollection>,
+    ): List<CachedBookShelf>? {
+        val hidden = homeLayoutPreferencesRepository.getHiddenRows()
+        if (HomeRow.LATEST_PODCASTS in hidden) return null
+        val podcastLibs = libraries.podcastLibraries()
+        if (podcastLibs.isEmpty()) return emptyList()
+        return coroutineScope {
+            podcastLibs
+                .map { library ->
+                    async {
+                        val items =
+                            mediaRepository
+                                .getItemsResult(
+                                    parentId = library.id,
+                                    sortBy = SortBy.DATE_ADDED,
+                                    sortDescending = true,
+                                    limit = LATEST_PODCASTS_LIMIT,
+                                    includeItemTypes = listOf("AUDIO"),
+                                    fields = PODCAST_EPISODE_FIELDS,
+                                    recursive = true,
+                                    criteria = ItemFilterCriteria(isPlayed = false),
+                                    enableImages = true,
+                                    enableImageTypes = listOf("PRIMARY"),
+                                    enableUserData = true,
+                                )
+                                .getOrNull()
+                                ?.items
+                                .orEmpty()
+                        CachedBookShelf(
+                            libraryId = library.id.toString(),
+                            libraryName = library.name,
+                            items = items,
+                        )
+                    }
+                }
+                .awaitAll()
+                .filter { it.items.isNotEmpty() }
+        }
+    }
+
+    private fun applyPodcastShelves(podcasts: List<CachedBookShelf>?) {
+        if (podcasts == null) return
+        val baseUrl = mediaRepository.getBaseUrl()
+        _latestPodcastSections.value = podcasts.mapNotNull { shelf ->
+            shelf.items
+                .filter { it.type == BaseItemKind.AUDIO }
+                .map { it.toAfinityTrack(baseUrl) }
+                .filter { !it.played }
+                .take(LATEST_PODCASTS_LIMIT)
+                .takeIf { it.isNotEmpty() }
+                ?.let { shelf.library(CollectionType.Music) to it }
+        }
+    }
+
+    private suspend fun refreshPodcastShelves(
+        libraries: List<AfinityCollection>,
+        cacheKey: String?,
+    ) {
+        try {
+            val podcasts = loadPodcastShelves(libraries)
+            applyPodcastShelves(podcasts)
+            if (cacheKey == null || podcasts == null) return
+            val serializer = ListSerializer(CachedBookShelf.serializer())
+            homeCacheRepository.putRaw(
+                "latest_podcasts_$cacheKey",
+                bookShelfJson.encodeToString(serializer, podcasts),
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to refresh latest podcast rows")
+        }
+    }
+
+    private suspend fun restorePodcastShelves(
+        cacheKey: String,
+        hiddenRows: Set<HomeRow>? = null,
+    ) {
+        val hidden = hiddenRows ?: homeLayoutPreferencesRepository.getHiddenRows()
+        if (HomeRow.LATEST_PODCASTS in hidden) return
+        val podcasts = decodeCachedShelf(homeCacheRepository.getRaw("latest_podcasts_$cacheKey"))
+        applyPodcastShelves(podcasts)
+    }
+
     private suspend fun loadVideoShelves(
         libraries: List<AfinityCollection>,
     ): Pair<List<CachedBookShelf>?, List<CachedBookShelf>?> {
@@ -827,7 +922,9 @@ constructor(
                     mediaRepository.getContinueWatchingFlow().first().isNotEmpty()
                 HomeRow.NEXT_UP -> mediaRepository.getNextUpFlow().first().isNotEmpty()
                 HomeRow.CONTINUE_READING -> mediaRepository.continueReading.first().isNotEmpty()
-                HomeRow.CONTINUE_LISTENING -> mediaRepository.continueListening.first().isNotEmpty()
+                HomeRow.CONTINUE_LISTENING ->
+                    mediaRepository.continueListening.first().isNotEmpty() ||
+                        mediaRepository.continueListeningPodcasts.first().isNotEmpty()
                 else -> return
             }
         _loadedPlaybackRows.update { it + row }
@@ -914,6 +1011,7 @@ constructor(
                         }
                         val libsDeferred = async { mediaRepository.restoreCachedLibraries() }
                         launch { restoreBookShelves(cacheKey, hiddenRows) }
+                        launch { restorePodcastShelves(cacheKey, hiddenRows) }
                         launch { restoreVideoShelves(cacheKey, hiddenRows) }
                         _latestTvSeries.value = showsDeferred.await()
                         libsDeferred.await()?.let { _libraries.value = it }
@@ -998,6 +1096,7 @@ constructor(
                         persistHomeCache(cacheKey, latestMovies, latestTvSeries)
                     }
                     launch { refreshBookShelves(libraries, cacheKey.takeIf { hasSession }) }
+                    launch { refreshPodcastShelves(libraries, cacheKey.takeIf { hasSession }) }
                     launch { refreshVideoShelves(libraries, cacheKey.takeIf { hasSession }) }
                 }
             } catch (e: CancellationException) {
@@ -1045,6 +1144,7 @@ constructor(
 
                 val homeDataDeferred = async { loadHomeSpecificData(libraries) }
                 val bookShelvesDeferred = async { refreshBookShelves(libraries, cacheKey) }
+                val podcastShelvesDeferred = async { refreshPodcastShelves(libraries, cacheKey) }
                 val videoShelvesDeferred = async { refreshVideoShelves(libraries, cacheKey) }
 
                 val (latestMovies, latestTvSeries) = homeDataDeferred.await()
@@ -1056,6 +1156,7 @@ constructor(
                 nextUpDeferred.await()
                 continueBookRowsDeferred.await()
                 bookShelvesDeferred.await()
+                podcastShelvesDeferred.await()
                 videoShelvesDeferred.await()
                 persistHomeCache(cacheKey, latestMovies, latestTvSeries)
             }
@@ -1796,7 +1897,9 @@ constructor(
                         }
                     }
                     if (
-                        _libraries.value.any { it.type == CollectionType.Books } &&
+                        _libraries.value.any {
+                            it.type == CollectionType.Books || it.isPodcastLibrary()
+                        } &&
                             HomeRow.CONTINUE_LISTENING !in
                                 homeLayoutPreferencesRepository.getHiddenRows()
                     ) {
@@ -1830,6 +1933,7 @@ constructor(
         try {
             coroutineScope {
                 launch { refreshBookShelves(libs, currentCacheKey()) }
+                launch { refreshPodcastShelves(libs, currentCacheKey()) }
                 launch { refreshVideoShelves(libs, currentCacheKey()) }
                 val (latestMovies, latestTvSeries) = loadHomeSpecificData(libs)
                 if (latestMovies.isNotEmpty()) _latestMovies.value = latestMovies
@@ -2403,6 +2507,7 @@ constructor(
         _latestTvSeries.value = emptyList()
         _latestBookSections.value = emptyList()
         _latestAudiobookSections.value = emptyList()
+        _latestPodcastSections.value = emptyList()
         _latestHomeVideoSections.value = emptyList()
         _latestMusicVideoSections.value = emptyList()
         _loadedPlaybackRows.value = emptySet()
@@ -2446,7 +2551,8 @@ constructor(
         private const val PLAYBACK_SECTIONS_COALESCE_MS = 5_000L
         private const val FAVORITES_RECOUNT_DEBOUNCE_MS = 2_000L
         private val LATEST_ROWS = setOf(HomeRow.LATEST_MOVIES, HomeRow.LATEST_TV)
-        private val LATEST_BOOK_ROWS = setOf(HomeRow.LATEST_BOOKS, HomeRow.LATEST_AUDIOBOOKS)
+        private val LATEST_BOOK_ROWS =
+            setOf(HomeRow.LATEST_BOOKS, HomeRow.LATEST_AUDIOBOOKS, HomeRow.LATEST_PODCASTS)
         private val LATEST_VIDEO_ROWS =
             setOf(HomeRow.LATEST_HOME_VIDEOS, HomeRow.LATEST_MUSIC_VIDEOS)
         private val PLAYBACK_ROWS =

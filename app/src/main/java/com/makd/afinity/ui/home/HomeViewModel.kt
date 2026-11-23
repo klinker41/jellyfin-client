@@ -214,6 +214,14 @@ constructor(
         }
 
         viewModelScope.launch {
+            mediaRepository.continueListeningPodcasts.collect { tracks ->
+                _uiState.update {
+                    it.copy(continueListeningPodcasts = tracks.distinctBy { t -> t.id })
+                }
+            }
+        }
+
+        viewModelScope.launch {
             appDataRepository.loadedPlaybackRows.collect { rows ->
                 _uiState.update { it.copy(loadedPlaybackRows = rows) }
             }
@@ -233,6 +241,19 @@ constructor(
         viewModelScope.launch {
             appDataRepository.latestAudiobookSections.collect { sections ->
                 _uiState.update { it.copy(latestAudiobookSections = sections.distinctSections()) }
+            }
+        }
+
+        viewModelScope.launch {
+            appDataRepository.latestPodcastSections.collect { sections ->
+                _uiState.update {
+                    it.copy(
+                        latestPodcastSections =
+                            sections.map { (library, tracks) ->
+                                library to tracks.distinctBy { t -> t.id }
+                            },
+                    )
+                }
             }
         }
 
@@ -570,6 +591,15 @@ constructor(
                             continueListening =
                                 state.continueListening.filterNot {
                                     it.id == idToRemove && !it.isGrouped
+                                },
+                            continueListeningPodcasts =
+                                state.continueListeningPodcasts.filterNot { it.id == idToRemove },
+                            latestPodcastSections =
+                                state.latestPodcastSections.mapNotNull { (library, tracks) ->
+                                    tracks
+                                        .filterNot { it.id == idToRemove }
+                                        .takeIf { it.isNotEmpty() }
+                                        ?.let { library to it }
                                 },
                             nextUp = state.nextUp.removingItem(idToRemove),
                             latestMovies = state.latestMovies.removingItem(idToRemove),
@@ -1049,8 +1079,10 @@ data class HomeUiState(
     val latestBookSections: List<Pair<AfinityCollection, List<AfinityBook>>> = emptyList(),
     val bookLibraryIds: Set<UUID> = emptySet(),
     val continueListening: List<AfinityAudiobook> = emptyList(),
+    val continueListeningPodcasts: List<AfinityTrack> = emptyList(),
     val latestAudiobookSections: List<Pair<AfinityCollection, List<AfinityAudiobook>>> =
         emptyList(),
+    val latestPodcastSections: List<Pair<AfinityCollection, List<AfinityTrack>>> = emptyList(),
     val latestHomeVideoSections: List<Pair<AfinityCollection, List<AfinityItem>>> = emptyList(),
     val latestMusicVideoSections: List<Pair<AfinityCollection, List<AfinityMusicVideo>>> =
         emptyList(),
@@ -1111,8 +1143,11 @@ fun ItemProjection.projectHome(state: HomeUiState): HomeUiState {
     val continueR = live(state.continueReading)
     val bookSections = liveNested(state.latestBookSections, { it.second }, { p, l -> p.first to l })
     val continueL = live(state.continueListening)
+    val continueLPodcasts = liveOwners(state.continueListeningPodcasts)
     val audiobookSections =
         liveNested(state.latestAudiobookSections, { it.second }, { p, l -> p.first to l })
+    val podcastSections =
+        liveNestedOwners(state.latestPodcastSections, { it.second }, { p, l -> p.first to l })
     val homeVideoSections =
         liveNested(state.latestHomeVideoSections, { it.second }, { p, l -> p.first to l })
     val musicVideoSections =
@@ -1142,7 +1177,9 @@ fun ItemProjection.projectHome(state: HomeUiState): HomeUiState {
             continueR === state.continueReading &&
             bookSections === state.latestBookSections &&
             continueL === state.continueListening &&
+            continueLPodcasts === state.continueListeningPodcasts &&
             audiobookSections === state.latestAudiobookSections &&
+            podcastSections === state.latestPodcastSections &&
             homeVideoSections === state.latestHomeVideoSections &&
             musicVideoSections === state.latestMusicVideoSections &&
             next === state.nextUp &&
@@ -1166,7 +1203,9 @@ fun ItemProjection.projectHome(state: HomeUiState): HomeUiState {
         continueReading = continueR,
         latestBookSections = bookSections,
         continueListening = continueL,
+        continueListeningPodcasts = continueLPodcasts,
         latestAudiobookSections = audiobookSections,
+        latestPodcastSections = podcastSections,
         latestHomeVideoSections = homeVideoSections,
         latestMusicVideoSections = musicVideoSections,
         nextUp = next,

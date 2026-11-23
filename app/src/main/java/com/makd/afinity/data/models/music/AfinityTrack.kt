@@ -2,6 +2,7 @@ package com.makd.afinity.data.models.music
 
 import com.makd.afinity.data.models.media.AfinityImages
 import com.makd.afinity.data.models.media.AfinityUserDataOwner
+import java.time.LocalDateTime
 import java.util.UUID
 
 data class AfinityTrack(
@@ -27,4 +28,5 @@ data class AfinityTrack(
     val playlistItemId: String? = null,
     val localFilePath: String? = null,
     val localImagePath: String? = null,
+    val lastPlayedDate: LocalDateTime? = null,
 ) : AfinityUserDataOwner

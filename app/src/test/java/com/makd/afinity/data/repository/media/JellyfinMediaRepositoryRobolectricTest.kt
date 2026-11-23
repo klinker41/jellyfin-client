@@ -21,6 +21,7 @@ import com.makd.afinity.data.repository.home.HomeCacheRepository
 import com.makd.afinity.data.storage.StorageLocationProvider
 import com.makd.afinity.testutil.FakeApiClient
 import com.makd.afinity.testutil.MainDispatcherRule
+import com.makd.afinity.testutil.TestMediaFixtures.testTrack
 import com.makd.afinity.testutil.TestMediaFixtures.testUuid
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -433,6 +434,85 @@ class JellyfinMediaRepositoryRobolectricTest {
                 val failedLibs = repo.getLibrariesResult()
                 assertTrue(failedLibs.isFailure)
                 assertFalse(failedLibs.isSuccess)
+            } finally {
+                h.dispose()
+            }
+        }
+
+    @Test
+    fun `invalidateContinueListeningCache loads resumable audiobooks and podcast episodes`() =
+        runTest(timeout = 30.seconds) {
+            val h = Harness()
+            try {
+                val repo = h.createRepository()
+                val bookId = testUuid(70)
+                val podcastId = testUuid(71)
+                val albumId = testUuid(72)
+
+                h.apiClient.onGet("/Items") { req ->
+                    val types = req.queryParameters["includeItemTypes"]?.toString().orEmpty()
+                    val filters = req.queryParameters["filters"]?.toString().orEmpty()
+                    val itemsJson =
+                        when {
+                            "AudioBook" in types && "IsResumable" in filters ->
+                                """[{
+                                    "Id":"$bookId",
+                                    "Name":"The Well of Ascension",
+                                    "Type":"AudioBook",
+                                    "IsFolder":false,
+                                    "RunTimeTicks":1042122000000,
+                                    "ImageTags":{"Primary":"book-tag"},
+                                    "UserData":{"Key":"$bookId","ItemId":"$bookId","PlaybackPositionTicks":189160000000,"PlayCount":1,"IsFavorite":false,"Played":false,"LastPlayedDate":"2026-11-23T14:12:56Z"}
+                                }]"""
+                            "AudioBook" !in types && "Audio" in types && "IsResumable" in filters ->
+                                """[{
+                                    "Id":"$podcastId",
+                                    "Name":"Chapter 12 - Magic is Might",
+                                    "Type":"Audio",
+                                    "IsFolder":false,
+                                    "AlbumId":"$albumId",
+                                    "Album":"Behind the Portrait",
+                                    "AlbumPrimaryImageTag":"alb-tag",
+                                    "RunTimeTicks":30244800000,
+                                    "ImageTags":{"Primary":"ep-tag"},
+                                    "UserData":{"Key":"$podcastId","ItemId":"$podcastId","PlaybackPositionTicks":7000000000,"PlayCount":1,"IsFavorite":false,"Played":false,"LastPlayedDate":"2026-11-23T14:10:00Z"}
+                                }]"""
+                            else -> "[]"
+                        }
+                    FakeApiClient.rawJsonResponse(
+                        """{"Items":$itemsJson,"TotalRecordCount":1,"StartIndex":0}""",
+                    )
+                }
+
+                repo.invalidateContinueListeningCache()
+
+                val books = repo.continueListening.first()
+                assertEquals(1, books.size)
+                assertEquals(bookId, books.single().id)
+
+                val podcasts = repo.continueListeningPodcasts.first()
+                assertEquals(1, podcasts.size)
+                assertEquals(podcastId, podcasts.single().id)
+                assertTrue(
+                    podcasts
+                        .single()
+                        .images
+                        .primary
+                        .toString()
+                        .contains("Items/$podcastId/Images/Primary"),
+                )
+
+                val updatedTrack =
+                    testTrack(
+                        id = testUuid(73),
+                        name = "New Pod",
+                        playbackPositionTicks = 1_000_000L,
+                    )
+                repo.updateContinueListeningPodcast(updatedTrack)
+                assertEquals(2, repo.continueListeningPodcasts.first().size)
+
+                repo.updateContinueListeningPodcast(updatedTrack.copy(played = true))
+                assertEquals(1, repo.continueListeningPodcasts.first().size)
             } finally {
                 h.dispose()
             }

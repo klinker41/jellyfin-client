@@ -72,6 +72,8 @@ import com.makd.afinity.data.models.media.AfinityEpisode
 import com.makd.afinity.data.models.media.AfinityItem
 import com.makd.afinity.data.models.media.AfinityMovie
 import com.makd.afinity.data.models.media.AfinityShow
+import com.makd.afinity.data.models.music.AfinityTrack
+import com.makd.afinity.data.podcasts.mergeContinueListening
 import com.makd.afinity.navigation.LocalPlayerOffset
 import com.makd.afinity.ui.components.AfinityScreen
 import com.makd.afinity.ui.components.AfinityScreenMode
@@ -90,6 +92,7 @@ import com.makd.afinity.ui.components.topBarBlurBackdrop
 import com.makd.afinity.ui.components.topBarBlurSource
 import com.makd.afinity.ui.downloads.DownloadedCategory
 import com.makd.afinity.ui.home.components.AudiobookRowSection
+import com.makd.afinity.ui.home.components.ContinueListeningRowSection
 import com.makd.afinity.ui.home.components.ContinueReadingSection
 import com.makd.afinity.ui.home.components.DownloadedAudiobooksSection
 import com.makd.afinity.ui.home.components.DownloadedMusicAlbumsSection
@@ -100,6 +103,7 @@ import com.makd.afinity.ui.home.components.HighestRatedSection
 import com.makd.afinity.ui.home.components.ItemsRowSection
 import com.makd.afinity.ui.home.components.LatestGalleryRowSection
 import com.makd.afinity.ui.home.components.LatestMusicVideoRowSection
+import com.makd.afinity.ui.home.components.LatestPodcastRowSection
 import com.makd.afinity.ui.home.components.LibrariesSection
 import com.makd.afinity.ui.home.components.MovieRecommendationSection
 import com.makd.afinity.ui.home.components.NextUpSection
@@ -191,6 +195,28 @@ fun HomeScreen(
                 }
             else -> uiState.continueWatching
         }
+    val continueListeningEntries =
+        remember(uiState.continueListening, uiState.continueListeningPodcasts) {
+            mergeContinueListening(
+                uiState.continueListening,
+                uiState.continueListeningPodcasts,
+            )
+        }
+    val playPodcast: (AfinityTrack) -> Unit = { episode ->
+        val startPos =
+            if (!episode.played && episode.playbackPositionTicks > 0L) {
+                (episode.playbackPositionTicks / 10_000L).coerceAtLeast(0L)
+            } else {
+                0L
+            }
+        startMusicService(context)
+        playerViewModel.playQueue(
+            tracks = listOf(episode),
+            startIndex = 0,
+            startPositionMs = startPos,
+        )
+        onOpenMusicPlayer()
+    }
     LaunchedEffect(continueWatchingItems.firstOrNull()?.id) {
         if (continueWatchingItems.isNotEmpty()) {
             if (
@@ -481,21 +507,21 @@ fun HomeScreen(
                             !uiState.isOffline &&
                                 uiState.showsFixedRow(
                                     HomeRow.CONTINUE_LISTENING,
-                                    hasItems = uiState.continueListening.isNotEmpty(),
+                                    hasItems = continueListeningEntries.isNotEmpty(),
                                     loaded =
                                         HomeRow.CONTINUE_LISTENING in uiState.loadedPlaybackRows,
                                 )
                         ) {
                             item(key = "continue_listening", contentType = "square_media_row") {
                                 Box(modifier = baseModifier.padding(top = 24.dp)) {
-                                    if (uiState.continueListening.isNotEmpty()) {
-                                        AudiobookRowSection(
+                                    if (continueListeningEntries.isNotEmpty()) {
+                                        ContinueListeningRowSection(
                                             title =
                                                 stringResource(R.string.home_continue_listening),
-                                            books = uiState.continueListening,
-                                            onBookClick = onItemClick,
+                                            entries = continueListeningEntries,
+                                            onAudiobookClick = onItemClick,
+                                            onPodcastClick = playPodcast,
                                             widthSizeClass = widthSizeClass,
-                                            showProgress = true,
                                         )
                                     } else {
                                         RowSkeleton(
@@ -880,6 +906,26 @@ fun HomeScreen(
                                         widthSizeClass = widthSizeClass,
                                         showProgress = false,
                                     )
+                                }
+                            }
+                        }
+
+                        if (!uiState.isOffline && HomeRow.LATEST_PODCASTS !in uiState.hiddenRows) {
+                            items(
+                                items = uiState.latestPodcastSections,
+                                key = { (library, _) -> "podcast_lib_${library.id}" },
+                                contentType = { "podcast_library_row" },
+                            ) { (library, episodes) ->
+                                val unplayed = remember(episodes) { episodes.filter { !it.played } }
+                                if (unplayed.isNotEmpty()) {
+                                    Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                        LatestPodcastRowSection(
+                                            title = library.name,
+                                            episodes = unplayed,
+                                            onEpisodeClick = playPodcast,
+                                            widthSizeClass = widthSizeClass,
+                                        )
+                                    }
                                 }
                             }
                         }

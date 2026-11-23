@@ -19,6 +19,7 @@ import com.makd.afinity.testutil.MainDispatcherRule
 import com.makd.afinity.testutil.TestMediaFixtures.testCollection
 import com.makd.afinity.testutil.TestMediaFixtures.testEpisode
 import com.makd.afinity.testutil.TestMediaFixtures.testMovie
+import com.makd.afinity.testutil.TestMediaFixtures.testTrack
 import com.makd.afinity.testutil.TestMediaFixtures.testUuid
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -51,6 +52,19 @@ class HomeViewModelTest {
             MutableStateFlow<List<com.makd.afinity.data.models.media.AfinityItem>>(emptyList())
         val nextUpFlow =
             MutableStateFlow<List<com.makd.afinity.data.models.media.AfinityEpisode>>(emptyList())
+        val continueListeningPodcastsFlow =
+            MutableStateFlow<List<com.makd.afinity.data.models.music.AfinityTrack>>(emptyList())
+        val latestPodcastSectionsFlow =
+            MutableStateFlow<
+                List<
+                    Pair<
+                        com.makd.afinity.data.models.media.AfinityCollection,
+                        List<com.makd.afinity.data.models.music.AfinityTrack>,
+                    >,
+                >,
+            >(
+                emptyList(),
+            )
         val latestMoviesFlow =
             MutableStateFlow<List<com.makd.afinity.data.models.media.AfinityMovie>>(emptyList())
         val librariesFlow =
@@ -80,6 +94,7 @@ class HomeViewModelTest {
                 every { loadedPlaybackRows } returns MutableStateFlow(emptySet())
                 every { latestBookSections } returns MutableStateFlow(emptyList())
                 every { latestAudiobookSections } returns MutableStateFlow(emptyList())
+                every { latestPodcastSections } returns latestPodcastSectionsFlow
                 every { latestHomeVideoSections } returns MutableStateFlow(emptyList())
                 every { latestMusicVideoSections } returns MutableStateFlow(emptyList())
                 every { latestMovies } returns latestMoviesFlow
@@ -103,6 +118,7 @@ class HomeViewModelTest {
                 every { getContinueWatchingFlow() } returns continueWatchingFlow
                 every { continueReading } returns MutableStateFlow(emptyList())
                 every { continueListening } returns MutableStateFlow(emptyList())
+                every { continueListeningPodcasts } returns continueListeningPodcastsFlow
                 every { continueWatchingOrder } returns MutableStateFlow(ContinueWatchingOrder())
                 every { getNextUpFlow() } returns nextUpFlow
                 coEvery { getUpcomingEpisodes(any()) } returns emptyList()
@@ -243,5 +259,38 @@ class HomeViewModelTest {
 
         harness.viewModel.clearSelectedEpisode()
         assertNull(harness.viewModel.selectedEpisode.value)
+    }
+
+    @Test
+    fun `podcast continue listening and latest podcasts project itemStore updates`() = runTest {
+        val harness = Harness()
+        val podcastLib =
+            testCollection(
+                id = testUuid(90),
+                name = "Podcasts",
+                type = com.makd.afinity.data.models.common.CollectionType.Music,
+            )
+        val ep = testTrack(id = testUuid(91), name = "Pod Ep", playbackPositionTicks = 300_000L)
+
+        harness.continueListeningPodcastsFlow.value = listOf(ep)
+        harness.latestPodcastSectionsFlow.value = listOf(podcastLib to listOf(ep))
+        harness.isInitialLoadedFlow.value = true
+        advanceUntilIdle()
+
+        assertEquals(1, harness.viewModel.uiState.value.continueListeningPodcasts.size)
+        assertEquals(1, harness.viewModel.uiState.value.latestPodcastSections.size)
+
+        harness.itemStore.applyPatch(
+            ep.id,
+            UserDataPatch(played = true, playbackPositionTicks = 0L),
+        )
+        advanceUntilIdle()
+
+        val projectedCont = harness.viewModel.uiState.value.continueListeningPodcasts.single()
+        val projectedLatest =
+            harness.viewModel.uiState.value.latestPodcastSections.single().second.single()
+        assertTrue(projectedCont.played)
+        assertTrue(projectedLatest.played)
+        assertEquals(0L, projectedCont.playbackPositionTicks)
     }
 }

@@ -79,8 +79,9 @@ private fun AfinityTrack.toAlbumStub(
 
 fun BaseItemDto.toAfinityTrack(baseUrl: String): AfinityTrack {
     val baseUri = baseUrl.trimEnd('/').toUri()
+    val primaryTag = imageTags?.get(ImageType.PRIMARY)
     val primary =
-        imageTags?.get(ImageType.PRIMARY)?.let { tag ->
+        primaryTag?.let { tag ->
             baseUri
                 .buildUpon()
                 .appendEncodedPath("Items/$id/Images/Primary")
@@ -96,7 +97,11 @@ fun BaseItemDto.toAfinityTrack(baseUrl: String): AfinityTrack {
                         .build()
                 }
             }
-    val blurHash = imageBlurHashes?.get(ImageType.PRIMARY)?.values?.firstOrNull()
+    val primaryBlurHashes = imageBlurHashes?.get(ImageType.PRIMARY)
+    val blurHash =
+        primaryTag?.let { primaryBlurHashes?.get(it) }
+            ?: albumPrimaryImageTag?.let { primaryBlurHashes?.get(it) }
+            ?: primaryBlurHashes?.values?.firstOrNull()
     return AfinityTrack(
         id = id,
         name = name.orEmpty(),
@@ -122,6 +127,7 @@ fun BaseItemDto.toAfinityTrack(baseUrl: String): AfinityTrack {
                 primaryImageBlurHash = blurHash,
             ),
         playlistItemId = playlistItemId,
+        lastPlayedDate = userData?.lastPlayedDate,
     )
 }
 

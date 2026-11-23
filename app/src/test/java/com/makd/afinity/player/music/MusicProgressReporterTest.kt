@@ -1,6 +1,7 @@
 package com.makd.afinity.player.music
 
 import com.makd.afinity.data.repository.playback.PlaybackRepository
+import com.makd.afinity.testutil.TestMediaFixtures.testTrack
 import com.makd.afinity.testutil.TestMediaFixtures.testUuid
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -54,10 +55,26 @@ class MusicProgressReporterTest {
                             true
                         }
                 }
-            val reporter = MusicProgressReporter(repo).also { activeReporter = it }
             val trackId = testUuid(1)
+            val track = testTrack(id = trackId)
+            val updatedTrack = track.copy(playbackPositionTicks = 50_000_000L)
+            val tracker: PodcastProgressTracker =
+                mockk(relaxed = true) {
+                    coEvery { syncProgress(track, positionMs = 5_000L, isEnded = false) } returns
+                        updatedTrack
+                    coEvery {
+                        syncProgress(updatedTrack, positionMs = 12_345L, isEnded = true)
+                    } returns null
+                }
+            val reporter = MusicProgressReporter(repo, tracker).also { activeReporter = it }
 
-            reporter.onPlaybackStarted(trackId, playSessionId = "ps-1", playMethod = "DirectPlay")
+            reporter.onPlaybackStarted(
+                trackId,
+                playSessionId = "ps-1",
+                playMethod = "DirectPlay",
+                track = track,
+            )
+            reporter.onPlaybackPaused(positionMs = 5_000L)
             reporter.onPlaybackStopped(positionMs = 12_345L, isEnded = true)
 
             withContext(Dispatchers.Default) { withTimeout(2_000L) { stopReported.await() } }
@@ -70,6 +87,7 @@ class MusicProgressReporterTest {
                     playMethod = "DirectPlay",
                     canSeek = true,
                 )
+                tracker.syncProgress(track, positionMs = 5_000L, isEnded = false)
                 repo.reportPlaybackStop(
                     itemId = trackId,
                     sessionId = "ps-1",
@@ -79,6 +97,7 @@ class MusicProgressReporterTest {
                     isMusic = true,
                     playCountedOnServer = true,
                 )
+                tracker.syncProgress(updatedTrack, positionMs = 12_345L, isEnded = true)
             }
         }
 
@@ -113,7 +132,8 @@ class MusicProgressReporterTest {
                             false
                         }
                 }
-            val reporter = MusicProgressReporter(repo).also { activeReporter = it }
+            val tracker: PodcastProgressTracker = mockk(relaxed = true)
+            val reporter = MusicProgressReporter(repo, tracker).also { activeReporter = it }
             val trackId = testUuid(5)
 
             reporter.onPlaybackStarted(trackId, playSessionId = "ps-2", playMethod = "DirectPlay")

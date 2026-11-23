@@ -27,11 +27,13 @@ import com.makd.afinity.data.models.media.LibraryFilters
 import com.makd.afinity.data.models.media.LibraryIndexEntry
 import com.makd.afinity.data.models.media.ThemeSongLookup
 import com.makd.afinity.data.models.music.AfinityPlaylistContents
+import com.makd.afinity.data.models.music.AfinityTrack
 import com.makd.afinity.data.models.omdb.OmdbApiResult
 import com.makd.afinity.data.repository.FieldSets
 import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.api.BaseItemDtoQueryResult
 import org.jellyfin.sdk.model.api.BaseItemKind
@@ -59,6 +61,11 @@ interface MediaRepository {
     suspend fun invalidateContinueReadingCache()
 
     val continueListening: Flow<List<AfinityAudiobook>>
+
+    val continueListeningPodcasts: Flow<List<AfinityTrack>>
+        get() = emptyFlow()
+
+    fun updateContinueListeningPodcast(track: AfinityTrack) {}
 
     suspend fun invalidateContinueListeningCache()
 
