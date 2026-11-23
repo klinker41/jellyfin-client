@@ -170,6 +170,7 @@ private fun DetailFullScreenScaffold(
         PortraitDetailLayout(
             hero = PortraitHero.Image(ImageHeroKind.Backdrop, rememberItemBackdropChain(item)),
             listState = listState,
+            edgeToEdgeItems = true,
             header = {
                 MediaLogoHeader(logoUrl = null, name = item.name, isLandscape = false)
                 MetadataRow(item = item)

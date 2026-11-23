@@ -4,7 +4,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
@@ -38,6 +40,7 @@ import com.makd.afinity.data.models.media.AfinityShow
 import com.makd.afinity.data.models.media.AfinityVideo
 import com.makd.afinity.ui.components.AsyncImage
 import com.makd.afinity.ui.components.CardRow
+import com.makd.afinity.ui.components.LocalDetailEdgePadding
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.portraitWidth
 import java.util.UUID
@@ -119,11 +122,18 @@ private fun PeopleRow(
     if (people.isEmpty()) return
 
     val cardWidth = widthSizeClass.portraitWidth
+    val edgePadding = LocalDetailEdgePadding.current
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        DetailSectionTitle(text = title)
+        DetailSectionTitle(
+            text = title,
+            modifier = Modifier.padding(start = edgePadding.start, end = edgePadding.end),
+        )
 
-        CardRow {
+        CardRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = edgePadding.asPaddingValues(),
+        ) {
             items(
                 items = people,
                 key = { "${it.id}|${it.type}|${it.role}" },

@@ -63,6 +63,7 @@ fun LibrariesScreen(
             )
         },
         modifier = modifier,
+        insetContentForPinnedDrawer = false,
     ) {
         when {
             uiState.isLoading && uiState.libraries.isEmpty() -> {

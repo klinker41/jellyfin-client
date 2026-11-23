@@ -48,12 +48,13 @@ import com.makd.afinity.data.models.tmdb.TmdbReview
 import com.makd.afinity.data.models.wikidata.WikidataAwards
 import com.makd.afinity.ui.components.AsyncImage
 import com.makd.afinity.ui.components.CardRow
+import com.makd.afinity.ui.components.LocalDetailEdgePadding
 import com.makd.afinity.ui.components.formatClock
 import com.makd.afinity.ui.components.formatClockTicks
 import com.makd.afinity.ui.item.components.shared.DetailSectionTitle
 import com.makd.afinity.ui.item.components.shared.PlaybackSelection
 import com.makd.afinity.ui.item.components.shared.baseMediaDetailItems
-import com.makd.afinity.ui.item.components.shared.detailItem
+import com.makd.afinity.ui.item.components.shared.detailRowItem
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.landscapeWidth
 import java.util.UUID
@@ -104,7 +105,7 @@ fun LazyListScope.movieDetailItems(
         detailLayout = detailLayout,
     ) {
         if (parts.isNotEmpty()) {
-            detailItem("parts", horizontalPadding) {
+            detailRowItem("parts") {
                 PartsSection(
                     parts = parts,
                     onPartClick = onPartClick,
@@ -114,7 +115,7 @@ fun LazyListScope.movieDetailItems(
         }
 
         if (item.chapters.isNotEmpty()) {
-            detailItem("chapters", horizontalPadding) {
+            detailRowItem("chapters") {
                 ChaptersSection(
                     chapters = item.chapters,
                     itemId = item.id,
@@ -161,10 +162,18 @@ private fun PartsSection(
             metadataHeight = 0.dp,
         )
 
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        DetailSectionTitle(text = stringResource(R.string.parts_title))
+    val edgePadding = LocalDetailEdgePadding.current
 
-        CardRow(modifier = Modifier.height(fixedRowHeight)) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        DetailSectionTitle(
+            text = stringResource(R.string.parts_title),
+            modifier = Modifier.padding(start = edgePadding.start, end = edgePadding.end),
+        )
+
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = edgePadding.asPaddingValues(),
+        ) {
             itemsIndexed(
                 items = parts,
                 key = { _, part -> part.id },
@@ -291,10 +300,18 @@ internal fun ChaptersSection(
             metadataHeight = 0.dp,
         )
 
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        DetailSectionTitle(text = stringResource(R.string.chapters_title))
+    val edgePadding = LocalDetailEdgePadding.current
 
-        CardRow(modifier = Modifier.height(fixedRowHeight)) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        DetailSectionTitle(
+            text = stringResource(R.string.chapters_title),
+            modifier = Modifier.padding(start = edgePadding.start, end = edgePadding.end),
+        )
+
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = edgePadding.asPaddingValues(),
+        ) {
             itemsIndexed(
                 items = chapters,
                 key = { index, chapter -> "${chapter.startPosition}_$index" },

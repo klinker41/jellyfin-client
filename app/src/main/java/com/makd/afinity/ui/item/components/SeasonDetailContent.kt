@@ -33,10 +33,12 @@ import com.makd.afinity.data.models.wikidata.WikidataAwards
 import com.makd.afinity.ui.components.CardRow
 import com.makd.afinity.ui.components.ContinueWatchingCard
 import com.makd.afinity.ui.components.EpisodeListCard
+import com.makd.afinity.ui.components.LocalDetailEdgePadding
 import com.makd.afinity.ui.item.components.shared.DetailItemBox
 import com.makd.afinity.ui.item.components.shared.DetailSectionTitle
 import com.makd.afinity.ui.item.components.shared.baseMediaDetailItems
 import com.makd.afinity.ui.item.components.shared.detailItem
+import com.makd.afinity.ui.item.components.shared.detailRowItem
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.landscapeWidth
 import com.makd.afinity.ui.theme.CardDimensions.scaledLandscapeWidth
@@ -107,7 +109,7 @@ private fun LazyListScope.episodesItems(
 
     when (layout) {
         EpisodeLayout.HORIZONTAL -> {
-            detailItem("episodes_row", horizontalPadding, gap = EpisodesInnerGap) {
+            detailRowItem("episodes_row", gap = EpisodesInnerGap) {
                 HorizontalEpisodesList(
                     lazyEpisodeItems = lazyEpisodeItems,
                     onEpisodeClick = onEpisodeClick,
@@ -157,8 +159,12 @@ private fun HorizontalEpisodesList(
     cardWidth: Dp,
 ) {
     val fixedRowHeight = CardDimensions.rowHeight(cardWidth, CardDimensions.ASPECT_RATIO_LANDSCAPE)
+    val edgePadding = LocalDetailEdgePadding.current
 
-    CardRow(modifier = Modifier.height(fixedRowHeight)) {
+    CardRow(
+        modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+        contentPadding = edgePadding.asPaddingValues(),
+    ) {
         items(
             count = lazyEpisodeItems.itemCount,
             key = lazyEpisodeItems.itemKey { it.id },

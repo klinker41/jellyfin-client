@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
@@ -32,6 +33,7 @@ import com.makd.afinity.data.models.media.AfinityItem
 import com.makd.afinity.data.models.media.AfinityVideo
 import com.makd.afinity.ui.components.AsyncImage
 import com.makd.afinity.ui.components.CardRow
+import com.makd.afinity.ui.components.LocalDetailEdgePadding
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.landscapeWidth
 import org.jellyfin.sdk.model.api.ExtraType
@@ -44,12 +46,19 @@ fun SpecialFeaturesSection(
 ) {
     val cardWidth = widthSizeClass.landscapeWidth
     val fixedRowHeight = CardDimensions.rowHeight(cardWidth, CardDimensions.ASPECT_RATIO_LANDSCAPE)
+    val edgePadding = LocalDetailEdgePadding.current
 
     if (specialFeatures.isNotEmpty()) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            DetailSectionTitle(text = stringResource(R.string.special_features_title))
+            DetailSectionTitle(
+                text = stringResource(R.string.special_features_title),
+                modifier = Modifier.padding(start = edgePadding.start, end = edgePadding.end),
+            )
 
-            CardRow(modifier = Modifier.height(fixedRowHeight)) {
+            CardRow(
+                modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+                contentPadding = edgePadding.asPaddingValues(),
+            ) {
                 items(
                     items = specialFeatures,
                     key = { it.id.toString() },

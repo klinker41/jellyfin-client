@@ -85,6 +85,7 @@ import com.makd.afinity.ui.components.backdropChainOf
 import com.makd.afinity.ui.components.formatRuntimeSeconds
 import com.makd.afinity.ui.components.isLandscapeWindow
 import com.makd.afinity.ui.components.mediainfo.PodcastEpisodeMediaInfoSheet
+import com.makd.afinity.ui.components.rememberDetailTopBarBlurState
 import com.makd.afinity.ui.components.rememberDownloadVolumes
 import com.makd.afinity.ui.item.components.StorageLocationDialog
 import com.makd.afinity.ui.item.components.shared.DetailSectionGap
@@ -92,7 +93,6 @@ import com.makd.afinity.ui.item.components.shared.LocalDetailLayout
 import com.makd.afinity.ui.item.components.shared.OverviewSection
 import com.makd.afinity.ui.item.components.shared.detailItem
 import com.makd.afinity.ui.theme.CardDimensions.portraitWidth
-import com.makd.afinity.ui.utils.rememberTopBarOpacity
 
 private const val EPISODE_PREVIEW_COUNT = 5
 
@@ -211,7 +211,7 @@ fun AudiobookshelfItemScreen(
     }
 
     val lazyListState = rememberLazyListState()
-    val topBarOpacity by rememberTopBarOpacity(lazyListState)
+    val topBarBlurState = rememberDetailTopBarBlurState(lazyListState, hasHeroSlot = !isLandscape)
 
     val resumePositionOf: (PodcastEpisode) -> Double? = { episode ->
         episodeProgressMap[episode.id]?.takeIf { !it.isFinished && it.currentTime > 0 }?.currentTime
@@ -257,7 +257,7 @@ fun AudiobookshelfItemScreen(
                 )
             },
             mode = AfinityScreenMode.Hero,
-            scrollOpacity = { topBarOpacity },
+            topBarBlurState = topBarBlurState,
         ) {
             when {
                 uiState.isLoading || detailLayout == null -> {

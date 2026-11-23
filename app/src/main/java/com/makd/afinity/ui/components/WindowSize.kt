@@ -10,6 +10,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.max
 
 @Composable
 @ReadOnlyComposable
@@ -34,7 +35,8 @@ fun windowHeightDp(): Dp =
 @Composable
 fun listDetailPaneDirective(): PaneScaffoldDirective {
     val defaultDirective = calculatePaneScaffoldDirective(currentWindowAdaptiveInfoV2())
-    val screenWidthDp = windowWidthDp()
+    val drawerWidth = max(LocalPinnedDrawerWindowInset.current, LocalPinnedDrawerStartInset.current)
+    val screenWidthDp = (windowWidthDp() - drawerWidth).coerceAtLeast(0.dp)
     val canSplit =
         screenWidthDp >= 600.dp &&
             (isLandscapeWindow() || defaultDirective.maxHorizontalPartitions >= 2)

@@ -80,6 +80,7 @@ import com.makd.afinity.ui.components.afinityDialogProperties
 import com.makd.afinity.ui.components.backdropChainOf
 import com.makd.afinity.ui.components.detailListBottomPadding
 import com.makd.afinity.ui.components.isLandscapeWindow
+import com.makd.afinity.ui.components.rememberDetailTopBarBlurState
 import com.makd.afinity.ui.components.rememberDownloadVolumes
 import com.makd.afinity.ui.item.components.DownloadProgressIndicator
 import com.makd.afinity.ui.item.components.MusicDownloadQualityDialog
@@ -95,7 +96,6 @@ import com.makd.afinity.ui.music.components.rememberTrackAdminActions
 import com.makd.afinity.ui.music.library.startMusicService
 import com.makd.afinity.ui.music.player.MusicPlayerViewModel
 import com.makd.afinity.ui.player.PlayerLauncher
-import com.makd.afinity.ui.utils.rememberTopBarOpacity
 import java.util.UUID
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
@@ -124,8 +124,8 @@ fun PlaylistScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val lazyListState = rememberLazyListState()
-    val topBarOpacity by rememberTopBarOpacity(lazyListState)
     val isLandscape = isLandscapeWindow()
+    val topBarBlurState = rememberDetailTopBarBlurState(lazyListState, hasHeroSlot = !isLandscape)
 
     var addToPlaylistTrackIds by remember { mutableStateOf<List<UUID>>(emptyList()) }
     var showAddToPlaylist by remember { mutableStateOf(false) }
@@ -471,7 +471,7 @@ fun PlaylistScreen(
             )
         },
         mode = AfinityScreenMode.Hero,
-        scrollOpacity = { topBarOpacity },
+        topBarBlurState = topBarBlurState,
     ) {
         if (isLandscape) {
             LandscapeDetailLayout(

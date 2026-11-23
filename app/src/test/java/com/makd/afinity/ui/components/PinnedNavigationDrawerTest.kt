@@ -2,6 +2,7 @@ package com.makd.afinity.ui.components
 
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import com.makd.afinity.navigation.Destination
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -168,5 +169,29 @@ class PinnedNavigationDrawerTest {
             0.0001f,
         )
         assertEquals(1f, computeClampedTintAlpha(1.5f), 0.0001f)
+    }
+
+    @Test
+    fun `shouldHidePinnedDrawerForRoute keeps drawer visible on sub-screens and hides on auth and players`() {
+        assertFalse(shouldHidePinnedDrawerForRoute(Destination.HOME.route))
+        assertFalse(shouldHidePinnedDrawerForRoute(Destination.LIBRARY_CONTENT_ROUTE))
+        assertFalse(shouldHidePinnedDrawerForRoute(Destination.ITEM_DETAIL_ROUTE))
+        assertFalse(shouldHidePinnedDrawerForRoute(Destination.EPISODE_LIST_ROUTE))
+        assertFalse(shouldHidePinnedDrawerForRoute(Destination.PERSON_ROUTE))
+        assertFalse(shouldHidePinnedDrawerForRoute(Destination.SEERR_MEDIA_ROUTE))
+        assertFalse(shouldHidePinnedDrawerForRoute(Destination.SEARCH_ROUTE))
+        assertFalse(shouldHidePinnedDrawerForRoute(Destination.SETTINGS_ROUTE))
+        assertFalse(shouldHidePinnedDrawerForRoute(Destination.BOOK_DETAIL_ROUTE))
+        assertFalse(shouldHidePinnedDrawerForRoute(Destination.MUSIC_ALBUM_ROUTE))
+
+        assertTrue(shouldHidePinnedDrawerForRoute(null))
+        assertTrue(shouldHidePinnedDrawerForRoute(Destination.SPLASH_ROUTE))
+        assertTrue(shouldHidePinnedDrawerForRoute(Destination.LOGIN_ROUTE))
+        assertTrue(shouldHidePinnedDrawerForRoute(Destination.SERVICES_HUB_ROUTE))
+        assertTrue(shouldHidePinnedDrawerForRoute(Destination.AUDIOBOOKSHELF_LOGIN_ROUTE))
+        assertTrue(shouldHidePinnedDrawerForRoute(Destination.MUSIC_PLAYER_ROUTE))
+        assertTrue(shouldHidePinnedDrawerForRoute(Destination.BOOK_READER_ROUTE))
+        assertTrue(shouldHidePinnedDrawerForRoute(Destination.PHOTO_VIEWER_ROUTE))
+        assertTrue(shouldHidePinnedDrawerForRoute("audiobookshelf/player/item-123"))
     }
 }

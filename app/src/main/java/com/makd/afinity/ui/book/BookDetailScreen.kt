@@ -68,6 +68,7 @@ import com.makd.afinity.ui.components.backdropChainOf
 import com.makd.afinity.ui.components.formatTimeLeftSeconds
 import com.makd.afinity.ui.components.isLandscapeWindow
 import com.makd.afinity.ui.components.matches
+import com.makd.afinity.ui.components.rememberDetailTopBarBlurState
 import com.makd.afinity.ui.components.rememberDownloadVolumes
 import com.makd.afinity.ui.components.singleDownloadConfirm
 import com.makd.afinity.ui.components.windowHeightDp
@@ -80,7 +81,6 @@ import com.makd.afinity.ui.item.components.shared.detailItem
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.portraitWidth
 import com.makd.afinity.ui.theme.isDarkSurface
-import com.makd.afinity.ui.utils.rememberTopBarOpacity
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.UUID
@@ -106,8 +106,8 @@ fun BookDetailScreen(
     val secondsLeft by viewModel.secondsLeft.collectAsStateWithLifecycle()
     val isOffline by viewModel.isOffline.collectAsStateWithLifecycle()
     val lazyListState = rememberLazyListState()
-    val topBarOpacity by rememberTopBarOpacity(lazyListState)
     val isLandscape = isLandscapeWindow()
+    val topBarBlurState = rememberDetailTopBarBlurState(lazyListState, hasHeroSlot = !isLandscape)
 
     AfinityScreen(
         topBar = { backgroundOpacity ->
@@ -118,7 +118,7 @@ fun BookDetailScreen(
             )
         },
         mode = AfinityScreenMode.Hero,
-        scrollOpacity = { topBarOpacity },
+        topBarBlurState = topBarBlurState,
     ) { _ ->
         val book = uiState.book
         when {

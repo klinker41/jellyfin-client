@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,6 +22,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -69,28 +71,92 @@ fun PortraitDetailLayout(
     header: @Composable ColumnScope.() -> Unit,
     modifier: Modifier = Modifier,
     listVerticalArrangement: Arrangement.Vertical = Arrangement.Top,
+    edgeToEdgeItems: Boolean = false,
     items: LazyListScope.() -> Unit,
 ) {
-    LazyColumn(
-        state = listState,
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = detailListBottomPadding()),
-        verticalArrangement = listVerticalArrangement,
-    ) {
-        when (hero) {
-            is PortraitHero.Image -> {
-                item(key = "hero") { ImageHero(hero) }
-                item(key = "header") {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = DetailGutter),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        content = header,
-                    )
+    val drawerStartInset = LocalPinnedDrawerStartInset.current
+    val edgePadding =
+        DetailEdgePadding(
+            start = DetailGutter + drawerStartInset,
+            end = DetailGutter,
+        )
+    val itemEdgePadding = if (edgeToEdgeItems) edgePadding else DetailEdgePadding.Zero
+
+    CompositionLocalProvider(LocalDetailEdgePadding provides itemEdgePadding) {
+        LazyColumn(
+            state = listState,
+            modifier = modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = detailListBottomPadding()),
+            verticalArrangement = listVerticalArrangement,
+        ) {
+            when (hero) {
+                is PortraitHero.Image -> {
+                    item(key = "hero") { ImageHero(hero) }
+                    item(key = "header") {
+                        Column(
+                            modifier =
+                                Modifier.fillMaxWidth()
+                                    .padding(start = edgePadding.start, end = edgePadding.end),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            CompositionLocalProvider(
+                                LocalDetailEdgePadding provides DetailEdgePadding.Zero,
+                                LocalPinnedDrawerStartInset provides 0.dp,
+                            ) {
+                                header()
+                            }
+                        }
+                    }
                 }
+                is PortraitHero.Cover ->
+                    item(key = "header") { CoverHero(hero, edgePadding, header) }
             }
-            is PortraitHero.Cover -> item(key = "header") { CoverHero(hero, header) }
+            if (!edgeToEdgeItems && drawerStartInset > 0.dp) {
+                StartInsetLazyListScope(this, drawerStartInset).items()
+            } else {
+                items()
+            }
         }
-        items()
+    }
+}
+
+private class StartInsetLazyListScope(
+    private val delegate: LazyListScope,
+    private val startInset: Dp,
+) : LazyListScope by delegate {
+    override fun item(
+        key: Any?,
+        contentType: Any?,
+        content: @Composable LazyItemScope.() -> Unit,
+    ) {
+        val inset = startInset
+        delegate.item(key = key, contentType = contentType) {
+            PinnedDrawerStartInsetItemBox(inset) { content() }
+        }
+    }
+
+    override fun items(
+        count: Int,
+        key: ((index: Int) -> Any)?,
+        contentType: (index: Int) -> Any?,
+        itemContent: @Composable LazyItemScope.(index: Int) -> Unit,
+    ) {
+        val inset = startInset
+        delegate.items(count = count, key = key, contentType = contentType) { index ->
+            PinnedDrawerStartInsetItemBox(inset) { itemContent(index) }
+        }
+    }
+}
+
+@Composable
+private fun PinnedDrawerStartInsetItemBox(startInset: Dp, content: @Composable () -> Unit) {
+    Box(modifier = Modifier.fillMaxWidth().padding(start = startInset)) {
+        CompositionLocalProvider(
+            LocalDetailEdgePadding provides DetailEdgePadding.Zero,
+            LocalPinnedDrawerStartInset provides 0.dp,
+        ) {
+            content()
+        }
     }
 }
 
@@ -204,7 +270,11 @@ fun DetailCoverTitle(title: String, subtitle: String? = null) {
 }
 
 @Composable
-private fun CoverHero(hero: PortraitHero.Cover, content: @Composable ColumnScope.() -> Unit) {
+private fun CoverHero(
+    hero: PortraitHero.Cover,
+    edgePadding: DetailEdgePadding,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     Box(modifier = Modifier.fillMaxWidth()) {
         Box(modifier = Modifier.matchParentSize()) {
             DetailBackdrop(BackdropStyle.BlurredCover, hero.backdrop)
@@ -212,11 +282,17 @@ private fun CoverHero(hero: PortraitHero.Cover, content: @Composable ColumnScope
         Column(
             modifier =
                 Modifier.fillMaxWidth()
-                    .padding(horizontal = DetailGutter)
+                    .padding(start = edgePadding.start, end = edgePadding.end)
                     .statusBarsPadding()
                     .padding(top = CoverHeroTopOffset),
             horizontalAlignment = Alignment.CenterHorizontally,
-            content = content,
-        )
+        ) {
+            CompositionLocalProvider(
+                LocalDetailEdgePadding provides DetailEdgePadding.Zero,
+                LocalPinnedDrawerStartInset provides 0.dp,
+            ) {
+                content()
+            }
+        }
     }
 }

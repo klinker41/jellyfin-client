@@ -67,6 +67,7 @@ import com.makd.afinity.ui.components.PortraitHero
 import com.makd.afinity.ui.components.afinitySectionTitleStyle
 import com.makd.afinity.ui.components.backdropChainOf
 import com.makd.afinity.ui.components.isLandscapeWindow
+import com.makd.afinity.ui.components.rememberDetailTopBarBlurState
 import com.makd.afinity.ui.music.components.MusicAdminDialogs
 import com.makd.afinity.ui.music.components.MusicAdminRequest
 import com.makd.afinity.ui.music.components.MusicAdminViewModel
@@ -79,7 +80,6 @@ import com.makd.afinity.ui.music.components.rememberTrackAdminActions
 import com.makd.afinity.ui.music.library.startMusicService
 import com.makd.afinity.ui.music.player.MusicPlayerViewModel
 import com.makd.afinity.ui.theme.CardDimensions
-import com.makd.afinity.ui.utils.rememberTopBarOpacity
 
 @Composable
 fun MusicGenreScreen(
@@ -113,7 +113,7 @@ fun MusicGenreScreen(
     val albumRowHeight =
         CardDimensions.rowHeight(relatedCardWidth, CardDimensions.ASPECT_RATIO_SQUARE)
     val listState = rememberLazyListState()
-    val topBarOpacity by rememberTopBarOpacity(listState)
+    val topBarBlurState = rememberDetailTopBarBlurState(listState, hasHeroSlot = !isLandscape)
     var showAllTracks by remember { mutableStateOf(false) }
     var radioSeed by remember { mutableStateOf<RadioSeed?>(null) }
     val isAdmin by adminViewModel.isAdmin.collectAsStateWithLifecycle()
@@ -471,7 +471,7 @@ fun MusicGenreScreen(
             )
         },
         mode = AfinityScreenMode.Hero,
-        scrollOpacity = { topBarOpacity },
+        topBarBlurState = topBarBlurState,
     ) {
         if (isLandscape) {
             LandscapeDetailLayout(

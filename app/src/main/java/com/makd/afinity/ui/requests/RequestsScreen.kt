@@ -101,6 +101,7 @@ fun RequestsScreen(
             )
         },
         modifier = modifier.fillMaxSize(),
+        insetContentForPinnedDrawer = false,
     ) { innerPadding ->
         if (!isAuthenticated) {
             NotLoggedInView(

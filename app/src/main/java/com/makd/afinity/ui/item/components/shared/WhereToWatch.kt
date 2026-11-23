@@ -6,7 +6,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -46,6 +45,7 @@ import com.makd.afinity.data.models.tmdb.TmdbRegionProviders
 import com.makd.afinity.data.models.tmdb.TmdbWatchProvider
 import com.makd.afinity.ui.components.AfinityModalBottomSheet
 import com.makd.afinity.ui.components.AsyncImage
+import com.makd.afinity.ui.components.LocalDetailEdgePadding
 import com.makd.afinity.ui.components.afinitySectionTitleStyle
 import com.makd.afinity.ui.components.rememberAfinitySheetState
 import java.util.Locale
@@ -124,9 +124,13 @@ fun WhereToWatchSection(providers: TmdbRegionProviders, modifier: Modifier = Mod
     if (!providers.hasAny) return
     val context = LocalContext.current
     val groups = remember(providers) { providers.toGroups() }
+    val edgePadding = LocalDetailEdgePadding.current
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(start = edgePadding.start, end = edgePadding.end),
+        ) {
             DetailSectionTitle(
                 text = stringResource(R.string.where_to_watch_title),
                 modifier = Modifier.weight(1f),
@@ -153,21 +157,27 @@ fun WhereToWatchSection(providers: TmdbRegionProviders, modifier: Modifier = Mod
             )
         }
 
-        AttributionRow(onOpen = { openWatchLink(context, providers.link) })
+        AttributionRow(
+            onOpen = { openWatchLink(context, providers.link) },
+            modifier = Modifier.padding(start = edgePadding.start, end = edgePadding.end),
+        )
     }
 }
 
 @Composable
 private fun ProviderTileRow(label: String, options: List<WatchOption>, onClick: () -> Unit) {
+    val edgePadding = LocalDetailEdgePadding.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = edgePadding.start, end = edgePadding.end),
         )
         LazyRow(
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
-            contentPadding = PaddingValues(horizontal = 0.dp),
+            contentPadding = edgePadding.asPaddingValues(),
         ) {
             items(options, key = { it.provider.provider_id }) { option ->
                 ProviderTile(option = option, onClick = onClick)
@@ -216,8 +226,8 @@ private fun ProviderLogo(provider: TmdbWatchProvider, size: Dp, cornerRadius: Dp
 }
 
 @Composable
-private fun AttributionRow(onOpen: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+private fun AttributionRow(onOpen: () -> Unit, modifier: Modifier = Modifier) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.fillMaxWidth()) {
         Text(
             text = stringResource(R.string.where_to_watch_attribution),
             style = MaterialTheme.typography.labelMedium,

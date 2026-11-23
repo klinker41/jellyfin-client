@@ -32,6 +32,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -89,6 +90,7 @@ import com.makd.afinity.ui.components.LocalHeroImageLoaded
 import com.makd.afinity.ui.components.PortraitDetailLayout
 import com.makd.afinity.ui.components.PortraitHero
 import com.makd.afinity.ui.components.isLandscapeWindow
+import com.makd.afinity.ui.components.rememberDetailTopBarBlurState
 import com.makd.afinity.ui.item.collections.CollectionDialog
 import com.makd.afinity.ui.item.collections.CollectionDialogHost
 import com.makd.afinity.ui.item.collections.collectionMenuActions
@@ -114,12 +116,12 @@ import com.makd.afinity.ui.item.components.shared.SimilarItemsSection
 import com.makd.afinity.ui.item.components.shared.VideoQualitySelection
 import com.makd.afinity.ui.item.components.shared.WhereToWatchStrip
 import com.makd.afinity.ui.item.components.shared.detailItem
+import com.makd.afinity.ui.item.components.shared.detailRowItem
 import com.makd.afinity.ui.item.components.shared.rememberItemBackdropChain
 import com.makd.afinity.ui.item.components.videoDetailItems
 import com.makd.afinity.ui.music.components.AddToPlaylistDialog
 import com.makd.afinity.ui.player.PlayerLauncher
 import com.makd.afinity.ui.utils.IntentUtils
-import com.makd.afinity.ui.utils.rememberTopBarOpacity
 import com.makd.afinity.util.ReportDrawnAfterFirstFrame
 import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
@@ -595,7 +597,7 @@ private fun ItemDetailContent(
     val isLandscape = isLandscapeWindow()
 
     val lazyListState = rememberLazyListState()
-    val topBarOpacity by rememberTopBarOpacity(lazyListState)
+    val topBarBlurState = rememberDetailTopBarBlurState(lazyListState, hasHeroSlot = !isLandscape)
 
     AfinityScreen(
         topBar = { backgroundOpacity ->
@@ -606,7 +608,9 @@ private fun ItemDetailContent(
             )
         },
         mode = AfinityScreenMode.Hero,
-        scrollOpacity = { topBarOpacity },
+        topBarBlurState = topBarBlurState,
+        topBarBlurContainerColor =
+            if (isLandscape) Color.Black else MaterialTheme.colorScheme.background,
     ) {
         if (isLandscape) {
             LandscapeItemDetailContent(
@@ -816,8 +820,9 @@ private fun LandscapeItemDetailContent(
         listState = lazyListState,
         arrangement = LandscapeDetailArrangement.Single,
         backdropDescription = stringResource(R.string.cd_backdrop_fmt, item.name),
+        edgeToEdgeItems = true,
         items = {
-            item(key = "header") {
+            detailItem(key = "header", horizontalPadding = DetailGutter, gap = 0.dp) {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     MediaLogoHeader(item = item, isLandscape = true)
 
@@ -980,7 +985,11 @@ private fun LandscapeItemDetailContent(
                     if (detailLayout == DetailLayout.MODERN && watchProviders != null) {
                         WhereToWatchStrip(providers = watchProviders)
                     }
+                }
+            }
 
+            if (mediaSourceOptions.size > 1) {
+                detailRowItem("video_quality") {
                     VideoQualitySelection(
                         mediaSourceOptions = mediaSourceOptions,
                         selectedSource = selectedMediaSource,
@@ -1022,7 +1031,7 @@ private fun LandscapeItemDetailContent(
                 viewModel = viewModel,
                 context = context,
                 widthSizeClass = widthSizeClass,
-                horizontalPadding = 0.dp,
+                horizontalPadding = DetailGutter,
                 detailLayout = detailLayout,
                 watchProviders = watchProviders,
                 showExternalLinks = !isOffline || hasInternet,
@@ -1120,6 +1129,7 @@ private fun PortraitItemDetailContent(
                 backdrop = rememberItemBackdropChain(item),
             ),
         listState = lazyListState,
+        edgeToEdgeItems = true,
         header = {
             MediaLogoHeader(item = item, isLandscape = false)
 
@@ -1264,14 +1274,18 @@ private fun PortraitItemDetailContent(
             if (detailLayout == DetailLayout.MODERN && watchProviders != null) {
                 WhereToWatchStrip(providers = watchProviders)
             }
-
-            VideoQualitySelection(
-                mediaSourceOptions = mediaSourceOptions,
-                selectedSource = selectedMediaSource,
-                onSourceSelected = viewModel::selectMediaSource,
-            )
         },
         items = {
+            if (mediaSourceOptions.size > 1) {
+                detailRowItem("video_quality") {
+                    VideoQualitySelection(
+                        mediaSourceOptions = mediaSourceOptions,
+                        selectedSource = selectedMediaSource,
+                        onSourceSelected = viewModel::selectMediaSource,
+                    )
+                }
+            }
+
             typeSpecificItems(
                 item = item,
                 seasons = seasons,
@@ -1532,7 +1546,7 @@ private fun LazyListScope.typeSpecificItems(
     }
 
     if (item !is AfinityBoxSet && item !is AfinityVideoPlaylist && similarItems.isNotEmpty()) {
-        detailItem("similar", horizontalPadding) {
+        detailRowItem("similar") {
             SimilarItemsSection(
                 items = similarItems,
                 onItemClick = onItemClick,
@@ -1542,7 +1556,7 @@ private fun LazyListScope.typeSpecificItems(
     }
 
     relatedRows.forEach { row ->
-        detailItem("related_${row.kind.name}", horizontalPadding) {
+        detailRowItem("related_${row.kind.name}") {
             SimilarItemsSection(
                 items = row.items,
                 onItemClick = onItemClick,

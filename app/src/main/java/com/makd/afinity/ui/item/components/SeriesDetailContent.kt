@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
@@ -43,12 +44,14 @@ import com.makd.afinity.data.models.tmdb.TmdbReview
 import com.makd.afinity.data.models.wikidata.WikidataAwards
 import com.makd.afinity.ui.components.AsyncImage
 import com.makd.afinity.ui.components.CardRow
+import com.makd.afinity.ui.components.LocalDetailEdgePadding
 import com.makd.afinity.ui.components.MediaCountBadge
 import com.makd.afinity.ui.components.PlayedBadge
 import com.makd.afinity.ui.item.components.shared.DetailSectionTitle
 import com.makd.afinity.ui.item.components.shared.NextUpSection
 import com.makd.afinity.ui.item.components.shared.baseMediaDetailItems
 import com.makd.afinity.ui.item.components.shared.detailItem
+import com.makd.afinity.ui.item.components.shared.detailRowItem
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.portraitWidth
 import java.util.UUID
@@ -109,7 +112,7 @@ fun LazyListScope.seriesDetailItems(
         }
 
         if (seasons.isNotEmpty()) {
-            detailItem("seasons", horizontalPadding) {
+            detailRowItem("seasons") {
                 SeasonsSection(
                     seasons = seasons,
                     onSeasonClick = onSeasonClick,
@@ -126,14 +129,22 @@ internal fun SeasonsSection(
     onSeasonClick: (AfinitySeason) -> Unit,
     widthSizeClass: WindowWidthSizeClass,
 ) {
+    val edgePadding = LocalDetailEdgePadding.current
+
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        DetailSectionTitle(text = stringResource(R.string.seasons_title))
+        DetailSectionTitle(
+            text = stringResource(R.string.seasons_title),
+            modifier = Modifier.padding(start = edgePadding.start, end = edgePadding.end),
+        )
 
         val cardWidth = widthSizeClass.portraitWidth
         val fixedRowHeight =
             CardDimensions.rowHeight(cardWidth, CardDimensions.ASPECT_RATIO_PORTRAIT)
 
-        CardRow(modifier = Modifier.height(fixedRowHeight)) {
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = edgePadding.asPaddingValues(),
+        ) {
             items(
                 items = seasons,
                 key = { it.id.toString() },

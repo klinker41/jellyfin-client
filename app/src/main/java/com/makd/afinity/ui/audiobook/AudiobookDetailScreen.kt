@@ -70,6 +70,7 @@ import com.makd.afinity.ui.components.formatRuntimeSeconds
 import com.makd.afinity.ui.components.formatRuntimeTicks
 import com.makd.afinity.ui.components.formatTimeLeftTicks
 import com.makd.afinity.ui.components.isLandscapeWindow
+import com.makd.afinity.ui.components.rememberDetailTopBarBlurState
 import com.makd.afinity.ui.components.rememberDownloadVolumes
 import com.makd.afinity.ui.components.windowHeightDp
 import com.makd.afinity.ui.item.components.DownloadProgressIndicator
@@ -79,7 +80,6 @@ import com.makd.afinity.ui.item.components.shared.DetailSectionTitle
 import com.makd.afinity.ui.item.components.shared.OverviewSection
 import com.makd.afinity.ui.item.components.shared.detailItem
 import com.makd.afinity.ui.theme.isDarkSurface
-import com.makd.afinity.ui.utils.rememberTopBarOpacity
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
@@ -101,8 +101,8 @@ fun AudiobookDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isOffline by viewModel.isOffline.collectAsStateWithLifecycle()
     val lazyListState = rememberLazyListState()
-    val topBarOpacity by rememberTopBarOpacity(lazyListState)
     val isLandscape = isLandscapeWindow()
+    val topBarBlurState = rememberDetailTopBarBlurState(lazyListState, hasHeroSlot = !isLandscape)
     var showAllChapters by rememberSaveable { mutableStateOf(false) }
     var showListenedChapters by rememberSaveable { mutableStateOf(false) }
 
@@ -115,7 +115,7 @@ fun AudiobookDetailScreen(
             )
         },
         mode = AfinityScreenMode.Hero,
-        scrollOpacity = { topBarOpacity },
+        topBarBlurState = topBarBlurState,
     ) { _ ->
         val book = uiState.book
         when {

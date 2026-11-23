@@ -7,12 +7,16 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.makd.afinity.data.models.common.DetailLayout
+import com.makd.afinity.ui.components.DetailEdgePadding
+import com.makd.afinity.ui.components.LocalDetailEdgePadding
+import com.makd.afinity.ui.components.LocalPinnedDrawerStartInset
 import com.makd.afinity.ui.components.afinitySectionTitleStyle
 import com.makd.afinity.ui.utils.gapIfNotEmpty
 
@@ -32,13 +36,34 @@ fun LazyListScope.detailItem(
     }
 }
 
+fun LazyListScope.detailRowItem(
+    key: Any,
+    gap: Dp = DetailSectionGap,
+    contentType: Any? = null,
+    content: @Composable () -> Unit,
+) {
+    item(key = key, contentType = contentType) {
+        Box(modifier = Modifier.fillMaxWidth().gapIfNotEmpty(gap)) { content() }
+    }
+}
+
 @Composable
 fun DetailItemBox(horizontalPadding: Dp, gap: Dp, content: @Composable () -> Unit) {
+    val edgePadding = LocalDetailEdgePadding.current
+    val startPadding = if (edgePadding.start > 0.dp) edgePadding.start else horizontalPadding
+    val endPadding = if (edgePadding.end > 0.dp) edgePadding.end else horizontalPadding
     Box(
         modifier =
-            Modifier.fillMaxWidth().gapIfNotEmpty(gap).padding(horizontal = horizontalPadding),
+            Modifier.fillMaxWidth()
+                .gapIfNotEmpty(gap)
+                .padding(start = startPadding, end = endPadding),
     ) {
-        content()
+        CompositionLocalProvider(
+            LocalDetailEdgePadding provides DetailEdgePadding.Zero,
+            LocalPinnedDrawerStartInset provides 0.dp,
+        ) {
+            content()
+        }
     }
 }
 

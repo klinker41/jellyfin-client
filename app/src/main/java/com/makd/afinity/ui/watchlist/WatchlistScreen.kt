@@ -107,6 +107,7 @@ fun WatchlistScreen(
             )
         },
         modifier = modifier,
+        insetContentForPinnedDrawer = false,
     ) { innerPadding ->
         val layoutDirection = LocalLayoutDirection.current
         val customPadding =

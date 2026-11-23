@@ -45,6 +45,7 @@ import com.makd.afinity.R
 import com.makd.afinity.data.models.tmdb.TmdbReview
 import com.makd.afinity.ui.components.AfinityModalBottomSheet
 import com.makd.afinity.ui.components.CardRow
+import com.makd.afinity.ui.components.LocalDetailEdgePadding
 import com.makd.afinity.ui.components.rememberAfinitySheetState
 import com.makd.afinity.ui.components.windowWidthDp
 import com.makd.afinity.ui.theme.CardDimensions
@@ -72,10 +73,18 @@ fun ReviewsSection(reviews: List<TmdbReview>, modifier: Modifier = Modifier) {
                 ),
         )
 
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        DetailSectionTitle(text = stringResource(R.string.reviews_title))
+    val edgePadding = LocalDetailEdgePadding.current
 
-        CardRow {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        DetailSectionTitle(
+            text = stringResource(R.string.reviews_title),
+            modifier = Modifier.padding(start = edgePadding.start, end = edgePadding.end),
+        )
+
+        CardRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = edgePadding.asPaddingValues(),
+        ) {
             items(reviews.take(10), key = { it.id }) { review ->
                 ReviewCard(
                     review = review,

@@ -449,7 +449,7 @@ fun AppNavigationDrawerContent(
                                 overflow = TextOverflow.Ellipsis,
                             )
                         },
-                        selected = false,
+                        selected = currentDestination?.route == Destination.SETTINGS_ROUTE,
                         onClick = onSettingsClick,
                         icon = {
                             Icon(

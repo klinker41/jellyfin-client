@@ -72,6 +72,7 @@ import com.makd.afinity.ui.components.FavoriteToggleButton
 import com.makd.afinity.ui.components.ImageHeroKind
 import com.makd.afinity.ui.components.LandscapeDetailArrangement
 import com.makd.afinity.ui.components.LandscapeDetailLayout
+import com.makd.afinity.ui.components.LocalPinnedDrawerStartInset
 import com.makd.afinity.ui.components.MediaItemCard
 import com.makd.afinity.ui.components.PortraitDetailLayout
 import com.makd.afinity.ui.components.PortraitHero
@@ -194,7 +195,12 @@ private fun LandscapePersonDetailContent(
     adminActions: List<DetailMenuAction> = emptyList(),
 ) {
     val screenWidthDp = windowWidthDp()
-    val sidebarWidth = minOf(280.dp, (screenWidthDp - 72.dp) * 0.38f)
+    val sidebarWidth =
+        minOf(
+            280.dp,
+            (screenWidthDp - LocalPinnedDrawerStartInset.current - 72.dp).coerceAtLeast(160.dp) *
+                0.38f,
+        )
 
     LandscapeDetailLayout(
         backdropStyle = BackdropStyle.BlurredPhoto,

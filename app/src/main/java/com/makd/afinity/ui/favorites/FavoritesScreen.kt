@@ -151,6 +151,7 @@ fun FavoritesScreen(
             )
         },
         modifier = modifier,
+        insetContentForPinnedDrawer = false,
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             when {

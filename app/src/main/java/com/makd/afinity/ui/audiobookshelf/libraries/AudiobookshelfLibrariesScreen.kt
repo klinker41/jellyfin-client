@@ -124,6 +124,7 @@ fun AudiobookshelfLibrariesScreen(
                     ),
             )
         },
+        insetContentForPinnedDrawer = false,
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             Column(modifier = Modifier.fillMaxSize()) {

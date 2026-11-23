@@ -87,6 +87,7 @@ fun LiveTvScreen(
             )
         },
         modifier = modifier,
+        insetContentForPinnedDrawer = false,
     ) { paddingValues ->
         when {
             uiState.isLoading -> FullScreenLoading(modifier = Modifier.padding(paddingValues))

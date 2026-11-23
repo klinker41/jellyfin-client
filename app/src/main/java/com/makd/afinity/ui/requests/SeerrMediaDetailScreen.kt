@@ -83,10 +83,10 @@ import com.makd.afinity.ui.components.formatRuntime
 import com.makd.afinity.ui.components.formatRuntimeMinutes
 import com.makd.afinity.ui.components.getAutoFlagUrl
 import com.makd.afinity.ui.components.isLandscapeWindow
+import com.makd.afinity.ui.components.rememberDetailTopBarBlurState
 import com.makd.afinity.ui.components.windowWidthDp
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.portraitWidth
-import com.makd.afinity.ui.utils.rememberTopBarOpacity
 import com.makd.afinity.util.DateSkeleton
 import com.makd.afinity.util.localizedDateFormatter
 import java.util.Locale
@@ -151,7 +151,7 @@ private fun SeerrDetailContent(
 ) {
     val isLandscape = isLandscapeWindow()
     val lazyListState = rememberLazyListState()
-    val topBarOpacity by rememberTopBarOpacity(lazyListState)
+    val topBarBlurState = rememberDetailTopBarBlurState(lazyListState, hasHeroSlot = !isLandscape)
 
     AfinityScreen(
         topBar = { backgroundOpacity ->
@@ -162,7 +162,9 @@ private fun SeerrDetailContent(
             )
         },
         mode = AfinityScreenMode.Hero,
-        scrollOpacity = { topBarOpacity },
+        topBarBlurState = topBarBlurState,
+        topBarBlurContainerColor =
+            if (isLandscape) Color.Black else MaterialTheme.colorScheme.background,
     ) {
         if (isLandscape) {
             SeerrLandscapeContent(

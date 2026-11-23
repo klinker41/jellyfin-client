@@ -70,6 +70,7 @@ import com.makd.afinity.ui.components.afinitySectionTitleStyle
 import com.makd.afinity.ui.components.backdropChainOf
 import com.makd.afinity.ui.components.detailListBottomPadding
 import com.makd.afinity.ui.components.isLandscapeWindow
+import com.makd.afinity.ui.components.rememberDetailTopBarBlurState
 import com.makd.afinity.ui.components.rememberDownloadVolumes
 import com.makd.afinity.ui.item.components.DownloadProgressIndicator
 import com.makd.afinity.ui.item.components.MusicDownloadQualityDialog
@@ -89,7 +90,6 @@ import com.makd.afinity.ui.music.components.musicAdminMenuActions
 import com.makd.afinity.ui.music.components.rememberTrackAdminActions
 import com.makd.afinity.ui.music.library.startMusicService
 import com.makd.afinity.ui.music.player.MusicPlayerViewModel
-import com.makd.afinity.ui.utils.rememberTopBarOpacity
 import java.util.UUID
 import kotlinx.coroutines.launch
 
@@ -122,8 +122,8 @@ fun MusicAlbumScreen(
     var showAddToPlaylist by remember { mutableStateOf(false) }
     var radioSeed by remember { mutableStateOf<RadioSeed?>(null) }
     val lazyListState = rememberLazyListState()
-    val topBarOpacity by rememberTopBarOpacity(lazyListState)
     val isLandscape = isLandscapeWindow()
+    val topBarBlurState = rememberDetailTopBarBlurState(lazyListState, hasHeroSlot = !isLandscape)
     val isAdmin by adminViewModel.isAdmin.collectAsStateWithLifecycle()
     val deletableIds by adminViewModel.deletableIds.collectAsStateWithLifecycle()
     var adminRequest by remember { mutableStateOf<MusicAdminRequest?>(null) }
@@ -496,7 +496,7 @@ fun MusicAlbumScreen(
             )
         },
         mode = AfinityScreenMode.Hero,
-        scrollOpacity = { topBarOpacity },
+        topBarBlurState = topBarBlurState,
     ) {
         if (isLandscape) {
             LandscapeDetailLayout(

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.items
@@ -27,6 +28,7 @@ import com.makd.afinity.data.models.external.ExternalTitles
 import com.makd.afinity.data.models.external.ExternalTitlesSource
 import com.makd.afinity.data.models.jellyseerr.SearchResultItem
 import com.makd.afinity.ui.components.CardRow
+import com.makd.afinity.ui.components.LocalDetailEdgePadding
 import com.makd.afinity.ui.components.afinitySectionChevronSize
 import com.makd.afinity.ui.requests.DiscoverMediaCard
 import com.makd.afinity.ui.theme.CardDimensions
@@ -41,10 +43,12 @@ fun ExternalTitlesSection(
 ) {
     val uriHandler = LocalUriHandler.current
     val fixedRowHeight = CardDimensions.rowHeight(cardWidth, CardDimensions.ASPECT_RATIO_PORTRAIT)
+    val edgePadding = LocalDetailEdgePadding.current
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier =
+                Modifier.fillMaxWidth().padding(start = edgePadding.start, end = edgePadding.end),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -70,7 +74,10 @@ fun ExternalTitlesSection(
             }
         }
 
-        CardRow(modifier = Modifier.height(fixedRowHeight)) {
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = edgePadding.asPaddingValues(),
+        ) {
             items(
                 items = titles.items,
                 key = { "${it.mediaType}_${it.id}" },

@@ -4,9 +4,11 @@ import android.graphics.BlendMode as AndroidBlendMode
 import android.graphics.LinearGradient
 import android.graphics.RenderEffect as AndroidRenderEffect
 import android.graphics.Shader
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
@@ -32,6 +34,8 @@ import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import com.makd.afinity.ui.utils.rememberTopBarScrollProgress
+import com.makd.afinity.ui.utils.topBarScrollKey
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
@@ -253,6 +257,23 @@ fun rememberTopBarBlurState(
             maxBlurRadius = maxBlurRadius,
         )
     }
+}
+
+@Composable
+fun rememberDetailTopBarBlurState(
+    listState: LazyListState,
+    hasHeroSlot: Boolean = !isLandscapeWindow(),
+): TopBarBlurState {
+    val progress by
+        rememberTopBarScrollProgress(
+            state = listState,
+            hasHeroSlot = hasHeroSlot,
+            rampItemIndex = 0,
+        )
+    return rememberTopBarBlurState(
+        progress = { progress },
+        scrollKey = { listState.topBarScrollKey() },
+    )
 }
 
 fun Modifier.topBarBlurSource(state: TopBarBlurState): Modifier =

@@ -8,13 +8,15 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,12 +26,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -53,6 +57,7 @@ fun LandscapeDetailLayout(
     modifier: Modifier = Modifier,
     backdropDescription: String? = null,
     listVerticalArrangement: Arrangement.Vertical = Arrangement.Top,
+    edgeToEdgeItems: Boolean = false,
     pane: @Composable ColumnScope.() -> Unit = {},
 ) {
     if (backdropStyle == BackdropStyle.BlurredCover) {
@@ -65,6 +70,7 @@ fun LandscapeDetailLayout(
             modifier,
             backdropDescription,
             listVerticalArrangement,
+            edgeToEdgeItems,
             pane,
         )
     } else {
@@ -78,6 +84,7 @@ fun LandscapeDetailLayout(
                 modifier,
                 backdropDescription,
                 listVerticalArrangement,
+                edgeToEdgeItems,
                 pane,
             )
         }
@@ -94,87 +101,128 @@ private fun LandscapeDetailBody(
     modifier: Modifier,
     backdropDescription: String?,
     listVerticalArrangement: Arrangement.Vertical,
+    edgeToEdgeItems: Boolean,
     pane: @Composable ColumnScope.() -> Unit,
 ) {
+    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val bottom = detailListBottomPadding()
-    val top = afinityTopAppBarHeight()
-    val viewport =
+    val top = statusBarTop + afinityTopAppBarHeight()
+    val drawerStartInset = LocalPinnedDrawerStartInset.current
+    val layoutDirection = LocalLayoutDirection.current
+    val safeHorizontal =
+        WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal).asPaddingValues()
+    val safeStart = safeHorizontal.calculateStartPadding(layoutDirection)
+    val safeEnd = safeHorizontal.calculateEndPadding(layoutDirection)
+    val horizontalSafeViewport =
         Modifier.fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
-            .statusBarsPadding()
 
     Box(modifier = modifier.fillMaxSize()) {
         DetailBackdrop(backdropStyle, backdrop, backdropDescription)
 
         when (arrangement) {
             LandscapeDetailArrangement.Single ->
-                LazyColumn(
-                    state = listState,
-                    modifier = viewport,
-                    contentPadding =
-                        PaddingValues(
-                            start = DetailGutter,
-                            top = top,
-                            end = DetailGutter,
-                            bottom = bottom,
-                        ),
-                    verticalArrangement = listVerticalArrangement,
-                    content = items,
-                )
-
-            LandscapeDetailArrangement.Split -> {
-                val panelColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
-                val statusBars = WindowInsets.statusBars
-                val endInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.End)
-                Row(modifier = viewport) {
-                    Column(
-                        modifier =
-                            Modifier.weight(1f)
-                                .fillMaxHeight()
-                                .verticalScroll(rememberScrollState())
-                                .padding(
-                                    start = DetailGutter,
+                if (edgeToEdgeItems) {
+                    val edgePadding =
+                        DetailEdgePadding(
+                            start = safeStart + drawerStartInset + DetailGutter,
+                            end = safeEnd + DetailGutter,
+                        )
+                    CompositionLocalProvider(LocalDetailEdgePadding provides edgePadding) {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(top = top, bottom = bottom),
+                            verticalArrangement = listVerticalArrangement,
+                            content = items,
+                        )
+                    }
+                } else {
+                    CompositionLocalProvider(
+                        LocalDetailEdgePadding provides DetailEdgePadding.Zero,
+                        LocalPinnedDrawerStartInset provides 0.dp,
+                    ) {
+                        LazyColumn(
+                            state = listState,
+                            modifier = horizontalSafeViewport,
+                            contentPadding =
+                                PaddingValues(
+                                    start = DetailGutter + drawerStartInset,
                                     top = top,
                                     end = DetailGutter,
                                     bottom = bottom,
                                 ),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        content = pane,
-                    )
-                    LazyColumn(
-                        state = listState,
-                        modifier =
-                            Modifier.weight(1f)
-                                .fillMaxHeight()
-                                .panelToEdges(panelColor, statusBars, endInsets),
-                        contentPadding = PaddingValues(top = top, bottom = bottom),
-                        verticalArrangement = listVerticalArrangement,
-                        content = items,
-                    )
+                            verticalArrangement = listVerticalArrangement,
+                            content = items,
+                        )
+                    }
+                }
+
+            LandscapeDetailArrangement.Split -> {
+                val panelColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+                val endInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.End)
+                CompositionLocalProvider(
+                    LocalDetailEdgePadding provides DetailEdgePadding.Zero,
+                    LocalPinnedDrawerStartInset provides 0.dp,
+                ) {
+                    Row(modifier = horizontalSafeViewport.padding(start = drawerStartInset)) {
+                        Column(
+                            modifier =
+                                Modifier.weight(1f)
+                                    .fillMaxHeight()
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(
+                                        start = DetailGutter,
+                                        top = top,
+                                        end = DetailGutter,
+                                        bottom = bottom,
+                                    ),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            content = pane,
+                        )
+                        LazyColumn(
+                            state = listState,
+                            modifier =
+                                Modifier.weight(1f)
+                                    .fillMaxHeight()
+                                    .panelToEdges(panelColor, WindowInsets(0), endInsets),
+                            contentPadding = PaddingValues(top = top, bottom = bottom),
+                            verticalArrangement = listVerticalArrangement,
+                            content = items,
+                        )
+                    }
                 }
             }
 
             is LandscapeDetailArrangement.Sidebar ->
-                Row(
-                    modifier = viewport.padding(horizontal = DetailGutter),
-                    horizontalArrangement = Arrangement.spacedBy(24.dp),
+                CompositionLocalProvider(
+                    LocalDetailEdgePadding provides DetailEdgePadding.Zero,
+                    LocalPinnedDrawerStartInset provides 0.dp,
                 ) {
-                    Column(
+                    Row(
                         modifier =
-                            Modifier.width(arrangement.width)
-                                .fillMaxHeight()
-                                .verticalScroll(rememberScrollState())
-                                .padding(top = top, bottom = bottom),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        content = pane,
-                    )
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
-                        contentPadding = PaddingValues(top = top, bottom = bottom),
-                        verticalArrangement = listVerticalArrangement,
-                        content = items,
-                    )
+                            horizontalSafeViewport
+                                .padding(start = drawerStartInset)
+                                .padding(horizontal = DetailGutter),
+                        horizontalArrangement = Arrangement.spacedBy(24.dp),
+                    ) {
+                        Column(
+                            modifier =
+                                Modifier.width(arrangement.width)
+                                    .fillMaxHeight()
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(top = top, bottom = bottom),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            content = pane,
+                        )
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            contentPadding = PaddingValues(top = top, bottom = bottom),
+                            verticalArrangement = listVerticalArrangement,
+                            content = items,
+                        )
+                    }
                 }
         }
     }

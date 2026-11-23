@@ -162,6 +162,7 @@ fun LibraryContentScreen(
             modifier.windowInsetsPadding(
                 WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal),
             ),
+        insetContentForPinnedDrawer = false,
     ) {
         Box(modifier = Modifier.fillMaxSize().nestedScroll(toolbarScroll)) {
             Column(modifier = Modifier.fillMaxSize()) {

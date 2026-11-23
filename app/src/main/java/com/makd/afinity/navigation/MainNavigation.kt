@@ -105,8 +105,10 @@ import com.makd.afinity.ui.components.PinnedDrawerStartOccupancy
 import com.makd.afinity.ui.components.UnsupportedServerDialog
 import com.makd.afinity.ui.components.afinityDialogProperties
 import com.makd.afinity.ui.components.pinnedDrawerBlurSource
+import com.makd.afinity.ui.components.pinnedDrawerComposable
 import com.makd.afinity.ui.components.rememberAfinitySheetState
 import com.makd.afinity.ui.components.rememberPinnedDrawerBlurState
+import com.makd.afinity.ui.components.shouldHidePinnedDrawerForRoute
 import com.makd.afinity.ui.components.shouldPinNavigationDrawer
 import com.makd.afinity.ui.downloads.DownloadedCategory
 import com.makd.afinity.ui.downloads.DownloadedCategoryScreen
@@ -298,12 +300,9 @@ fun MainNavigation(
             currentRoute == Destination.MUSIC_LIBRARY_ROUTE
     val selectedLibraryId =
         if (isOnLibraryEntry) navBackStackEntry?.arguments?.getString("libraryId") else null
-    val isTopLevelDrawerDestination =
-        shouldShowNavigation || (showIndividualLibraries && isOnLibraryEntry)
     val isPinnedDrawerVisible =
         shouldPinDrawer &&
-            isTopLevelDrawerDestination &&
-            !isPreAuth &&
+            !shouldHidePinnedDrawerForRoute(currentRoute) &&
             authState is AuthenticationState.Authenticated
     val pinnedDrawerStartInset = if (isPinnedDrawerVisible) PinnedDrawerStartOccupancy else 0.dp
 
@@ -1501,7 +1500,10 @@ fun MainNavigation(
                                     }
                                 }
 
-                                composable(Destination.SEARCH_ROUTE) {
+                                pinnedDrawerComposable(
+                                    Destination.SEARCH_ROUTE,
+                                    { MaterialTheme.colorScheme.background },
+                                ) {
                                     SearchScreen(
                                         onBackClick =
                                             dropUnlessResumed { navController.popBackStack() },
@@ -1592,7 +1594,10 @@ fun MainNavigation(
                                     )
                                 }
 
-                                composable(Destination.SETTINGS_ROUTE) {
+                                pinnedDrawerComposable(
+                                    Destination.SETTINGS_ROUTE,
+                                    { MaterialTheme.colorScheme.surface },
+                                ) {
                                     SettingsScreen(
                                         onBackClick =
                                             dropUnlessResumed { navController.popBackStack() },
@@ -1751,7 +1756,10 @@ fun MainNavigation(
                                     )
                                 }
 
-                                composable(Destination.ADMIN_SERVER_ROUTE) {
+                                pinnedDrawerComposable(
+                                    Destination.ADMIN_SERVER_ROUTE,
+                                    { MaterialTheme.colorScheme.surface },
+                                ) {
                                     ControlPanelRoute(
                                         onBackClick =
                                             dropUnlessResumed { navController.popBackStack() },
@@ -2420,7 +2428,7 @@ fun MainNavigation(
                             coroutineScope.launch { railState.collapse() }
                         }
                         navController.navigate(destination.route) {
-                            popUpTo(Destination.HOME.route) { saveState = !isOnLibraryEntry }
+                            popUpTo(Destination.HOME.route) { saveState = shouldShowNavigation }
                             launchSingleTop = true
                             restoreState = true
                         }
@@ -2433,7 +2441,7 @@ fun MainNavigation(
                             navController.navigate(
                                 Destination.createLibraryRoute(library),
                             ) {
-                                popUpTo(Destination.HOME.route) { saveState = !isOnLibraryEntry }
+                                popUpTo(Destination.HOME.route) { saveState = shouldShowNavigation }
                             }
                         }
                     },
@@ -2441,7 +2449,9 @@ fun MainNavigation(
                         if (!isPinned) {
                             coroutineScope.launch { railState.collapse() }
                         }
-                        navController.navigate(Destination.createSettingsRoute())
+                        navController.navigate(Destination.createSettingsRoute()) {
+                            launchSingleTop = true
+                        }
                     },
                     onAddAccountClick = { server ->
                         if (!isPinned) {

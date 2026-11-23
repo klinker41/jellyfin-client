@@ -2,7 +2,9 @@ package com.makd.afinity.ui.item.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -23,11 +25,12 @@ import com.makd.afinity.data.models.media.AfinitySeason
 import com.makd.afinity.data.models.media.AfinityShow
 import com.makd.afinity.ui.components.CardRow
 import com.makd.afinity.ui.components.ContinueWatchingCard
+import com.makd.afinity.ui.components.LocalDetailEdgePadding
 import com.makd.afinity.ui.components.MediaItemCard
 import com.makd.afinity.ui.item.components.shared.DetailSectionTitle
 import com.makd.afinity.ui.item.components.shared.ExternalTitlesSection
 import com.makd.afinity.ui.item.components.shared.baseMediaDetailItems
-import com.makd.afinity.ui.item.components.shared.detailItem
+import com.makd.afinity.ui.item.components.shared.detailRowItem
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.landscapeWidth
 import com.makd.afinity.ui.theme.CardDimensions.portraitWidth
@@ -62,7 +65,7 @@ fun LazyListScope.boxSetDetailItems(
         detailLayout = detailLayout,
     ) {
         if (movies.isNotEmpty()) {
-            detailItem("boxset_movies", horizontalPadding) {
+            detailRowItem("boxset_movies") {
                 BoxSetTypeSection(
                     title = stringResource(R.string.section_movies),
                     items = movies,
@@ -73,7 +76,7 @@ fun LazyListScope.boxSetDetailItems(
         }
 
         if (shows.isNotEmpty()) {
-            detailItem("boxset_shows", horizontalPadding) {
+            detailRowItem("boxset_shows") {
                 BoxSetTypeSection(
                     title = stringResource(R.string.section_tv_shows),
                     items = shows,
@@ -84,7 +87,7 @@ fun LazyListScope.boxSetDetailItems(
         }
 
         if (seasons.isNotEmpty()) {
-            detailItem("boxset_seasons", horizontalPadding) {
+            detailRowItem("boxset_seasons") {
                 BoxSetTypeSection(
                     title = stringResource(R.string.section_seasons),
                     items = seasons,
@@ -95,7 +98,7 @@ fun LazyListScope.boxSetDetailItems(
         }
 
         if (episodes.isNotEmpty()) {
-            detailItem("boxset_episodes", horizontalPadding) {
+            detailRowItem("boxset_episodes") {
                 BoxSetEpisodesSection(
                     title = stringResource(R.string.section_episodes),
                     episodes = episodes,
@@ -106,7 +109,7 @@ fun LazyListScope.boxSetDetailItems(
         }
 
         if (missingParts != null) {
-            detailItem("boxset_missing", horizontalPadding) {
+            detailRowItem("boxset_missing") {
                 ExternalTitlesSection(
                     title = stringResource(R.string.not_in_library_title),
                     titles = missingParts,
@@ -126,11 +129,18 @@ private fun BoxSetTypeSection(
     cardWidth: Dp,
 ) {
     val fixedRowHeight = CardDimensions.rowHeight(cardWidth, CardDimensions.ASPECT_RATIO_PORTRAIT)
+    val edgePadding = LocalDetailEdgePadding.current
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        DetailSectionTitle(text = title)
+        DetailSectionTitle(
+            text = title,
+            modifier = Modifier.padding(start = edgePadding.start, end = edgePadding.end),
+        )
 
-        CardRow(modifier = Modifier.height(fixedRowHeight)) {
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = edgePadding.asPaddingValues(),
+        ) {
             items(
                 items = items,
                 key = { it.id.toString() },
@@ -150,11 +160,18 @@ private fun BoxSetEpisodesSection(
     cardWidth: Dp,
 ) {
     val fixedRowHeight = CardDimensions.rowHeight(cardWidth, CardDimensions.ASPECT_RATIO_LANDSCAPE)
+    val edgePadding = LocalDetailEdgePadding.current
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        DetailSectionTitle(text = title)
+        DetailSectionTitle(
+            text = title,
+            modifier = Modifier.padding(start = edgePadding.start, end = edgePadding.end),
+        )
 
-        CardRow(modifier = Modifier.height(fixedRowHeight)) {
+        CardRow(
+            modifier = Modifier.fillMaxWidth().height(fixedRowHeight),
+            contentPadding = edgePadding.asPaddingValues(),
+        ) {
             items(
                 items = episodes,
                 key = { it.id.toString() },

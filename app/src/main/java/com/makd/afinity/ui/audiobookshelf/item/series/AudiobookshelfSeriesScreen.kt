@@ -54,7 +54,7 @@ import com.makd.afinity.ui.components.afinitySectionTitleStyle
 import com.makd.afinity.ui.components.backdropChainOf
 import com.makd.afinity.ui.components.formatRuntimeSeconds
 import com.makd.afinity.ui.components.isLandscapeWindow
-import com.makd.afinity.ui.utils.rememberTopBarOpacity
+import com.makd.afinity.ui.components.rememberDetailTopBarBlurState
 
 @Composable
 fun AudiobookshelfSeriesScreen(
@@ -69,7 +69,7 @@ fun AudiobookshelfSeriesScreen(
     val isLandscape = isLandscapeWindow()
 
     val lazyListState = rememberLazyListState()
-    val topBarOpacity by rememberTopBarOpacity(lazyListState)
+    val topBarBlurState = rememberDetailTopBarBlurState(lazyListState, hasHeroSlot = !isLandscape)
 
     AfinityScreen(
         topBar = { backgroundOpacity ->
@@ -80,7 +80,7 @@ fun AudiobookshelfSeriesScreen(
             )
         },
         mode = AfinityScreenMode.Hero,
-        scrollOpacity = { topBarOpacity },
+        topBarBlurState = topBarBlurState,
     ) {
         when {
             uiState.isLoading -> {

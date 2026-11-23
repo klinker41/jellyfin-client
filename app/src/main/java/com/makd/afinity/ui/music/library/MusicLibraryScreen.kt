@@ -157,6 +157,7 @@ fun MusicLibraryScreen(
                 onMenuClick = onMenuClick,
             )
         },
+        insetContentForPinnedDrawer = false,
     ) { innerPadding ->
         MusicHomeContent(
             uiState = uiState,

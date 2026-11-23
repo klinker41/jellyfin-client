@@ -55,6 +55,7 @@ import com.makd.afinity.data.models.wikidata.WikidataAwards
 import com.makd.afinity.navigation.LocalShowAwards
 import com.makd.afinity.navigation.LocalShowRatings
 import com.makd.afinity.ui.components.CardRow
+import com.makd.afinity.ui.components.LocalDetailEdgePadding
 import com.makd.afinity.ui.components.ratings.communityRatingOf
 import com.makd.afinity.ui.components.ratings.criticRatingOf
 import com.makd.afinity.ui.components.ratings.displayPriority
@@ -91,9 +92,7 @@ fun LazyListScope.baseMediaDetailItems(
     when (detailLayout) {
         DetailLayout.CLASSIC -> {
             if (showExternalLinks) {
-                detailItem("external_links", horizontalPadding) {
-                    ExternalLinksSection(item = item)
-                }
+                detailRowItem("external_links") { ExternalLinksSection(item = item) }
             }
 
             detailItem("director", horizontalPadding) { DirectorSection(item = item) }
@@ -120,11 +119,11 @@ fun LazyListScope.baseMediaDetailItems(
         }
     }
 
-    detailItem("cast", horizontalPadding) {
+    detailRowItem("cast") {
         CastSection(item = item, onPersonClick = onPersonClick, widthSizeClass = widthSizeClass)
     }
 
-    detailItem("guest_stars", horizontalPadding) {
+    detailRowItem("guest_stars") {
         GuestStarSection(
             item = item,
             onPersonClick = onPersonClick,
@@ -154,12 +153,10 @@ fun LazyListScope.baseMediaDetailItems(
             }
 
             if (watchProviders != null && watchProviders.hasAny) {
-                detailItem("where_to_watch", horizontalPadding) {
-                    WhereToWatchSection(providers = watchProviders)
-                }
+                detailRowItem("where_to_watch") { WhereToWatchSection(providers = watchProviders) }
             }
 
-            detailItem("ratings", horizontalPadding) {
+            detailRowItem("ratings") {
                 if (LocalShowRatings.current) {
                     RatingsAndReviews(
                         item = item,
@@ -182,7 +179,7 @@ fun LazyListScope.baseMediaDetailItems(
                 }
             }
 
-            detailItem("reviews", horizontalPadding) {
+            detailRowItem("reviews") {
                 if (LocalShowRatings.current && tmdbReviews.isNotEmpty()) {
                     ReviewsSection(reviews = tmdbReviews)
                 }
@@ -190,7 +187,7 @@ fun LazyListScope.baseMediaDetailItems(
         }
     }
 
-    detailItem("special_features", horizontalPadding) {
+    detailRowItem("special_features") {
         SpecialFeaturesSection(
             specialFeatures = specialFeatures,
             onItemClick = onSpecialFeatureClick,
@@ -198,7 +195,7 @@ fun LazyListScope.baseMediaDetailItems(
         )
     }
 
-    detailItem("in_collections", horizontalPadding) {
+    detailRowItem("in_collections") {
         InCollectionsSection(
             boxSets = containingBoxSets,
             onBoxSetClick = onBoxSetClick,
@@ -270,18 +267,26 @@ fun RatingsAndReviews(
 
     if (!hasRatings && !hasReviews) return
 
+    val edgePadding = LocalDetailEdgePadding.current
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         if (hasRatings) {
-            DetailSectionTitle(text = stringResource(R.string.section_ratings))
+            DetailSectionTitle(
+                text = stringResource(R.string.section_ratings),
+                modifier = Modifier.padding(start = edgePadding.start, end = edgePadding.end),
+            )
 
             AnimatedVisibility(
                 visible = true,
                 enter = if (isRatingsFromCache) EnterTransition.None else fadeIn(tween(500)),
             ) {
-                CardRow(modifier = Modifier.fillMaxWidth()) {
+                CardRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = edgePadding.asPaddingValues(),
+                ) {
                     if (mdbRatingBadges.certifiedFresh) {
                         item {
                             BadgeCard(

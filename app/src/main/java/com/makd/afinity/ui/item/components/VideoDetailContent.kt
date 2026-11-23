@@ -26,6 +26,7 @@ import com.makd.afinity.data.models.media.AfinityMusicVideo
 import com.makd.afinity.ui.item.components.shared.PlaybackSelection
 import com.makd.afinity.ui.item.components.shared.baseMediaDetailItems
 import com.makd.afinity.ui.item.components.shared.detailItem
+import com.makd.afinity.ui.item.components.shared.detailRowItem
 import java.util.UUID
 import org.jellyfin.sdk.model.api.MediaStreamType
 
@@ -72,7 +73,7 @@ fun LazyListScope.videoDetailItems(
         }
 
         if (item.chapters.isNotEmpty()) {
-            detailItem("chapters", horizontalPadding) {
+            detailRowItem("chapters") {
                 ChaptersSection(
                     chapters = item.chapters,
                     itemId = item.id,
