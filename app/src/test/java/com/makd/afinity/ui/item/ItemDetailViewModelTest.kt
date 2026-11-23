@@ -194,6 +194,7 @@ class ItemDetailViewModelTest {
                 appDataRepository = appDataRepository,
                 userDataRepository = userDataRepository,
                 mediaRepository = mediaRepository,
+                musicRepository = mockk(relaxed = true),
                 sessionManager = sessionManager,
                 itemMetadataFetcher = mockk(relaxed = true),
                 downloadRepository = downloadRepository,
