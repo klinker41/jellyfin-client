@@ -15,10 +15,7 @@ import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.asComposeRenderEffect
-import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -43,7 +40,6 @@ import kotlin.math.roundToInt
 
 val DefaultPinnedDrawerBlurRadius = 20.dp
 const val DefaultPinnedDrawerTintAlpha = 0.66f
-const val DefaultPinnedDrawerBorderAlpha = 0.14f
 
 internal fun computeBlurredLayerSizePx(widthPx: Int, heightPx: Int, blurPaddingPx: Int): IntSize {
     if (widthPx <= 0 || heightPx <= 0) return IntSize.Zero
@@ -147,8 +143,6 @@ fun Modifier.pinnedDrawerBlurBackdrop(
     containerColor: Color,
     fallbackBackgroundColor: Color,
     tintAlpha: Float = DefaultPinnedDrawerTintAlpha,
-    borderColor: Color = Color.Transparent,
-    borderWidth: Dp = 0.dp,
 ): Modifier =
     this.then(
         PinnedDrawerBlurBackdropElement(
@@ -157,8 +151,6 @@ fun Modifier.pinnedDrawerBlurBackdrop(
             containerColor = containerColor,
             fallbackBackgroundColor = fallbackBackgroundColor,
             tintAlpha = tintAlpha,
-            borderColor = borderColor,
-            borderWidth = borderWidth,
         ),
     )
 
@@ -233,8 +225,6 @@ private data class PinnedDrawerBlurBackdropElement(
     private val containerColor: Color,
     private val fallbackBackgroundColor: Color,
     private val tintAlpha: Float,
-    private val borderColor: Color,
-    private val borderWidth: Dp,
 ) : ModifierNodeElement<PinnedDrawerBlurBackdropNode>() {
     override fun create(): PinnedDrawerBlurBackdropNode =
         PinnedDrawerBlurBackdropNode(
@@ -243,8 +233,6 @@ private data class PinnedDrawerBlurBackdropElement(
             containerColor = containerColor,
             fallbackBackgroundColor = fallbackBackgroundColor,
             tintAlpha = tintAlpha,
-            borderColor = borderColor,
-            borderWidth = borderWidth,
         )
 
     override fun update(node: PinnedDrawerBlurBackdropNode) {
@@ -253,9 +241,7 @@ private data class PinnedDrawerBlurBackdropElement(
             node.shape != shape ||
                 node.containerColor != containerColor ||
                 node.fallbackBackgroundColor != fallbackBackgroundColor ||
-                node.tintAlpha != tintAlpha ||
-                node.borderColor != borderColor ||
-                node.borderWidth != borderWidth
+                node.tintAlpha != tintAlpha
         if (stateChanged) {
             node.state.invalidateBackdrop = null
             node.state.hasBackdropDrawnOnce = false
@@ -270,9 +256,7 @@ private data class PinnedDrawerBlurBackdropElement(
             node.containerColor = containerColor
             node.fallbackBackgroundColor = fallbackBackgroundColor
             node.tintAlpha = tintAlpha
-            node.borderColor = borderColor
-            node.borderWidth = borderWidth
-            node.invalidateOutlineCache()
+            node.invalidateClipPathCache()
         }
         if (stateChanged || appearanceChanged) {
             node.invalidateDraw()
@@ -286,8 +270,6 @@ private data class PinnedDrawerBlurBackdropElement(
         properties["containerColor"] = containerColor
         properties["fallbackBackgroundColor"] = fallbackBackgroundColor
         properties["tintAlpha"] = tintAlpha
-        properties["borderColor"] = borderColor
-        properties["borderWidth"] = borderWidth
     }
 }
 
@@ -297,45 +279,42 @@ private class PinnedDrawerBlurBackdropNode(
     var containerColor: Color,
     var fallbackBackgroundColor: Color,
     var tintAlpha: Float,
-    var borderColor: Color,
-    var borderWidth: Dp,
 ) : Modifier.Node(), DrawModifierNode, GlobalPositionAwareModifierNode {
 
     private var cachedSize = androidx.compose.ui.geometry.Size.Unspecified
     private var cachedLayoutDirection: LayoutDirection? = null
     private var cachedShape: Shape? = null
-    private var cachedOutline: androidx.compose.ui.graphics.Outline? = null
+    private var hasCachedClipPath = false
     private val cachedPath = Path()
 
-    internal fun invalidateOutlineCache() {
+    internal fun invalidateClipPathCache() {
         cachedSize = androidx.compose.ui.geometry.Size.Unspecified
         cachedLayoutDirection = null
         cachedShape = null
-        cachedOutline = null
+        hasCachedClipPath = false
     }
 
-    private fun getOrCreateOutline(
+    private fun getOrCreateClipPath(
         size: androidx.compose.ui.geometry.Size,
         layoutDirection: LayoutDirection,
         density: androidx.compose.ui.unit.Density,
-    ): androidx.compose.ui.graphics.Outline {
-        val existing = cachedOutline
+    ): Path {
         if (
-            existing != null &&
+            hasCachedClipPath &&
                 cachedSize == size &&
                 cachedLayoutDirection == layoutDirection &&
                 cachedShape == shape
         ) {
-            return existing
+            return cachedPath
         }
-        return shape.createOutline(size, layoutDirection, density).also { outline ->
-            cachedSize = size
-            cachedLayoutDirection = layoutDirection
-            cachedShape = shape
-            cachedOutline = outline
-            cachedPath.reset()
-            cachedPath.addOutline(outline)
-        }
+        val outline = shape.createOutline(size, layoutDirection, density)
+        cachedPath.reset()
+        cachedPath.addOutline(outline)
+        cachedSize = size
+        cachedLayoutDirection = layoutDirection
+        cachedShape = shape
+        hasCachedClipPath = true
+        return cachedPath
     }
 
     override fun onAttach() {
@@ -356,11 +335,11 @@ private class PinnedDrawerBlurBackdropNode(
         state.invalidateBackdrop = null
         state.hasBackdropDrawnOnce = false
         state.clearCachedEffect()
-        invalidateOutlineCache()
+        invalidateClipPathCache()
     }
 
     override fun ContentDrawScope.draw() {
-        val outline = getOrCreateOutline(size, layoutDirection, this)
+        val clipPath = getOrCreateClipPath(size, layoutDirection, this)
         val cardWidthPx = size.width.roundToInt()
         val cardHeightPx = size.height.roundToInt()
         val blurRadiusPx = state.blurRadius.toPx()
@@ -375,10 +354,9 @@ private class PinnedDrawerBlurBackdropNode(
         ) {
             state.clearCachedEffect()
             state.hasBackdropDrawnOnce = state.isEnabled
-            clipPath(cachedPath) {
+            clipPath(clipPath) {
                 drawRect(color = containerColor)
                 this@draw.drawContent()
-                drawGlassBorder(outline)
             }
             return
         }
@@ -400,25 +378,14 @@ private class PinnedDrawerBlurBackdropNode(
         }
 
         val clampedTintAlpha = computeClampedTintAlpha(tintAlpha)
-        clipPath(cachedPath) {
+        clipPath(clipPath) {
             translate(left = -blurPaddingPx.toFloat(), top = -blurPaddingPx.toFloat()) {
                 drawLayer(state.blurLayer)
             }
             drawRect(color = containerColor.copy(alpha = clampedTintAlpha))
             this@draw.drawContent()
-            drawGlassBorder(outline)
         }
 
         state.hasBackdropDrawnOnce = true
-    }
-
-    private fun DrawScope.drawGlassBorder(outline: androidx.compose.ui.graphics.Outline) {
-        if (borderWidth > 0.dp && borderColor.alpha > 0f) {
-            drawOutline(
-                outline = outline,
-                color = borderColor,
-                style = Stroke(width = borderWidth.toPx() * 2f),
-            )
-        }
     }
 }

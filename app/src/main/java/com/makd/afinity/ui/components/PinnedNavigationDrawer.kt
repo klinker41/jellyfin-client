@@ -122,7 +122,7 @@ internal fun NavGraphBuilder.pinnedDrawerComposable(
 fun AppPinnedNavigationDrawer(
     blurState: PinnedDrawerBlurState,
     modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerLow,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
     fallbackBackgroundColor: Color = MaterialTheme.colorScheme.background,
     tintAlpha: Float = DefaultPinnedDrawerTintAlpha,
     content: @Composable () -> Unit,
@@ -154,11 +154,6 @@ fun AppPinnedNavigationDrawer(
                         containerColor = containerColor,
                         fallbackBackgroundColor = fallbackBackgroundColor,
                         tintAlpha = tintAlpha,
-                        borderColor =
-                            MaterialTheme.colorScheme.onSurface.copy(
-                                alpha = DefaultPinnedDrawerBorderAlpha,
-                            ),
-                        borderWidth = 1.dp,
                     )
                     .clip(PinnedDrawerShape)
                     .pointerInput(Unit) {},

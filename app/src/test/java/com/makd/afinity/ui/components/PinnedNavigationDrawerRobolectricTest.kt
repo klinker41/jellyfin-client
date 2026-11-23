@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -51,6 +52,7 @@ import com.makd.afinity.ui.preview.PreviewHost
 import com.makd.afinity.ui.settings.SessionSwitcherState
 import com.makd.afinity.ui.settings.SessionSwitcherViewModel
 import com.makd.afinity.ui.theme.CardDimensions
+import com.makd.afinity.ui.theme.ThemeMode
 import io.mockk.every
 import io.mockk.mockk
 import kotlin.math.ceil
@@ -60,6 +62,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -68,6 +71,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class, sdk = [35])
@@ -450,6 +454,77 @@ class PinnedNavigationDrawerRobolectricTest {
             }
         }
         assertTrue(shouldPin)
+    }
+
+    @Test
+    @Config(qualifiers = "w673dp-h841dp")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `pinned drawer uses elevated borderless tonal surface without perimeter outline`() {
+        lateinit var hostView: View
+        var cardBounds: Rect? = null
+        var expectedContainerArgb = 0
+        var backgroundArgb = 0
+
+        composeTestRule.setContent {
+            PreviewHost(modifier = Modifier.fillMaxSize(), themeMode = ThemeMode.DARK) {
+                hostView = LocalView.current
+                expectedContainerArgb = MaterialTheme.colorScheme.surfaceContainerHigh.toArgb()
+                backgroundArgb = MaterialTheme.colorScheme.background.toArgb()
+                val blurState = rememberPinnedDrawerBlurState(enabled = { false })
+
+                Box(
+                    modifier =
+                        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+                ) {
+                    AppPinnedNavigationDrawer(
+                        blurState = blurState,
+                        modifier = Modifier.align(Alignment.TopStart),
+                    ) {
+                        Box(
+                            modifier =
+                                Modifier.fillMaxSize().onGloballyPositioned {
+                                    cardBounds = it.boundsInRoot()
+                                },
+                        )
+                    }
+                }
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        assertNotNull(cardBounds)
+        val bounds = cardBounds!!
+
+        var interiorPixel = 0
+        var leftEdgePixel = 0
+        var rightEdgePixel = 0
+        var bottomEdgePixel = 0
+
+        composeTestRule.runOnIdle {
+            val bitmap =
+                Bitmap.createBitmap(
+                    hostView.width.coerceAtLeast(1),
+                    hostView.height.coerceAtLeast(1),
+                    Bitmap.Config.ARGB_8888,
+                )
+            try {
+                hostView.draw(Canvas(bitmap))
+                val centerX = bounds.center.x.roundToInt()
+                val centerY = bounds.center.y.roundToInt()
+                interiorPixel = bitmap.getPixel(centerX, centerY)
+                leftEdgePixel = bitmap.getPixel(bounds.left.roundToInt() + 1, centerY)
+                rightEdgePixel = bitmap.getPixel(bounds.right.roundToInt() - 1, centerY)
+                bottomEdgePixel = bitmap.getPixel(centerX, bounds.bottom.roundToInt() - 1)
+            } finally {
+                bitmap.recycle()
+            }
+        }
+
+        assertEquals(expectedContainerArgb, interiorPixel)
+        assertNotEquals(backgroundArgb, interiorPixel)
+        assertEquals(interiorPixel, leftEdgePixel)
+        assertEquals(interiorPixel, rightEdgePixel)
+        assertEquals(interiorPixel, bottomEdgePixel)
     }
 
     private fun assertDpEquals(expected: Dp, actual: Dp, tolerance: Dp = 1.dp) {
