@@ -6,8 +6,8 @@ require_relative "play_release_helper"
 default_platform(:android)
 
 platform :android do
-  desc "Build release-signed nightly AAB and upload to Google Play"
-  lane :publish_nightly do |options|
+  desc "Build release-signed AAB and upload to Google Play"
+  lane :publish_release do |options|
     repo_root = File.expand_path("..", __dir__)
     PlayReleaseHelper.validate_release_inputs!(env: ENV, repo_root: repo_root)
 
@@ -29,28 +29,23 @@ platform :android do
       []
     end
 
-    version_code = PlayReleaseHelper.compute_nightly_version_code(
+    version_code = PlayReleaseHelper.compute_release_version_code(
       base_version_code: props[:version_code],
       build_number: build_number,
       existing_play_codes: existing_play_codes,
     )
-    version_name = PlayReleaseHelper.compute_nightly_version_name(
-      base_version_name: props[:version_name],
-      build_number: build_number,
-    )
 
-    UI.message("Building #{package_name} nightly #{version_name} (#{version_code}) for '#{track}'")
+    UI.message("Building #{package_name} release #{props[:version_name]} (#{version_code}) for '#{track}'")
 
-    bundle_dir = File.join(repo_root, "app", "build", "outputs", "bundle", "nightly")
+    bundle_dir = File.join(repo_root, "app", "build", "outputs", "bundle", "release")
     FileUtils.rm_rf(bundle_dir)
 
     gradle(
-      task: ":app:bundleNightly",
+      task: ":app:bundleRelease",
       project_dir: repo_root,
       flags: "--no-daemon",
       properties: {
         "app.versionCode" => version_code.to_s,
-        "app.versionName" => version_name,
         "requireReleaseSigning" => "true",
       },
     )

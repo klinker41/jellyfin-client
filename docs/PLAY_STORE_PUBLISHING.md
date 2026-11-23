@@ -1,8 +1,8 @@
-# Google Play Store Nightly Publishing
+# Google Play Store Release Publishing
 
-Jenkins automatically builds a release-signed nightly Android App Bundle
+Jenkins automatically builds a release-signed Android App Bundle
 (`.aab`) for `xyz.klinker.jellyfin` and publishes it to the Google Play `alpha`
-(Closed testing) track via `fastlane android publish_nightly`.
+(Closed testing) track via `fastlane android publish_release`.
 
 Until both the signing keystore and Google Play Service Account credentials are
 configured in Jenkins, builds still compile and archive an unsigned `.aab` but
@@ -84,14 +84,14 @@ automated uploads:
    Jenkins build so Jenkins archives a release-signed `.aab` (without
    `PLAY_SERVICE_ACCOUNT_JSON` bound yet, Jenkins skips the API upload and
    still archives the signed `.aab`).
-2. Download `app/build/outputs/bundle/nightly/*.aab` from the Jenkins build
+2. Download `app/build/outputs/bundle/release/*.aab` from the Jenkins build
    artifacts.
 3. In Google Play Console, open **Testing -> Closed testing (Alpha)** (or
    **Internal testing**), upload that signed `.aab`, and roll out the initial
    release.
 4. Once `google-play-service-account` (`PLAY_SERVICE_ACCOUNT_JSON`) is also
    bound in Jenkins, every subsequent successful build automatically runs
-   `fastlane android publish_nightly` to publish the next nightly build to the
+   `fastlane android publish_release` to publish the next release build to the
    `alpha` track.
 
 > [!NOTE]
@@ -105,7 +105,7 @@ automated uploads:
   `app.versionCode * 10000 + BUILD_NUMBER` from `gradle.properties`, or
   `max(Play Store version codes) + 1` if Google Play already has a higher code
   on any track (`production`, `beta`, `alpha`, `internal`).
-- **Version name**: `<app.versionName>-nightly.<BUILD_NUMBER>`.
+- **Version name**: `app.versionName` from `gradle.properties`, unchanged.
 - **Optional environment overrides**:
   - `PLAY_TRACK` (default: `alpha`)
   - `PLAY_RELEASE_STATUS` (default: `completed`)

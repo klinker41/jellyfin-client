@@ -1,4 +1,4 @@
-# Pure Ruby helpers for nightly Play Store version calculation and input validation.
+# Pure Ruby helpers for Play Store version calculation and input validation.
 module PlayReleaseHelper
   PLAY_TRACKS = %w[production beta alpha internal].freeze
   REQUIRED_SIGNING_ENV_VARS = %w[
@@ -38,7 +38,7 @@ module PlayReleaseHelper
     { version_code: version_code_str.to_i, version_name: version_name }
   end
 
-  def compute_nightly_version_code(base_version_code:, build_number:, existing_play_codes: [])
+  def compute_release_version_code(base_version_code:, build_number:, existing_play_codes: [])
     unless base_version_code.is_a?(Integer) && base_version_code.positive?
       raise ArgumentError, "base_version_code must be positive, got #{base_version_code.inspect}"
     end
@@ -55,15 +55,6 @@ module PlayReleaseHelper
     end
 
     result
-  end
-
-  def compute_nightly_version_name(base_version_name:, build_number:)
-    parsed_build = build_number.to_i
-    if parsed_build.positive?
-      "#{base_version_name}-nightly.#{parsed_build}"
-    else
-      "#{base_version_name}-nightly"
-    end
   end
 
   def validate_release_inputs!(env:, repo_root:)

@@ -35,10 +35,10 @@ class PlayReleaseHelperTest < Minitest::Test
     end
   end
 
-  def test_compute_nightly_version_code_progression_and_clamping
+  def test_compute_release_version_code_progression_and_clamping
     assert_equal(
       840_005,
-      PlayReleaseHelper.compute_nightly_version_code(
+      PlayReleaseHelper.compute_release_version_code(
         base_version_code: 84,
         build_number: "5",
         existing_play_codes: [],
@@ -47,7 +47,7 @@ class PlayReleaseHelperTest < Minitest::Test
 
     assert_equal(
       840_006,
-      PlayReleaseHelper.compute_nightly_version_code(
+      PlayReleaseHelper.compute_release_version_code(
         base_version_code: 84,
         build_number: 6,
         existing_play_codes: [840_005, nil, 830_012],
@@ -56,7 +56,7 @@ class PlayReleaseHelperTest < Minitest::Test
 
     assert_equal(
       850_001,
-      PlayReleaseHelper.compute_nightly_version_code(
+      PlayReleaseHelper.compute_release_version_code(
         base_version_code: 85,
         build_number: "1",
         existing_play_codes: [840_050],
@@ -65,7 +65,7 @@ class PlayReleaseHelperTest < Minitest::Test
 
     assert_equal(
       900_001,
-      PlayReleaseHelper.compute_nightly_version_code(
+      PlayReleaseHelper.compute_release_version_code(
         base_version_code: 84,
         build_number: "10",
         existing_play_codes: [840_009, 900_000],
@@ -74,7 +74,7 @@ class PlayReleaseHelperTest < Minitest::Test
 
     assert_equal(
       840_001,
-      PlayReleaseHelper.compute_nightly_version_code(
+      PlayReleaseHelper.compute_release_version_code(
         base_version_code: 84,
         build_number: "0",
         existing_play_codes: [],
@@ -82,38 +82,21 @@ class PlayReleaseHelperTest < Minitest::Test
     )
   end
 
-  def test_compute_nightly_version_code_guards_bounds
+  def test_compute_release_version_code_guards_bounds
     assert_raises(ArgumentError) do
-      PlayReleaseHelper.compute_nightly_version_code(
+      PlayReleaseHelper.compute_release_version_code(
         base_version_code: 0,
         build_number: 1,
       )
     end
 
     assert_raises(RangeError) do
-      PlayReleaseHelper.compute_nightly_version_code(
+      PlayReleaseHelper.compute_release_version_code(
         base_version_code: 84,
         build_number: 1,
         existing_play_codes: [2_100_000_000],
       )
     end
-  end
-
-  def test_compute_nightly_version_name
-    assert_equal(
-      "0.12.10-beta-nightly.42",
-      PlayReleaseHelper.compute_nightly_version_name(
-        base_version_name: "0.12.10-beta",
-        build_number: "42",
-      ),
-    )
-    assert_equal(
-      "0.12.10-beta-nightly",
-      PlayReleaseHelper.compute_nightly_version_name(
-        base_version_name: "0.12.10-beta",
-        build_number: nil,
-      ),
-    )
   end
 
   def test_validate_release_inputs
