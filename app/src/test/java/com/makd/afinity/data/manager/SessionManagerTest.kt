@@ -19,9 +19,11 @@ import io.mockk.mockkConstructor
 import io.mockk.unmockkConstructor
 import io.mockk.verify
 import java.util.UUID
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
 import org.jellyfin.sdk.Jellyfin
 import org.jellyfin.sdk.JellyfinOptions
 import org.jellyfin.sdk.api.client.ApiClient
@@ -302,5 +304,147 @@ class SessionManagerTest {
 
             // Restoring from background rebuilds client for server with token.
             assertNotNull(h.manager.getOrRestoreApiClient("srv-1"))
+        }
+
+    @Test
+    fun `optimisticStartup activates session immediately while address validation resolves in background`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val h = Harness(backgroundScope)
+            val gate = CompletableDeferred<Unit>()
+            val policy: UserPolicy =
+                mockk(relaxed = true) { every { isAdministrator } returns true }
+            val userDto: UserDto =
+                mockk(relaxed = true) {
+                    every { id } returns h.userId
+                    every { name } returns "Alex"
+                    every { this@mockk.policy } returns policy
+                }
+            coEvery { anyConstructed<UserApi>().getCurrentUser() } returns
+                Response(userDto, 200, emptyMap())
+            coEvery { h.serverAddressResolver.resolveAddress("srv-1", any()) } coAnswers
+                {
+                    gate.await()
+                    AddressResolutionResult.Success("https://alt.example.com", "srv-1")
+                }
+
+            val result =
+                h.manager.startSession(
+                    serverUrl = "https://jf.example.com",
+                    serverId = "srv-1",
+                    userId = h.userId,
+                    accessToken = "tok-1",
+                    optimisticStartup = true,
+                )
+
+            assertTrue(result.isSuccess)
+            assertEquals("https://jf.example.com", h.manager.currentSession.value?.serverUrl)
+            assertTrue(h.manager.isServerReachable.value)
+            verify {
+                h.securePrefsRepository.setCachedJellyfinAuth("tok-1", "https://jf.example.com")
+            }
+            coVerify(exactly = 0) { anyConstructed<UserApi>().getCurrentUser() }
+
+            gate.complete(Unit)
+            yield()
+
+            assertEquals("https://alt.example.com", h.manager.currentSession.value?.serverUrl)
+            assertEquals(true, h.manager.currentSession.value?.isAdmin)
+            coVerify { h.serverRepository.setBaseUrl("https://alt.example.com") }
+            coVerify {
+                h.securePrefsRepository.saveAuthenticationData(
+                    accessToken = "tok-1",
+                    userId = h.userId,
+                    serverId = "srv-1",
+                    serverUrl = "https://alt.example.com",
+                    username = any(),
+                )
+                h.securePrefsRepository.saveServerUserToken(
+                    serverId = "srv-1",
+                    userId = h.userId,
+                    accessToken = "tok-1",
+                    username = any(),
+                    serverUrl = "https://alt.example.com",
+                )
+            }
+        }
+
+    @Test
+    fun `optimisticStartup logs out on background 401 and marks offline on unreachable error`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val h = Harness(backgroundScope)
+            val gate401 = CompletableDeferred<Unit>()
+            coEvery { anyConstructed<UserApi>().getCurrentUser() } throws
+                InvalidStatusException(401, null)
+            coEvery { h.serverAddressResolver.resolveAddress("srv-1", any()) } coAnswers
+                {
+                    val validator = secondArg<suspend (String) -> Boolean>()
+                    gate401.await()
+                    assertFalse(validator("https://jf.example.com"))
+                    AddressResolutionResult.AllFailed("srv-1", listOf("https://jf.example.com"))
+                }
+
+            val res1 =
+                h.manager.startSession(
+                    serverUrl = "https://jf.example.com",
+                    serverId = "srv-1",
+                    userId = h.userId,
+                    accessToken = "expired",
+                    optimisticStartup = true,
+                )
+            assertTrue(res1.isSuccess)
+            assertNotNull(h.manager.currentSession.value)
+
+            gate401.complete(Unit)
+            yield()
+            assertNull(h.manager.currentSession.value)
+            coVerify { h.securePrefsRepository.clearAuthenticationData() }
+
+            // Unreachable without 401 keeps session active in offline mode.
+            val h2 = Harness(backgroundScope)
+            coEvery { h2.serverAddressResolver.resolveAddress("srv-1", any()) } returns
+                AddressResolutionResult.AllFailed("srv-1", listOf("https://jf.example.com"))
+
+            val res2 =
+                h2.manager.startSession(
+                    serverUrl = "https://jf.example.com",
+                    serverId = "srv-1",
+                    userId = h2.userId,
+                    accessToken = "tok-1",
+                    optimisticStartup = true,
+                )
+            yield()
+            assertTrue(res2.isSuccess)
+            assertNotNull(h2.manager.currentSession.value)
+            assertFalse(h2.manager.isServerReachable.value)
+            assertEquals(
+                UnreachableReason.ALL_ADDRESSES_FAILED,
+                h2.manager.unreachableReason.value,
+            )
+
+            // Calling logout() while optimistic validation is suspended cancels validation cleanly.
+            val h3 = Harness(backgroundScope)
+            val suspendGate = CompletableDeferred<Unit>()
+            var validationCancelled = false
+            coEvery { h3.serverAddressResolver.resolveAddress("srv-1", any()) } coAnswers
+                {
+                    try {
+                        suspendGate.await()
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        validationCancelled = true
+                        throw e
+                    }
+                    AddressResolutionResult.Success("https://should-not-apply.example", "srv-1")
+                }
+
+            h3.manager.startSession(
+                serverUrl = "https://jf.example.com",
+                serverId = "srv-1",
+                userId = h3.userId,
+                accessToken = "tok-1",
+                optimisticStartup = true,
+            )
+            h3.manager.logout()
+            assertTrue(validationCancelled)
+            assertNull(h3.manager.currentSession.value)
         }
 }

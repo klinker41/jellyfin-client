@@ -50,7 +50,7 @@ fun AudiobookCard(
             shape = MaterialTheme.shapes.medium,
             colors =
                 CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 if (coverUrl != null) {

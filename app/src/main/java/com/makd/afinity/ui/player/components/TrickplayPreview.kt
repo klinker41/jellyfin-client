@@ -147,7 +147,7 @@ fun TrickplayPreview(
                         ),
                 colors = CardDefaults.cardColors(containerColor = Color.Black),
                 shape = RoundedCornerShape(8.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     Image(

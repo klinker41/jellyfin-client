@@ -53,7 +53,7 @@ fun ProgramCard(
             modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
             colors =
                 CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             shape = MaterialTheme.shapes.medium,
         ) {
             Box(modifier = Modifier.fillMaxSize()) {

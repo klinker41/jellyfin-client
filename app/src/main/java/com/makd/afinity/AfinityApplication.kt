@@ -104,7 +104,9 @@ class AfinityApplication : Application(), Configuration.Provider, SingletonImage
                     }
                 }
 
-            applicationScope.launch { castManager.get().initialize(this@AfinityApplication) }
+            applicationScope.launch(Dispatchers.IO) {
+                castManager.get().initialize(this@AfinityApplication)
+            }
             applicationScope.launch { castPlaybackBridge.get().start() }
 
             applicationScope.launch(Dispatchers.IO) {

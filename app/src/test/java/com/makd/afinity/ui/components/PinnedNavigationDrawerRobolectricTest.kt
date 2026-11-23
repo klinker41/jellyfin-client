@@ -183,7 +183,12 @@ class PinnedNavigationDrawerRobolectricTest {
                 cardWidthPx = with(density) { PinnedDrawerWidth.toPx().roundToInt() }
                 cardHeightPx =
                     with(density) { (841.dp - PinnedDrawerInset * 2).toPx().roundToInt() }
-                blurPadPx = ceil(with(density) { DefaultPinnedDrawerBlurRadius.toPx() }).toInt()
+                blurPadPx =
+                    ceil(
+                            with(density) { DefaultPinnedDrawerBlurRadius.toPx() } *
+                                PINNED_DRAWER_BLUR_DOWNSCALE,
+                        )
+                        .toInt()
 
                 blurState = rememberPinnedDrawerBlurState(enabled = { blurEnabled })
 
@@ -225,8 +230,9 @@ class PinnedNavigationDrawerRobolectricTest {
         assertTrue(blurState.isEnabled)
         assertTrue(blurState.hasRecordedContent)
         assertNotNull(blurState.blurLayer.renderEffect)
-        assertEquals(cardWidthPx + blurPadPx * 2, blurState.blurLayer.size.width)
-        assertEquals(cardHeightPx + blurPadPx * 2, blurState.blurLayer.size.height)
+        val expectedLayerSize =
+            computeDownscaledBlurLayerSizePx(cardWidthPx, cardHeightPx, blurPadPx)
+        assertEquals(expectedLayerSize, blurState.blurLayer.size)
 
         composeTestRule.runOnIdle { blurEnabled = false }
         pumpDraw()

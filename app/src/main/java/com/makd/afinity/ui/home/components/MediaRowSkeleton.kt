@@ -41,7 +41,7 @@ fun MediaRowSkeleton(
                 Card(
                     modifier = Modifier.fillMaxWidth().aspectRatio(aspectRatio),
                     colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                 ) {
                     Box(modifier = Modifier.fillMaxSize().shimmerEffect())
                 }

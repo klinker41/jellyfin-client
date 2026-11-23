@@ -100,7 +100,7 @@ fun MediaItemGridCard(
             onClick = onClick,
             modifier = Modifier.fillMaxWidth().aspectRatio(aspectRatio),
             shape = RoundedCornerShape(12.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
             Box {
                 if (letterboxed) {

@@ -101,7 +101,7 @@ fun MusicAlbumCard(
         Card(
             modifier = Modifier.fillMaxWidth().aspectRatio(1f),
             shape = MaterialTheme.shapes.medium,
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
             AsyncImage(
                 imageUrl = album.images.primary?.toString(),
@@ -208,7 +208,7 @@ fun MusicGenreCard(
         Card(
             modifier = Modifier.fillMaxWidth().aspectRatio(1f),
             shape = MaterialTheme.shapes.medium,
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
             if (genre.imageUrl != null) {
                 AsyncImage(

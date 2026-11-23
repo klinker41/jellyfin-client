@@ -8,7 +8,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
@@ -20,6 +19,7 @@ import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
@@ -36,77 +36,37 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.makd.afinity.ui.utils.rememberTopBarScrollProgress
 import com.makd.afinity.ui.utils.topBarScrollKey
+import kotlin.math.ceil
 import kotlin.math.roundToInt
-import kotlin.math.sqrt
 
 val DefaultTopBarMaxBlurRadius = 20.dp
 val DefaultTopBarBlurBottomExtension = 16.dp
 const val DefaultTopBarMaxScrimAlpha = 0.25f
 internal const val MIN_BLUR_RADIUS_PX = 0.5f
+internal const val TOP_BAR_BLUR_DOWNSCALE = 0.25f
+internal const val TOP_BAR_BLUR_FADE_START_FRACTION = 0.55f
 
 internal fun computeTopBarBlurHeightPx(barHeightPx: Float, bottomExtensionPx: Float): Float =
     if (barHeightPx < 1f) 0f else barHeightPx + bottomExtensionPx.coerceAtLeast(0f)
 
+internal fun computeTopBarBlurLayerSizePx(
+    barWidthPx: Int,
+    blurHeightPx: Float,
+    maxRadiusAtFullScrollPx: Float,
+    scale: Float = TOP_BAR_BLUR_DOWNSCALE,
+): IntSize {
+    if (barWidthPx <= 0 || blurHeightPx < 1f || scale <= 0f) return IntSize.Zero
+    val scaledWidth = ceil(barWidthPx * scale).toInt().coerceAtLeast(1)
+    val scaledBlurHeight = ceil(blurHeightPx * scale).toInt().coerceAtLeast(1)
+    val scaledPad = ceil(maxRadiusAtFullScrollPx.coerceAtLeast(0f) * scale).toInt().coerceAtLeast(0)
+    return IntSize(scaledWidth, scaledBlurHeight + scaledPad)
+}
+
 internal fun computeTopBarScrimAlpha(progress: Float, maxScrimAlpha: Float): Float =
     maxScrimAlpha.coerceIn(0f, 1f) * progress.coerceIn(0f, 1f)
 
-internal data class ProgressiveBlurBand(
-    val radiusFraction: Float,
-    val topFraction: Float,
-    val bottomFraction: Float,
-)
-
-internal val DefaultProgressiveBlurBands =
-    listOf(
-        ProgressiveBlurBand(radiusFraction = 0.15f, topFraction = 0.80f, bottomFraction = 1.00f),
-        ProgressiveBlurBand(radiusFraction = 0.35f, topFraction = 0.55f, bottomFraction = 0.80f),
-        ProgressiveBlurBand(radiusFraction = 0.65f, topFraction = 0.28f, bottomFraction = 0.55f),
-        ProgressiveBlurBand(radiusFraction = 1.00f, topFraction = 0.00f, bottomFraction = 0.28f),
-    )
-
-internal data class BlurPassSpec(
-    val bandIndex: Int,
-    val incrementalRadiusPx: Float,
-    val cumulativeRadiusPx: Float,
-    val maskTopY: Float,
-    val maskBottomY: Float,
-)
-
 internal fun quantizeBlurRadiusPx(radiusPx: Float): Float =
     if (radiusPx < MIN_BLUR_RADIUS_PX) 0f else (radiusPx * 2f).roundToInt() / 2f
-
-internal fun computeProgressiveBlurPasses(
-    maxRadiusPx: Float,
-    blurHeightPx: Float,
-    bands: List<ProgressiveBlurBand> = DefaultProgressiveBlurBands,
-): List<BlurPassSpec> {
-    if (maxRadiusPx < MIN_BLUR_RADIUS_PX || blurHeightPx < 1f) return emptyList()
-
-    val passes = ArrayList<BlurPassSpec>(bands.size)
-    var previousCumulative = 0f
-
-    bands.forEachIndexed { index, band ->
-        val targetCumulative = maxRadiusPx * band.radiusFraction
-        val deltaSq = targetCumulative * targetCumulative - previousCumulative * previousCumulative
-        val incremental = if (deltaSq > 0f) sqrt(deltaSq) else 0f
-        if (incremental >= MIN_BLUR_RADIUS_PX) {
-            val topY = blurHeightPx * band.topFraction
-            val bottomY = maxOf(blurHeightPx * band.bottomFraction, topY + 1f)
-            passes.add(
-                BlurPassSpec(
-                    bandIndex = index,
-                    incrementalRadiusPx = incremental,
-                    cumulativeRadiusPx = targetCumulative,
-                    maskTopY = topY,
-                    maskBottomY = bottomY,
-                ),
-            )
-            previousCumulative = targetCumulative
-        }
-    }
-
-    return passes
-}
 
 private val SmoothstepPositions = floatArrayOf(0f, 1f / 3f, 2f / 3f, 1f)
 private val SmoothstepColors =
@@ -151,7 +111,7 @@ internal constructor(
     internal var invalidateBackdrop: (() -> Unit)? = null
 
     private var cachedBlurHeightPx: Float = -1f
-    private var cachedMasks: Array<AndroidRenderEffect>? = null
+    private var cachedMask: AndroidRenderEffect? = null
     private var cachedQuantizedRadiusPx: Float = -1f
     private var cachedRenderEffect: RenderEffect? = null
 
@@ -163,78 +123,45 @@ internal constructor(
         cachedRenderEffect = null
     }
 
-    internal fun getOrCreateRenderEffect(blurHeightPx: Float, maxRadiusPx: Float): RenderEffect? {
-        val quantizedRadius = quantizeBlurRadiusPx(maxRadiusPx)
-        if (quantizedRadius < MIN_BLUR_RADIUS_PX || blurHeightPx < 1f) return null
+    internal fun getOrCreateRenderEffect(
+        scaledBlurHeightPx: Float,
+        scaledRadiusPx: Float,
+    ): RenderEffect? {
+        val quantizedRadius = quantizeBlurRadiusPx(scaledRadiusPx)
+        if (quantizedRadius < MIN_BLUR_RADIUS_PX || scaledBlurHeightPx < 1f) return null
 
-        val masks =
-            if (cachedMasks == null || cachedBlurHeightPx != blurHeightPx) {
-                Array(DefaultProgressiveBlurBands.size) { index ->
-                        val band = DefaultProgressiveBlurBands[index]
-                        val topY = blurHeightPx * band.topFraction
-                        val bottomY = maxOf(blurHeightPx * band.bottomFraction, topY + 1f)
-                        createSmoothstepMaskEffect(topY, bottomY)
-                    }
+        val mask =
+            if (cachedMask == null || cachedBlurHeightPx != scaledBlurHeightPx) {
+                createSmoothstepMaskEffect(
+                        topY = scaledBlurHeightPx * TOP_BAR_BLUR_FADE_START_FRACTION,
+                        bottomY = scaledBlurHeightPx,
+                    )
                     .also {
-                        cachedMasks = it
-                        cachedBlurHeightPx = blurHeightPx
+                        cachedMask = it
+                        cachedBlurHeightPx = scaledBlurHeightPx
                         cachedQuantizedRadiusPx = -1f
                         cachedRenderEffect = null
                     }
             } else {
-                cachedMasks!!
+                cachedMask!!
             }
 
         if (cachedQuantizedRadiusPx == quantizedRadius && cachedRenderEffect != null) {
             return cachedRenderEffect
         }
 
-        val passes = computeProgressiveBlurPasses(quantizedRadius, blurHeightPx)
-        if (passes.isEmpty()) return null
-
-        var blurChain: AndroidRenderEffect? = null
-        var composite: AndroidRenderEffect? = null
-
-        for (pass in passes) {
-            blurChain =
-                if (blurChain == null) {
-                    AndroidRenderEffect.createBlurEffect(
-                        pass.incrementalRadiusPx,
-                        pass.incrementalRadiusPx,
-                        Shader.TileMode.CLAMP,
-                    )
-                } else {
-                    AndroidRenderEffect.createBlurEffect(
-                        pass.incrementalRadiusPx,
-                        pass.incrementalRadiusPx,
-                        blurChain,
-                        Shader.TileMode.CLAMP,
-                    )
-                }
-
-            val masked =
-                AndroidRenderEffect.createBlendModeEffect(
-                    blurChain,
-                    masks[pass.bandIndex],
-                    AndroidBlendMode.DST_IN,
-                )
-
-            composite =
-                if (composite == null) {
-                    masked
-                } else {
-                    AndroidRenderEffect.createBlendModeEffect(
-                        composite,
-                        masked,
-                        AndroidBlendMode.SRC_OVER,
-                    )
-                }
-        }
-
-        return composite?.asComposeRenderEffect()?.also {
-            cachedQuantizedRadiusPx = quantizedRadius
-            cachedRenderEffect = it
-        }
+        val blur =
+            AndroidRenderEffect.createBlurEffect(
+                quantizedRadius,
+                quantizedRadius,
+                Shader.TileMode.CLAMP,
+            )
+        return AndroidRenderEffect.createBlendModeEffect(blur, mask, AndroidBlendMode.DST_IN)
+            .asComposeRenderEffect()
+            .also {
+                cachedQuantizedRadiusPx = quantizedRadius
+                cachedRenderEffect = it
+            }
     }
 }
 
@@ -264,14 +191,14 @@ fun rememberDetailTopBarBlurState(
     listState: LazyListState,
     hasHeroSlot: Boolean = !isLandscapeWindow(),
 ): TopBarBlurState {
-    val progress by
+    val progressState =
         rememberTopBarScrollProgress(
             state = listState,
             hasHeroSlot = hasHeroSlot,
             rampItemIndex = 0,
         )
     return rememberTopBarBlurState(
-        progress = { progress },
+        progress = { progressState.value },
         scrollKey = { listState.topBarScrollKey() },
     )
 }
@@ -480,29 +407,38 @@ private class TopBarBlurBackdropNode(
             return
         }
 
+        val scale = TOP_BAR_BLUR_DOWNSCALE
         val maxRadiusAtFullScrollPx = state.maxBlurRadius.toPx()
-        val currentMaxRadiusPx = maxRadiusAtFullScrollPx * progress
-        val effect = state.getOrCreateRenderEffect(blurHeightPx, currentMaxRadiusPx)
-        if (effect == null) {
+        val scaledBlurHeightPx = (blurHeightPx * scale).coerceAtLeast(1f)
+        val scaledCurrentRadiusPx = maxRadiusAtFullScrollPx * progress * scale
+        val effect = state.getOrCreateRenderEffect(scaledBlurHeightPx, scaledCurrentRadiusPx)
+        val layerSize =
+            computeTopBarBlurLayerSizePx(barWidthPx, blurHeightPx, maxRadiusAtFullScrollPx, scale)
+        if (effect == null || layerSize == IntSize.Zero) {
             state.clearCachedEffect()
             invalidateScrimCache()
             drawContent()
             return
         }
 
-        val stripHeightPx =
-            (blurHeightPx.roundToInt() + maxRadiusAtFullScrollPx.roundToInt()).coerceAtLeast(1)
         val offset = state.sourcePositionInRoot - state.backdropPositionInRoot
 
         state.blurLayer.clip = true
         state.blurLayer.renderEffect = effect
-        state.blurLayer.record(size = IntSize(barWidthPx, stripHeightPx)) {
+        state.blurLayer.record(size = layerSize) {
             drawRect(color = containerColor)
-            translate(left = offset.x, top = offset.y) { drawLayer(state.contentLayer) }
+            translate(left = offset.x * scale, top = offset.y * scale) {
+                scale(scaleX = scale, scaleY = scale, pivot = Offset.Zero) {
+                    drawLayer(state.contentLayer)
+                }
+            }
         }
 
+        val invScale = 1f / scale
         clipRect(left = 0f, top = 0f, right = size.width, bottom = blurHeightPx) {
-            drawLayer(state.blurLayer)
+            scale(scaleX = invScale, scaleY = invScale, pivot = Offset.Zero) {
+                drawLayer(state.blurLayer)
+            }
         }
 
         val scrimAlpha = computeTopBarScrimAlpha(progress, maxScrimAlpha)

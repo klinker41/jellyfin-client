@@ -212,7 +212,7 @@ private fun LandscapePersonDetailContent(
         pane = {
             Card(
                 shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(4.dp),
+                elevation = CardDefaults.cardElevation(0.dp),
                 modifier = Modifier.aspectRatio(2f / 3f),
             ) {
                 AsyncImage(

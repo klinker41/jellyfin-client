@@ -80,7 +80,7 @@ class LoginViewModelTest {
             }
         val sessionManager: SessionManager =
             mockk(relaxed = true) {
-                coEvery { startSession(any(), any(), any(), any(), any()) } returns
+                coEvery { startSession(any(), any(), any(), any(), any(), any()) } returns
                     Result.success(Unit)
             }
         val securePreferencesRepository: SecurePreferencesRepository =
@@ -269,6 +269,7 @@ class LoginViewModelTest {
                 "srv-1",
                 user.id,
                 "tok-saved",
+                any(),
                 any(),
             )
         }

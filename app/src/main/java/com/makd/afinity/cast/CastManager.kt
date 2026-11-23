@@ -34,7 +34,7 @@ import com.makd.afinity.data.repository.playback.PlaybackRepository
 import com.makd.afinity.ui.components.formatRuntime
 import com.makd.afinity.ui.components.ticksToTotalMinutes
 import com.makd.afinity.ui.player.PlaylistManager
-import com.makd.afinity.util.perfTrace
+import com.makd.afinity.util.perfTraceAsync
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -121,22 +121,26 @@ constructor(
     private var musicCastPositionMs: Long = 0L
     private var musicCastProgressJob: Job? = null
 
-    fun initialize(context: Context) {
-        perfTrace("Cast.initialize") {
+    suspend fun initialize(context: Context) {
+        perfTraceAsync("Cast.initialize") {
             try {
-                if (context.hasGooglePlayServices()) {
-                    CastContext.getSharedInstance(context, Dispatchers.IO.asExecutor())
-                        .addOnSuccessListener(ContextCompat.getMainExecutor(context)) { ctx ->
-                            castContext = ctx
-                            ctx.sessionManager.addSessionManagerListener(
-                                castSessionManagerListener,
-                                CastSession::class.java,
-                            )
-                            Timber.d("CastManager initialized")
-                        }
-                        .addOnFailureListener { e ->
-                            Timber.e(e, "Failed to initialize CastManager")
-                        }
+                val hasPlayServices =
+                    withContext(Dispatchers.IO) { context.hasGooglePlayServices() }
+                if (hasPlayServices) {
+                    withContext(Dispatchers.Main.immediate) {
+                        CastContext.getSharedInstance(context, Dispatchers.IO.asExecutor())
+                            .addOnSuccessListener(ContextCompat.getMainExecutor(context)) { ctx ->
+                                castContext = ctx
+                                ctx.sessionManager.addSessionManagerListener(
+                                    castSessionManagerListener,
+                                    CastSession::class.java,
+                                )
+                                Timber.d("CastManager initialized")
+                            }
+                            .addOnFailureListener { e ->
+                                Timber.e(e, "Failed to initialize CastManager")
+                            }
+                    }
                 } else {
                     Timber.w("Google Play services unavailable, Chromecast disabled")
                 }

@@ -569,7 +569,7 @@ internal fun FavoriteChannelCard(channel: AfinityChannel, onClick: () -> Unit, c
             modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
             colors =
                 CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             shape = MaterialTheme.shapes.medium,
         ) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -688,7 +688,7 @@ internal fun FavoriteTrackCard(
         Card(
             modifier = Modifier.fillMaxWidth().aspectRatio(1f),
             shape = RoundedCornerShape(8.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
             AsyncImage(
                 imageUrl = track.images.primary?.toString(),

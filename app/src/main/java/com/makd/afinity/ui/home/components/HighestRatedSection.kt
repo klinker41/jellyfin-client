@@ -99,7 +99,7 @@ fun HighestRatedCard(item: AfinityItem, ranking: Int, onClick: () -> Unit, cardW
             modifier = Modifier.fillMaxSize(),
             colors =
                 CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 AsyncImage(

@@ -1,6 +1,5 @@
 package com.makd.afinity.ui.components
 
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.makd.afinity.navigation.Destination
 import org.junit.Assert.assertEquals
@@ -163,15 +162,6 @@ class PinnedNavigationDrawerTest {
                 windowHeight = 800.dp,
             ),
         )
-    }
-
-    @Test
-    fun `computeBlurredLayerSizePx pads all sides and returns zero for non-positive dims`() {
-        assertEquals(IntSize.Zero, computeBlurredLayerSizePx(0, 100, 20))
-        assertEquals(IntSize.Zero, computeBlurredLayerSizePx(100, 0, 20))
-        assertEquals(IntSize.Zero, computeBlurredLayerSizePx(-10, 100, 20))
-        assertEquals(IntSize(240, 800), computeBlurredLayerSizePx(240, 800, -10))
-        assertEquals(IntSize(280, 840), computeBlurredLayerSizePx(240, 800, 20))
     }
 
     @Test

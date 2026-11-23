@@ -1,8 +1,8 @@
 package com.makd.afinity.ui.components
 
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TopBarProgressiveBlurTest {
@@ -17,46 +17,18 @@ class TopBarProgressiveBlurTest {
     }
 
     @Test
-    fun `computeProgressiveBlurPasses returns empty for zero subthreshold radius or tiny height`() {
-        assertTrue(computeProgressiveBlurPasses(0f, 240f).isEmpty())
-        assertTrue(computeProgressiveBlurPasses(0.49f, 240f).isEmpty())
-        assertTrue(computeProgressiveBlurPasses(60f, 0.5f).isEmpty())
-        assertTrue(computeProgressiveBlurPasses(60f, 0f).isEmpty())
-    }
-
-    @Test
-    fun `computeProgressiveBlurPasses emits 4 continuous semigroup passes at 60px radius`() {
-        val maxRadiusPx = 60f
-        val blurHeightPx = 240f
-        val passes =
-            computeProgressiveBlurPasses(maxRadiusPx = maxRadiusPx, blurHeightPx = blurHeightPx)
-
-        assertEquals(4, passes.size)
-        assertEquals(0f, passes.last().maskTopY, 0.0001f)
-        assertEquals(blurHeightPx, passes.first().maskBottomY, 0.0001f)
-
-        val sumOfSquares =
-            passes.fold(0f) { acc, pass ->
-                acc + pass.incrementalRadiusPx * pass.incrementalRadiusPx
-            }
-        assertEquals(maxRadiusPx * maxRadiusPx, sumOfSquares, 0.01f)
-
-        for (i in 1 until passes.size) {
-            assertTrue(passes[i].cumulativeRadiusPx > passes[i - 1].cumulativeRadiusPx)
-        }
-    }
-
-    @Test
-    fun `computeProgressiveBlurPasses skips subthreshold bands cleanly at small radii`() {
-        for (radius in listOf(1f, 2f, 5f)) {
-            val passes = computeProgressiveBlurPasses(maxRadiusPx = radius, blurHeightPx = 240f)
-            assertTrue("Expected at least one pass for radius=$radius", passes.isNotEmpty())
-            passes.forEach { pass ->
-                assertTrue(pass.incrementalRadiusPx >= MIN_BLUR_RADIUS_PX)
-                assertTrue(!pass.incrementalRadiusPx.isNaN())
-                assertTrue(pass.maskBottomY > pass.maskTopY)
-            }
-        }
+    fun `computeTopBarBlurLayerSizePx downscales layer and returns zero for invalid bounds`() {
+        assertEquals(IntSize.Zero, computeTopBarBlurLayerSizePx(0, 240f, 60f))
+        assertEquals(IntSize.Zero, computeTopBarBlurLayerSizePx(1080, 0.5f, 60f))
+        assertEquals(IntSize.Zero, computeTopBarBlurLayerSizePx(1080, 240f, 60f, scale = 0f))
+        assertEquals(
+            IntSize(270, 75),
+            computeTopBarBlurLayerSizePx(1080, 240f, 60f, scale = TOP_BAR_BLUR_DOWNSCALE),
+        )
+        assertEquals(
+            IntSize(519, 107),
+            computeTopBarBlurLayerSizePx(2076, 366f, 60f, scale = TOP_BAR_BLUR_DOWNSCALE),
+        )
     }
 
     @Test

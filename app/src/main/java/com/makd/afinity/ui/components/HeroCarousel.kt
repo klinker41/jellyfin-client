@@ -55,7 +55,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
@@ -190,6 +189,10 @@ private val HeroPeekLandscapeBottomScrim =
 private val LocalHeroIndicator = staticCompositionLocalOf { HeroIndicator.DOTS }
 
 private val HeroFadeStopAlphas = FloatArray(HeroFadeStops.size) { HeroFadeStops[it].alpha }
+
+internal fun heroFadeOverlayColors(fadeColor: Color): List<Color> = HeroFadeStops.map {
+    fadeColor.copy(alpha = 1f - it.alpha)
+}
 
 private val LocalHeroPageColorScheme = staticCompositionLocalOf<ColorScheme?> { null }
 
@@ -729,10 +732,11 @@ private fun HeroBackdrop(
     screenWidthDp: Dp,
     height: Dp,
 ) {
+    val fadeColor = MaterialTheme.colorScheme.background
     HorizontalPager(
         state = pagerState,
         modifier = Modifier.fillMaxSize(),
-        beyondViewportPageCount = 1,
+        beyondViewportPageCount = 0,
         key = { page -> "hero_page_$page" },
     ) { page ->
         val actualIndex = page % items.size
@@ -745,23 +749,22 @@ private fun HeroBackdrop(
             targetHeight = height,
             contentScale = ContentScale.Crop,
             modifier =
-                Modifier.fillMaxSize()
-                    .graphicsLayer { alpha = 0.99f }
-                    .drawWithCache {
-                        val fadeStart =
-                            (size.height - HeroFadeHeight.toPx()).coerceAtLeast(size.height * 0.35f)
-                        val gradient =
-                            Brush.verticalGradient(
-                                colors = HeroFadeStops,
-                                startY = fadeStart,
-                                endY = size.height,
-                            )
-                        onDrawWithContent {
-                            drawContent()
-                            drawRect(Color.Black.copy(alpha = HeroDimAlpha))
-                            drawRect(gradient, blendMode = BlendMode.DstIn)
-                        }
-                    },
+                Modifier.fillMaxSize().drawWithCache {
+                    val fadeStart =
+                        (size.height - HeroFadeHeight.toPx()).coerceAtLeast(size.height * 0.35f)
+                    val fadeColors = heroFadeOverlayColors(fadeColor)
+                    val gradient =
+                        Brush.verticalGradient(
+                            colors = fadeColors,
+                            startY = fadeStart,
+                            endY = size.height,
+                        )
+                    onDrawWithContent {
+                        drawContent()
+                        drawRect(Color.Black.copy(alpha = HeroDimAlpha))
+                        drawRect(gradient)
+                    }
+                },
         )
     }
 }

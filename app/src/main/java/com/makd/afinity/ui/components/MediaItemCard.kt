@@ -91,7 +91,7 @@ fun MediaItemCard(
             modifier = Modifier.fillMaxWidth().aspectRatio(effectiveAspectRatio),
             colors =
                 CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 val imageUrl = item.images.primaryImageUrl ?: item.images.backdropImageUrl

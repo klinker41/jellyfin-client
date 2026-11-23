@@ -61,7 +61,7 @@ fun LibraryCard(
             Card(
                 modifier = Modifier.fillMaxSize(),
                 shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             ) {
                 AsyncImage(
                     imageUrl = library.images.backdropImageUrl ?: library.images.primaryImageUrl,

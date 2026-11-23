@@ -253,7 +253,7 @@ private fun MediaThumbnailCard(
             onClick = onClick,
             modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
             shape = RoundedCornerShape(8.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
             Box(
                 modifier =

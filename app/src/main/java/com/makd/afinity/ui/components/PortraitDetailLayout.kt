@@ -32,9 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -173,6 +171,7 @@ private fun ImageHero(hero: PortraitHero.Image) {
 
     var urlIndex by remember(hero.backdrop) { mutableIntStateOf(0) }
     val current = hero.backdrop.getOrNull(urlIndex)
+    val fadeColor = MaterialTheme.colorScheme.background
 
     Box(modifier = Modifier.bottomOverlap(ImageHeroOverlap).fillMaxWidth().height(heroHeight)) {
         AsyncImage(
@@ -189,22 +188,21 @@ private fun ImageHero(hero: PortraitHero.Image) {
                 }
             },
             modifier =
-                Modifier.fillMaxSize()
-                    .graphicsLayer { alpha = 0.99f }
-                    .drawWithCache {
-                        val fadeStart =
-                            (size.height - HeroFadeHeight.toPx()).coerceAtLeast(size.height * 0.35f)
-                        val gradient =
-                            Brush.verticalGradient(
-                                colors = HeroFadeStops,
-                                startY = fadeStart,
-                                endY = size.height,
-                            )
-                        onDrawWithContent {
-                            drawContent()
-                            drawRect(gradient, blendMode = BlendMode.DstIn)
-                        }
-                    },
+                Modifier.fillMaxSize().drawWithCache {
+                    val fadeStart =
+                        (size.height - HeroFadeHeight.toPx()).coerceAtLeast(size.height * 0.35f)
+                    val fadeColors = heroFadeOverlayColors(fadeColor)
+                    val gradient =
+                        Brush.verticalGradient(
+                            colors = fadeColors,
+                            startY = fadeStart,
+                            endY = size.height,
+                        )
+                    onDrawWithContent {
+                        drawContent()
+                        drawRect(gradient)
+                    }
+                },
             contentScale = ContentScale.Crop,
             alignment =
                 when (hero.kind) {

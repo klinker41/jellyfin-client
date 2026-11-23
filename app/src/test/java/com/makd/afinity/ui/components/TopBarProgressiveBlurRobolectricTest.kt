@@ -257,7 +257,9 @@ class TopBarProgressiveBlurRobolectricTest {
         lateinit var blurState: TopBarBlurState
         lateinit var hostView: View
         var fullThresholdPx = 0
-        var expectedExtensionPx = 0
+        var barWidthPx = 0
+        var extensionPx = 0f
+        var maxRadiusPx = 0f
         var bottomExtension by mutableStateOf(0.dp)
 
         composeTestRule.setContent {
@@ -265,8 +267,8 @@ class TopBarProgressiveBlurRobolectricTest {
                 hostView = LocalView.current
                 val density = LocalDensity.current
                 fullThresholdPx = with(density) { 450.dp.toPx().roundToInt() }
-                expectedExtensionPx =
-                    with(density) { DefaultTopBarBlurBottomExtension.toPx().roundToInt() }
+                extensionPx = with(density) { DefaultTopBarBlurBottomExtension.toPx() }
+                maxRadiusPx = with(density) { DefaultTopBarMaxBlurRadius.toPx() }
                 listState = rememberLazyListState()
                 scope = rememberCoroutineScope()
                 val progress by rememberTopBarScrollProgress(listState, hasHeroSlot = true)
@@ -288,12 +290,9 @@ class TopBarProgressiveBlurRobolectricTest {
         fun pumpDraw() {
             composeTestRule.waitForIdle()
             composeTestRule.runOnIdle {
-                val bitmap =
-                    Bitmap.createBitmap(
-                        hostView.width.coerceAtLeast(1),
-                        hostView.height.coerceAtLeast(1),
-                        Bitmap.Config.ARGB_8888,
-                    )
+                val width = hostView.width.coerceAtLeast(1)
+                val height = hostView.height.coerceAtLeast(1)
+                val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
                 hostView.draw(Canvas(bitmap))
                 bitmap.recycle()
             }
@@ -304,12 +303,26 @@ class TopBarProgressiveBlurRobolectricTest {
         }
         pumpDraw()
         val heightWithoutExtension = blurState.blurLayer.size.height
+        barWidthPx = hostView.width
+        val expectedHeightWithExtension =
+            computeTopBarBlurLayerSizePx(
+                    barWidthPx = barWidthPx,
+                    blurHeightPx =
+                        computeTopBarBlurHeightPx(
+                            barHeightPx =
+                                (heightWithoutExtension / TOP_BAR_BLUR_DOWNSCALE) - maxRadiusPx,
+                            bottomExtensionPx = extensionPx,
+                        ),
+                    maxRadiusAtFullScrollPx = maxRadiusPx,
+                )
+                .height
 
         composeTestRule.runOnIdle { bottomExtension = DefaultTopBarBlurBottomExtension }
         pumpDraw()
         val heightWithExtension = blurState.blurLayer.size.height
 
-        assertEquals(expectedExtensionPx, heightWithExtension - heightWithoutExtension)
+        assertTrue(heightWithExtension > heightWithoutExtension)
+        assertEquals(expectedHeightWithExtension, heightWithExtension)
     }
 
     @Composable

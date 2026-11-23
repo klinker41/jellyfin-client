@@ -138,6 +138,7 @@ constructor(
                             serverId = serverId ?: "",
                             userId = userUuid,
                             accessToken = accessToken,
+                            optimisticStartup = true,
                         )
 
                     val startFailure = startResult.exceptionOrNull()

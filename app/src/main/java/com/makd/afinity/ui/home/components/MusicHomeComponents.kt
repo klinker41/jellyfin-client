@@ -293,7 +293,7 @@ private fun MostPlayedAlbumCard(
             onClick = onClick,
             modifier = Modifier.fillMaxSize(),
             shape = RoundedCornerShape(8.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
             AsyncImage(
                 imageUrl = album.images.primary?.toString(),

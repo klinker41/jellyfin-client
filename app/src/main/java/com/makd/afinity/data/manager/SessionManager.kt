@@ -118,8 +118,12 @@ constructor(
     private val apiClients = ConcurrentHashMap<String, ApiClient>()
     private val sessionMutex = Mutex()
     private var persistSessionJob: Job? = null
+    private var addressValidationJob: Job? = null
 
     private fun clientKey(serverId: String, userId: UUID): String = "$serverId|$userId"
+
+    private fun isSessionActive(serverId: String, userId: UUID): Boolean =
+        _currentSession.value?.let { it.serverId == serverId && it.userId == userId } == true
 
     suspend fun startSession(
         serverUrl: String,
@@ -127,10 +131,14 @@ constructor(
         userId: UUID,
         accessToken: String,
         urlPreValidated: Boolean = false,
+        optimisticStartup: Boolean = false,
     ): Result<Unit> =
         perfTraceAsync("Session.startSession") {
             sessionMutex.withLock {
                 persistSessionJob?.cancelAndJoin()
+                persistSessionJob = null
+                addressValidationJob?.cancelAndJoin()
+                addressValidationJob = null
                 withContext(Dispatchers.IO) {
                     try {
                         val (user, server) =
@@ -142,246 +150,70 @@ constructor(
                                 userDeferred.await() to serverDeferred.await()
                             }
 
-                        val sawUnauthorized = AtomicBoolean(false)
-                        val probedUser = AtomicReference<UserDto?>(null)
-                        val validator: suspend (String) -> Boolean = { address ->
-                            try {
-                                val tempClient =
-                                    proberJellyfin
-                                        .createApi(
-                                            baseUrl = address,
-                                            httpClientOptions = NetworkModule.PROBE_HTTP_OPTIONS,
-                                        )
-                                        .also { it.update(accessToken = accessToken) }
-                                val response =
-                                    withTimeoutOrNull(3.seconds) {
-                                        UserApi(tempClient).getCurrentUser()
-                                    }
-                                response?.content?.let { probedUser.compareAndSet(null, it) }
-                                response?.content != null
-                            } catch (e: InvalidStatusException) {
-                                if (e.status == 401) sawUnauthorized.set(true)
-                                false
-                            } catch (_: Exception) {
-                                false
-                            }
+                        if (optimisticStartup && !urlPreValidated) {
+                            setServerReachable(true)
+                            activateSession(
+                                resolvedUrl = serverUrl,
+                                serverId = serverId,
+                                userId = userId,
+                                accessToken = accessToken,
+                                user = user,
+                                server = server,
+                                probed = null,
+                                initialReachable = true,
+                                refreshPolicy = false,
+                            )
+                            launchOptimisticAddressValidation(
+                                initialUrl = serverUrl,
+                                serverId = serverId,
+                                userId = userId,
+                                accessToken = accessToken,
+                                user = user,
+                            )
+                            return@withContext Result.success(Unit)
                         }
 
+                        val sawUnauthorized = AtomicBoolean(false)
+                        val probedUser = AtomicReference<UserDto?>(null)
                         val resolvedUrl =
                             if (urlPreValidated) {
                                 setServerReachable(true)
                                 serverUrl
-                            } else
-                                try {
-                                    val result =
-                                        serverAddressResolver.resolveAddress(serverId, validator)
-                                    if (result is AddressResolutionResult.Success) {
-                                        Timber.d(
-                                            "Resolved server address: ${result.address} (saved: $serverUrl)",
+                            } else {
+                                when (
+                                    val outcome =
+                                        probeServerAddress(
+                                            serverId = serverId,
+                                            fallbackUrl = serverUrl,
+                                            accessToken = accessToken,
+                                            sawUnauthorized = sawUnauthorized,
+                                            probedUser = probedUser,
                                         )
-                                        setServerReachable(true)
-                                        result.address
-                                    } else if (sawUnauthorized.get()) {
-                                        Timber.e(
-                                            "Token rejected by server during address resolution (401)",
-                                        )
+                                ) {
+                                    is ProbeOutcome.Unauthorized ->
                                         return@withContext Result.failure(
                                             InvalidStatusException(401, null),
                                         )
-                                    } else {
-                                        val reason =
-                                            when (result) {
-                                                is AddressResolutionResult.PermissionRequired -> {
-                                                    Timber.w(
-                                                        "Local network permission missing, cannot reach ${result.attemptedAddresses}",
-                                                    )
-                                                    _needsLocalNetworkPermission.value = true
-                                                    UnreachableReason.PERMISSION_REQUIRED
-                                                }
-
-                                                is AddressResolutionResult.NoRoute -> {
-                                                    Timber.w(
-                                                        "No route from this network to ${result.attemptedAddresses}, starting in offline mode",
-                                                    )
-                                                    UnreachableReason.NO_ROUTE
-                                                }
-
-                                                else -> {
-                                                    Timber.w(
-                                                        "Address resolution failed, starting in offline mode. Saved URL: $serverUrl",
-                                                    )
-                                                    UnreachableReason.ALL_ADDRESSES_FAILED
-                                                }
-                                            }
-                                        setServerReachable(false, reason)
-                                        serverUrl
-                                    }
-                                } catch (e: CancellationException) {
-                                    throw e
-                                } catch (e: Exception) {
-                                    Timber.w(
-                                        e,
-                                        "Address resolution error, starting in offline mode. Saved URL: $serverUrl",
-                                    )
-                                    setServerReachable(
-                                        false,
-                                        UnreachableReason.ALL_ADDRESSES_FAILED,
-                                    )
-                                    serverUrl
-                                }
-
-                        serverRepository.setBaseUrl(resolvedUrl)
-
-                        val apiClient = getOrCreateApiClient(serverId, userId, resolvedUrl)
-                        apiClient.update(baseUrl = resolvedUrl, accessToken = accessToken)
-                        apiClient.notifySocketCredentialsChanged()
-
-                        securePrefsRepository.setCachedJellyfinAuth(accessToken, resolvedUrl)
-
-                        _currentSession.value =
-                            Session(
-                                serverId = serverId,
-                                userId = userId,
-                                serverUrl = resolvedUrl,
-                                user = user,
-                                server = server,
-                                isAdmin = user?.isAdmin == true,
-                                canAccessLiveTv = user?.canAccessLiveTv,
-                                canDownload = user?.canDownload,
-                                canManageCollections = user?.isAdmin == true,
-                            )
-
-                        persistSessionJob = sessionScope.launch {
-                            val active = _currentSession.value
-                            if (active?.serverId != serverId || active.userId != userId) {
-                                return@launch
-                            }
-                            try {
-                                securePrefsRepository.saveAuthenticationData(
-                                    accessToken = accessToken,
-                                    userId = userId,
-                                    serverId = serverId,
-                                    serverUrl = resolvedUrl,
-                                    username = user?.name ?: "User",
-                                )
-
-                                if (user != null) {
-                                    securePrefsRepository.saveServerUserToken(
-                                        serverId = serverId,
-                                        userId = userId,
-                                        accessToken = accessToken,
-                                        username = user.name,
-                                        serverUrl = resolvedUrl,
-                                    )
-                                }
-
-                                securePrefsRepository.saveActiveSession(
-                                    serverId,
-                                    userId,
-                                    resolvedUrl,
-                                )
-                            } catch (e: CancellationException) {
-                                throw e
-                            } catch (e: Exception) {
-                                Timber.w(e, "Failed to persist session credentials")
-                            }
-                        }
-
-                        sessionScope.launch {
-                            val active = _currentSession.value
-                            if (active?.serverId != serverId || active.userId != userId) {
-                                Timber.d("Session changed before linking services, skipping")
-                                return@launch
-                            }
-                            try {
-                                jellyseerrRepository.setActiveJellyfinSession(serverId, userId)
-                            } catch (e: CancellationException) {
-                                throw e
-                            } catch (e: Exception) {
-                                Timber.e(e, "Failed to link Jellyseerr session")
-                            }
-                            try {
-                                audiobookshelfRepository.setActiveJellyfinSession(serverId, userId)
-                            } catch (e: CancellationException) {
-                                throw e
-                            } catch (e: Exception) {
-                                Timber.e(e, "Failed to link Audiobookshelf session")
-                            }
-                        }
-
-                        sessionScope.launch {
-                            try {
-                                val probed = probedUser.get()
-                                if (probed == null && !_isServerReachable.value) {
-                                    Timber.d("Server unreachable, keeping cached user policy")
-                                    return@launch
-                                }
-                                val userDto = probed ?: UserApi(apiClient).getCurrentUser().content
-                                val isAdmin = userDto.policy?.isAdministrator == true
-                                val canAccessLiveTv = userDto.policy?.enableLiveTvAccess
-                                val canManageLiveTv = userDto.policy?.enableLiveTvManagement
-                                val canManageCollections =
-                                    isAdmin || userDto.policy?.enableCollectionManagement == true
-                                val canManageSubtitles =
-                                    isAdmin || userDto.policy?.enableSubtitleManagement == true
-                                val canDownload = userDto.policy?.enableContentDownloading
-                                val canDeleteMedia =
-                                    userDto.policy?.let { policy ->
-                                        policy.enableContentDeletion ||
-                                            !policy.enableContentDeletionFromFolders
-                                                .isNullOrEmpty() ||
-                                            policy.enableCollectionManagement
-                                    }
-
-                                val refreshedUser =
-                                    user?.let { existing ->
-                                        existing.copy(
-                                            name = userDto.name ?: existing.name,
-                                            primaryImageTag = userDto.primaryImageTag,
-                                            isAdmin = isAdmin,
-                                            canAccessLiveTv = canAccessLiveTv,
-                                            canDownload = canDownload,
+                                    is ProbeOutcome.Resolved -> {
+                                        setServerReachable(
+                                            outcome.reachable,
+                                            outcome.unreachableReason,
                                         )
+                                        outcome.url
                                     }
-                                        ?: User(
-                                            id = userDto.id,
-                                            name = userDto.name ?: "",
-                                            serverId = serverId,
-                                            accessToken = accessToken,
-                                            primaryImageTag = userDto.primaryImageTag,
-                                            isAdmin = isAdmin,
-                                            canAccessLiveTv = canAccessLiveTv,
-                                            canDownload = canDownload,
-                                        )
-                                databaseRepository.insertUser(refreshedUser)
-
-                                val current = _currentSession.value
-                                if (current?.serverId == serverId && current.userId == userId) {
-                                    _currentSession.value =
-                                        current.copy(
-                                            isAdmin = isAdmin,
-                                            canAccessLiveTv = canAccessLiveTv,
-                                            canDownload = canDownload,
-                                            canDeleteMedia = canDeleteMedia,
-                                            canManageLiveTv = canManageLiveTv,
-                                            canManageCollections = canManageCollections,
-                                            canManageSubtitles = canManageSubtitles,
-                                            user = refreshedUser,
-                                            userConfiguration = userDto.configuration,
-                                        )
                                 }
-                                Timber.d(
-                                    "Admin status refreshed from policy: isAdmin=$isAdmin, canDownload=$canDownload",
-                                )
-                                if (canManageSubtitles) {
-                                    refreshSubtitleProvider(apiClient, serverId, userId)
-                                }
-                            } catch (e: CancellationException) {
-                                throw e
-                            } catch (e: Exception) {
-                                Timber.w(e, "Failed to refresh user policy; using cached isAdmin")
                             }
-                        }
+
+                        activateSession(
+                            resolvedUrl = resolvedUrl,
+                            serverId = serverId,
+                            userId = userId,
+                            accessToken = accessToken,
+                            user = user,
+                            server = server,
+                            probed = probedUser.get(),
+                            initialReachable = _isServerReachable.value,
+                        )
 
                         Result.success(Unit)
                     } catch (e: CancellationException) {
@@ -393,6 +225,356 @@ constructor(
                 }
             }
         }
+
+    private sealed interface ProbeOutcome {
+        data object Unauthorized : ProbeOutcome
+
+        data class Resolved(
+            val url: String,
+            val reachable: Boolean,
+            val unreachableReason: UnreachableReason? = null,
+        ) : ProbeOutcome
+    }
+
+    private suspend fun probeServerAddress(
+        serverId: String,
+        fallbackUrl: String,
+        accessToken: String,
+        sawUnauthorized: AtomicBoolean,
+        probedUser: AtomicReference<UserDto?>,
+    ): ProbeOutcome {
+        val validator: suspend (String) -> Boolean = { address ->
+            try {
+                val tempClient =
+                    proberJellyfin
+                        .createApi(
+                            baseUrl = address,
+                            httpClientOptions = NetworkModule.PROBE_HTTP_OPTIONS,
+                        )
+                        .also { it.update(accessToken = accessToken) }
+                val response = withTimeoutOrNull(3.seconds) { UserApi(tempClient).getCurrentUser() }
+                response?.content?.let { probedUser.compareAndSet(null, it) }
+                response?.content != null
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: InvalidStatusException) {
+                if (e.status == 401) sawUnauthorized.set(true)
+                false
+            } catch (_: Exception) {
+                false
+            }
+        }
+
+        return try {
+            val result = serverAddressResolver.resolveAddress(serverId, validator)
+            if (result is AddressResolutionResult.Success) {
+                Timber.d("Resolved server address: ${result.address} (saved: $fallbackUrl)")
+                ProbeOutcome.Resolved(url = result.address, reachable = true)
+            } else if (sawUnauthorized.get()) {
+                Timber.e("Token rejected by server during address resolution (401)")
+                ProbeOutcome.Unauthorized
+            } else {
+                val reason =
+                    when (result) {
+                        is AddressResolutionResult.PermissionRequired -> {
+                            Timber.w(
+                                "Local network permission missing, cannot reach ${result.attemptedAddresses}",
+                            )
+                            _needsLocalNetworkPermission.value = true
+                            UnreachableReason.PERMISSION_REQUIRED
+                        }
+
+                        is AddressResolutionResult.NoRoute -> {
+                            Timber.w(
+                                "No route from this network to ${result.attemptedAddresses}, starting in offline mode",
+                            )
+                            UnreachableReason.NO_ROUTE
+                        }
+
+                        else -> {
+                            Timber.w(
+                                "Address resolution failed, starting in offline mode. Saved URL: $fallbackUrl",
+                            )
+                            UnreachableReason.ALL_ADDRESSES_FAILED
+                        }
+                    }
+                ProbeOutcome.Resolved(
+                    url = fallbackUrl,
+                    reachable = false,
+                    unreachableReason = reason,
+                )
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Timber.w(
+                e,
+                "Address resolution error, starting in offline mode. Saved URL: $fallbackUrl",
+            )
+            ProbeOutcome.Resolved(
+                url = fallbackUrl,
+                reachable = false,
+                unreachableReason = UnreachableReason.ALL_ADDRESSES_FAILED,
+            )
+        }
+    }
+
+    private suspend fun activateSession(
+        resolvedUrl: String,
+        serverId: String,
+        userId: UUID,
+        accessToken: String,
+        user: User?,
+        server: Server?,
+        probed: UserDto?,
+        initialReachable: Boolean,
+        refreshPolicy: Boolean = true,
+    ) {
+        serverRepository.setBaseUrl(resolvedUrl)
+
+        val apiClient = getOrCreateApiClient(serverId, userId, resolvedUrl)
+        apiClient.update(baseUrl = resolvedUrl, accessToken = accessToken)
+        apiClient.notifySocketCredentialsChanged()
+
+        securePrefsRepository.setCachedJellyfinAuth(accessToken, resolvedUrl)
+
+        _currentSession.value =
+            Session(
+                serverId = serverId,
+                userId = userId,
+                serverUrl = resolvedUrl,
+                user = user,
+                server = server,
+                isAdmin = user?.isAdmin == true,
+                canAccessLiveTv = user?.canAccessLiveTv,
+                canDownload = user?.canDownload,
+                canManageCollections = user?.isAdmin == true,
+            )
+
+        schedulePersistCredentials(
+            serverId = serverId,
+            userId = userId,
+            resolvedUrl = resolvedUrl,
+            accessToken = accessToken,
+            user = user,
+        )
+
+        sessionScope.launch {
+            if (!isSessionActive(serverId, userId)) {
+                Timber.d("Session changed before linking services, skipping")
+                return@launch
+            }
+            try {
+                jellyseerrRepository.setActiveJellyfinSession(serverId, userId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to link Jellyseerr session")
+            }
+            try {
+                audiobookshelfRepository.setActiveJellyfinSession(serverId, userId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to link Audiobookshelf session")
+            }
+        }
+
+        if (refreshPolicy && (probed != null || initialReachable)) {
+            sessionScope.launch {
+                if (probed == null && !_isServerReachable.value) {
+                    Timber.d("Server unreachable, keeping cached user policy")
+                    return@launch
+                }
+                refreshUserPolicy(
+                    apiClient = apiClient,
+                    serverId = serverId,
+                    userId = userId,
+                    accessToken = accessToken,
+                    user = user,
+                    probed = probed,
+                )
+            }
+        }
+    }
+
+    private fun schedulePersistCredentials(
+        serverId: String,
+        userId: UUID,
+        resolvedUrl: String,
+        accessToken: String,
+        user: User?,
+    ) {
+        persistSessionJob = sessionScope.launch {
+            if (!isSessionActive(serverId, userId)) return@launch
+            try {
+                securePrefsRepository.saveAuthenticationData(
+                    accessToken = accessToken,
+                    userId = userId,
+                    serverId = serverId,
+                    serverUrl = resolvedUrl,
+                    username = user?.name ?: "User",
+                )
+
+                if (user != null) {
+                    securePrefsRepository.saveServerUserToken(
+                        serverId = serverId,
+                        userId = userId,
+                        accessToken = accessToken,
+                        username = user.name,
+                        serverUrl = resolvedUrl,
+                    )
+                }
+
+                securePrefsRepository.saveActiveSession(serverId, userId, resolvedUrl)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to persist session credentials")
+            }
+        }
+    }
+
+    private fun launchOptimisticAddressValidation(
+        initialUrl: String,
+        serverId: String,
+        userId: UUID,
+        accessToken: String,
+        user: User?,
+    ) {
+        addressValidationJob = sessionScope.launch {
+            val sawUnauthorized = AtomicBoolean(false)
+            val probedUser = AtomicReference<UserDto?>(null)
+            val outcome =
+                probeServerAddress(
+                    serverId = serverId,
+                    fallbackUrl = initialUrl,
+                    accessToken = accessToken,
+                    sawUnauthorized = sawUnauthorized,
+                    probedUser = probedUser,
+                )
+
+            when (outcome) {
+                is ProbeOutcome.Unauthorized -> {
+                    sessionMutex.withLock {
+                        if (!isSessionActive(serverId, userId)) return@withLock
+                        persistSessionJob?.cancelAndJoin()
+                        persistSessionJob = null
+                        performLogoutLocked()
+                    }
+                }
+                is ProbeOutcome.Resolved -> {
+                    sessionMutex.withLock {
+                        if (!isSessionActive(serverId, userId)) return@withLock
+                        setServerReachable(outcome.reachable, outcome.unreachableReason)
+                        if (outcome.reachable && outcome.url != initialUrl) {
+                            persistSessionJob?.cancelAndJoin()
+                            persistSessionJob = null
+                            serverRepository.setBaseUrl(outcome.url)
+                            securePrefsRepository.setCachedJellyfinAuth(
+                                accessToken,
+                                outcome.url,
+                            )
+                            updateSessionUrl(outcome.url)
+                            getOrCreateApiClient(serverId, userId, outcome.url)
+                                .notifySocketCredentialsChanged()
+                            schedulePersistCredentials(
+                                serverId = serverId,
+                                userId = userId,
+                                resolvedUrl = outcome.url,
+                                accessToken = accessToken,
+                                user = user,
+                            )
+                        }
+                    }
+                    if (outcome.reachable && isSessionActive(serverId, userId)) {
+                        val activeClient = getOrCreateApiClient(serverId, userId, outcome.url)
+                        refreshUserPolicy(
+                            apiClient = activeClient,
+                            serverId = serverId,
+                            userId = userId,
+                            accessToken = accessToken,
+                            user = user,
+                            probed = probedUser.get(),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun refreshUserPolicy(
+        apiClient: ApiClient,
+        serverId: String,
+        userId: UUID,
+        accessToken: String,
+        user: User?,
+        probed: UserDto?,
+    ) {
+        try {
+            val userDto = probed ?: UserApi(apiClient).getCurrentUser().content
+            val isAdmin = userDto.policy?.isAdministrator == true
+            val canAccessLiveTv = userDto.policy?.enableLiveTvAccess
+            val canManageLiveTv = userDto.policy?.enableLiveTvManagement
+            val canManageCollections = isAdmin || userDto.policy?.enableCollectionManagement == true
+            val canManageSubtitles = isAdmin || userDto.policy?.enableSubtitleManagement == true
+            val canDownload = userDto.policy?.enableContentDownloading
+            val canDeleteMedia =
+                userDto.policy?.let { policy ->
+                    policy.enableContentDeletion ||
+                        !policy.enableContentDeletionFromFolders.isNullOrEmpty() ||
+                        policy.enableCollectionManagement
+                }
+
+            val refreshedUser =
+                user?.let { existing ->
+                    existing.copy(
+                        name = userDto.name ?: existing.name,
+                        primaryImageTag = userDto.primaryImageTag,
+                        isAdmin = isAdmin,
+                        canAccessLiveTv = canAccessLiveTv,
+                        canDownload = canDownload,
+                    )
+                }
+                    ?: User(
+                        id = userDto.id,
+                        name = userDto.name ?: "",
+                        serverId = serverId,
+                        accessToken = accessToken,
+                        primaryImageTag = userDto.primaryImageTag,
+                        isAdmin = isAdmin,
+                        canAccessLiveTv = canAccessLiveTv,
+                        canDownload = canDownload,
+                    )
+            databaseRepository.insertUser(refreshedUser)
+
+            val current = _currentSession.value
+            if (current?.serverId == serverId && current.userId == userId) {
+                _currentSession.value =
+                    current.copy(
+                        isAdmin = isAdmin,
+                        canAccessLiveTv = canAccessLiveTv,
+                        canDownload = canDownload,
+                        canDeleteMedia = canDeleteMedia,
+                        canManageLiveTv = canManageLiveTv,
+                        canManageCollections = canManageCollections,
+                        canManageSubtitles = canManageSubtitles,
+                        user = refreshedUser,
+                        userConfiguration = userDto.configuration,
+                    )
+            }
+            Timber.d(
+                "Admin status refreshed from policy: isAdmin=$isAdmin, canDownload=$canDownload",
+            )
+            if (canManageSubtitles) {
+                refreshSubtitleProvider(apiClient, serverId, userId)
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to refresh user policy; using cached isAdmin")
+        }
+    }
 
     private suspend fun refreshSubtitleProvider(
         apiClient: ApiClient,
@@ -557,6 +739,12 @@ constructor(
 
         persistSessionJob?.cancelAndJoin()
         persistSessionJob = null
+        addressValidationJob?.cancelAndJoin()
+        addressValidationJob = null
+        performLogoutLocked()
+    }
+
+    private suspend fun performLogoutLocked() {
         securePrefsRepository.clearActiveSession()
         jellyseerrRepository.clearActiveSession()
         audiobookshelfRepository.clearActiveSession()

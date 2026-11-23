@@ -205,11 +205,11 @@ fun HomeScreen(
     val heroEnabled = !uiState.isOffline && HomeRow.HERO_CAROUSEL !in uiState.hiddenRows
     val showCarousel = heroEnabled && uiState.heroCarouselItems.isNotEmpty()
     val heroPending = heroEnabled && !uiState.heroLoaded
-    val topBarBlurProgress by
+    val topBarBlurProgress =
         rememberTopBarScrollProgress(lazyListState, hasHeroSlot = showCarousel || heroPending)
     val topBarBlurState =
         rememberTopBarBlurState(
-            progress = { topBarBlurProgress },
+            progress = { topBarBlurProgress.value },
             scrollKey = { lazyListState.topBarScrollKey() },
         )
 

@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
@@ -40,11 +41,19 @@ import kotlin.math.roundToInt
 
 val DefaultPinnedDrawerBlurRadius = 20.dp
 const val DefaultPinnedDrawerTintAlpha = 0.66f
+internal const val PINNED_DRAWER_BLUR_DOWNSCALE = 0.25f
 
-internal fun computeBlurredLayerSizePx(widthPx: Int, heightPx: Int, blurPaddingPx: Int): IntSize {
-    if (widthPx <= 0 || heightPx <= 0) return IntSize.Zero
-    val pad = blurPaddingPx.coerceAtLeast(0)
-    return IntSize(widthPx + pad * 2, heightPx + pad * 2)
+internal fun computeDownscaledBlurLayerSizePx(
+    widthPx: Int,
+    heightPx: Int,
+    scaledBlurPaddingPx: Int,
+    scale: Float = PINNED_DRAWER_BLUR_DOWNSCALE,
+): IntSize {
+    if (widthPx <= 0 || heightPx <= 0 || scale <= 0f) return IntSize.Zero
+    val pad = scaledBlurPaddingPx.coerceAtLeast(0)
+    val scaledW = ceil(widthPx * scale).toInt().coerceAtLeast(1)
+    val scaledH = ceil(heightPx * scale).toInt().coerceAtLeast(1)
+    return IntSize(scaledW + pad * 2, scaledH + pad * 2)
 }
 
 internal fun computeClampedTintAlpha(alpha: Float): Float = alpha.coerceIn(0f, 1f)
@@ -342,8 +351,9 @@ private class PinnedDrawerBlurBackdropNode(
         val clipPath = getOrCreateClipPath(size, layoutDirection, this)
         val cardWidthPx = size.width.roundToInt()
         val cardHeightPx = size.height.roundToInt()
-        val blurRadiusPx = state.blurRadius.toPx()
-        val effect = state.getOrCreateRenderEffect(blurRadiusPx)
+        val scale = PINNED_DRAWER_BLUR_DOWNSCALE
+        val scaledBlurRadiusPx = state.blurRadius.toPx() * scale
+        val effect = state.getOrCreateRenderEffect(scaledBlurRadiusPx)
 
         if (
             !state.isEnabled ||
@@ -361,8 +371,9 @@ private class PinnedDrawerBlurBackdropNode(
             return
         }
 
-        val blurPaddingPx = ceil(blurRadiusPx).toInt().coerceAtLeast(0)
-        val layerSize = computeBlurredLayerSizePx(cardWidthPx, cardHeightPx, blurPaddingPx)
+        val scaledPaddingPx = ceil(scaledBlurRadiusPx).toInt().coerceAtLeast(0)
+        val layerSize =
+            computeDownscaledBlurLayerSizePx(cardWidthPx, cardHeightPx, scaledPaddingPx, scale)
         val offset = state.sourcePositionInRoot - state.backdropPositionInRoot
 
         state.blurLayer.clip = true
@@ -370,17 +381,25 @@ private class PinnedDrawerBlurBackdropNode(
         state.blurLayer.record(size = layerSize) {
             drawRect(color = fallbackBackgroundColor)
             translate(
-                left = offset.x + blurPaddingPx.toFloat(),
-                top = offset.y + blurPaddingPx.toFloat(),
+                left = scaledPaddingPx.toFloat() + offset.x * scale,
+                top = scaledPaddingPx.toFloat() + offset.y * scale,
             ) {
-                drawLayer(state.contentLayer)
+                scale(scaleX = scale, scaleY = scale, pivot = Offset.Zero) {
+                    drawLayer(state.contentLayer)
+                }
             }
         }
 
         val clampedTintAlpha = computeClampedTintAlpha(tintAlpha)
+        val invScale = 1f / scale
         clipPath(clipPath) {
-            translate(left = -blurPaddingPx.toFloat(), top = -blurPaddingPx.toFloat()) {
-                drawLayer(state.blurLayer)
+            translate(
+                left = -scaledPaddingPx.toFloat() * invScale,
+                top = -scaledPaddingPx.toFloat() * invScale,
+            ) {
+                scale(scaleX = invScale, scaleY = invScale, pivot = Offset.Zero) {
+                    drawLayer(state.blurLayer)
+                }
             }
             drawRect(color = containerColor.copy(alpha = clampedTintAlpha))
             this@draw.drawContent()
