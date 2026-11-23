@@ -2960,4 +2960,22 @@ constructor(
             null
         }
     }
+
+    override suspend fun getItemLibraryId(itemId: UUID, candidateLibraryIds: Set<UUID>): UUID? {
+        return withContext(Dispatchers.IO) {
+            try {
+                val apiClient = sessionManager.getCurrentApiClient() ?: return@withContext null
+                val userId = getCurrentUserId() ?: return@withContext null
+                val ancestors =
+                    LibraryApi(apiClient).getAncestors(itemId = itemId, userId = userId).content
+                ancestors.firstOrNull { it.id in candidateLibraryIds }?.id
+                    ?: ancestors.firstOrNull { it.type == BaseItemKind.COLLECTION_FOLDER }?.id
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to resolve ancestor library for item=$itemId")
+                null
+            }
+        }
+    }
 }

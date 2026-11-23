@@ -35,6 +35,8 @@ import com.makd.afinity.data.models.music.RadioSeed
 import com.makd.afinity.data.models.music.RepeatMode
 import com.makd.afinity.data.models.player.MusicQuality
 import com.makd.afinity.data.models.player.PlaybackStats
+import com.makd.afinity.ui.audiobookshelf.player.components.PlaybackSpeedSelector
+import com.makd.afinity.ui.audiobookshelf.player.components.formatSpeed
 import com.makd.afinity.ui.components.isLandscapeWindow
 import com.makd.afinity.ui.components.rememberCastChooserLauncher
 import com.makd.afinity.ui.music.components.AddToPlaylistDialog
@@ -48,6 +50,7 @@ import com.makd.afinity.ui.player.components.AudioPlayerControlSlot
 import com.makd.afinity.ui.player.components.AudioPlayerLayout
 import com.makd.afinity.ui.player.components.AudioPlayerScaffold
 import com.makd.afinity.ui.player.components.AudioPlayerTitleBlock
+import com.makd.afinity.ui.player.components.AudioPlayerValueSlot
 import com.makd.afinity.ui.player.components.EqualizerBottomSheet
 import com.makd.afinity.ui.player.components.PlaybackStatsOverlay
 import com.makd.afinity.ui.player.components.PlayerMoreDivider
@@ -92,8 +95,11 @@ fun SharedTransitionScope.MusicPlayerScreen(
     var showQualitySheet by rememberSaveable { mutableStateOf(false) }
     var showAddToPlaylist by rememberSaveable { mutableStateOf(false) }
     var showMoreSheet by rememberSaveable { mutableStateOf(false) }
+    var showSpeed by rememberSaveable { mutableStateOf(false) }
     var radioSeed by remember { mutableStateOf<RadioSeed?>(null) }
     val launchCastChooser = rememberCastChooserLauncher()
+
+    LaunchedEffect(playbackState.isPodcast) { if (!playbackState.isPodcast) showSpeed = false }
 
     var hadTrack by remember { mutableStateOf(false) }
     LaunchedEffect(playbackState.currentTrack) {
@@ -138,6 +144,7 @@ fun SharedTransitionScope.MusicPlayerScreen(
                 onNavigateToArtist = onNavigateToArtist,
                 onOpenQueue = { showQueue = true },
                 onOpenMore = { showMoreSheet = true },
+                onOpenSpeed = { showSpeed = true },
             )
         },
         cover = { style ->
@@ -226,6 +233,15 @@ fun SharedTransitionScope.MusicPlayerScreen(
             )
         },
         actions = {
+            if (playbackState.isPodcast) {
+                AudioPlayerValueSlot(
+                    value = "${formatSpeed(playbackState.playbackSpeed)}x",
+                    contentDescription = stringResource(R.string.abs_playback_speed_label),
+                    onClick = { showSpeed = true },
+                    active = playbackState.playbackSpeed != 1.0f,
+                    activeColor = animatedColor,
+                )
+            }
             AudioPlayerControlSlot(
                 painter = painterResource(R.drawable.ic_arrows_shuffle),
                 contentDescription = stringResource(R.string.cd_music_shuffle),
@@ -383,6 +399,14 @@ fun SharedTransitionScope.MusicPlayerScreen(
                 currentQuality = musicQuality,
                 onSelect = viewModel::setMusicQuality,
                 onDismiss = { showQualitySheet = false },
+            )
+        }
+
+        if (showSpeed && playbackState.isPodcast) {
+            PlaybackSpeedSelector(
+                currentSpeed = playbackState.playbackSpeed,
+                onSpeedSelected = viewModel::setPlaybackSpeed,
+                onDismiss = { showSpeed = false },
             )
         }
 

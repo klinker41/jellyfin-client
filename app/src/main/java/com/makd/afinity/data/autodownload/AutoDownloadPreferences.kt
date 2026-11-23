@@ -27,6 +27,9 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
     private fun cachedPodcastAlbumsKey(serverId: String, userId: UUID) =
         stringSetPreferencesKey("cached_podcast_album_ids_${serverId}_$userId")
 
+    private fun cachedPodcastAlbumLibrariesKey(serverId: String, userId: UUID) =
+        stringSetPreferencesKey("cached_podcast_album_libs_${serverId}_$userId")
+
     fun getEnabledLibraryIdsFlow(serverId: String, userId: UUID): Flow<Set<UUID>> =
         dataStore.data
             .map { prefs -> prefs[enabledLibrariesKey(serverId, userId)].toUuidSet() }
@@ -114,6 +117,40 @@ constructor(@param:AppPreferences private val dataStore: DataStore<Preferences>)
                 prefs.remove(key)
             } else {
                 prefs[key] = albumIds.mapTo(HashSet()) { it.toString() }
+            }
+        }
+    }
+
+    suspend fun getCachedPodcastAlbumLibraries(serverId: String, userId: UUID): Map<UUID, UUID> {
+        val raw = dataStore.data.first()[cachedPodcastAlbumLibrariesKey(serverId, userId)]
+        if (raw.isNullOrEmpty()) return emptyMap()
+        val result = HashMap<UUID, UUID>(raw.size)
+        for (entry in raw) {
+            val sep = entry.indexOf('|')
+            if (sep <= 0 || sep >= entry.lastIndex) continue
+            val albumId = runCatching { UUID.fromString(entry.substring(0, sep)) }.getOrNull()
+            val libId = runCatching { UUID.fromString(entry.substring(sep + 1)) }.getOrNull()
+            if (albumId != null && libId != null) {
+                result[albumId] = libId
+            }
+        }
+        return result
+    }
+
+    suspend fun setCachedPodcastAlbumLibraries(
+        serverId: String,
+        userId: UUID,
+        albumLibraries: Map<UUID, UUID>,
+    ) {
+        val key = cachedPodcastAlbumLibrariesKey(serverId, userId)
+        dataStore.edit { prefs ->
+            if (albumLibraries.isEmpty()) {
+                prefs.remove(key)
+            } else {
+                prefs[key] =
+                    albumLibraries.entries.mapTo(HashSet(albumLibraries.size)) {
+                        "${it.key}|${it.value}"
+                    }
             }
         }
     }

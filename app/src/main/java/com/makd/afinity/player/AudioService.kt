@@ -73,6 +73,8 @@ import com.makd.afinity.player.music.MusicEqualizerManager
 import com.makd.afinity.player.music.MusicPlaybackManager
 import com.makd.afinity.player.music.MusicProgressReporter
 import com.makd.afinity.player.music.MusicQueueManager
+import com.makd.afinity.player.music.PodcastProgressTracker
+import com.makd.afinity.player.music.PodcastTrackInfo
 import com.makd.afinity.player.music.RadioManager
 import com.makd.afinity.widget.AudioWidgetUpdater
 import dagger.hilt.android.AndroidEntryPoint
@@ -164,6 +166,8 @@ class AudioService : MediaLibraryService() {
     @Inject lateinit var musicRepository: MusicRepository
     @Inject lateinit var audioWidgetUpdater: AudioWidgetUpdater
     @Inject lateinit var castManager: CastManager
+    @Inject lateinit var libraryPlaybackSpeedStore: LibraryPlaybackSpeedStore
+    @Inject lateinit var podcastProgressTracker: PodcastProgressTracker
 
     private var mediaSession: MediaLibrarySession? = null
     private var exoPlayer: ExoPlayer? = null
@@ -179,6 +183,7 @@ class AudioService : MediaLibraryService() {
     private var musicQueueJob: Job? = null
     private var musicRearrangeJob: Job? = null
     private var skipSilenceJob: Job? = null
+    private var musicSpeedJob: Job? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -369,6 +374,7 @@ class AudioService : MediaLibraryService() {
         musicPlaybackManager.updateTrack(null)
         musicQueueJob?.cancel()
         musicRearrangeJob?.cancel()
+        musicSpeedJob?.cancel()
         exoPlayer?.stop()
         exoPlayer?.clearMediaItems()
         mediaSession?.setCustomLayout(absCustomLayout())
@@ -390,6 +396,8 @@ class AudioService : MediaLibraryService() {
         stopPositionUpdates()
         exoPlayer?.stop()
         exoPlayer?.clearMediaItems()
+        exoPlayer?.setPlaybackSpeed(1.0f)
+        musicPlaybackManager.updatePodcastContext(librarySpeedKey = null, playbackSpeed = 1.0f)
         musicPlaybackManager.setPlayer(exoPlayer!!)
         startMusicQueueListener()
         startMusicRearrangeListener()
@@ -408,11 +416,13 @@ class AudioService : MediaLibraryService() {
         exoPlayer?.clearMediaItems()
         musicQueueJob?.cancel()
         musicRearrangeJob?.cancel()
+        musicSpeedJob?.cancel()
         activeEngine = ActiveEngine.NONE
     }
 
     private fun tearDown() {
         Timber.d("AudioService: tear down")
+        musicSpeedJob?.cancel()
         if (activeEngine == ActiveEngine.MUSIC) {
             musicProgressReporter.onPlaybackStopped(exoPlayer?.currentPosition ?: 0L)
         }
@@ -606,6 +616,9 @@ class AudioService : MediaLibraryService() {
                 }
                 if (activeEngine != ActiveEngine.MUSIC) return
                 if (mediaItem == null) {
+                    musicSpeedJob?.cancel()
+                    exoPlayer?.setPlaybackSpeed(1.0f)
+                    musicPlaybackManager.updatePodcastContext(null, 1.0f)
                     musicProgressReporter.onPlaybackStopped(
                         musicPlaybackManager.state.value.positionMs,
                     )
@@ -630,12 +643,17 @@ class AudioService : MediaLibraryService() {
                 )
                 if (track != null) {
                     applyNormalizationGain(track)
+                    applyMusicTrackSpeed(track)
                     musicProgressReporter.onPlaybackStarted(
                         trackId = track.id,
                         playSessionId = musicQueueManager.playSessionIdFor(track.id),
                         playMethod = musicQueueManager.playMethodFor(track.id),
                         track = track,
                     )
+                } else {
+                    musicSpeedJob?.cancel()
+                    exoPlayer?.setPlaybackSpeed(1.0f)
+                    musicPlaybackManager.updatePodcastContext(null, 1.0f)
                 }
                 radioManager.onTrackChanged(track)
                 resolveAroundCurrent()
@@ -822,6 +840,30 @@ class AudioService : MediaLibraryService() {
         val totalBuffered = bufAcc + bufInItemSec
 
         absPlaybackManager.updatePosition(totalPosition, totalBuffered)
+    }
+
+    private fun applyMusicTrackSpeed(track: AfinityTrack) {
+        musicSpeedJob?.cancel()
+        musicSpeedJob = serviceScope.launch {
+            val info = podcastProgressTracker.resolvePodcastTrack(track)
+            if (
+                activeEngine != ActiveEngine.MUSIC || musicQueueManager.currentTrack?.id != track.id
+            ) {
+                return@launch
+            }
+            when (info) {
+                is PodcastTrackInfo.Podcast -> {
+                    val key = LibraryPlaybackSpeedStore.jellyfinPodcastKey(info.libraryId)
+                    val speed = libraryPlaybackSpeedStore.getSpeed(key)
+                    exoPlayer?.setPlaybackSpeed(speed)
+                    musicPlaybackManager.updatePodcastContext(key, speed)
+                }
+                PodcastTrackInfo.NotPodcast -> {
+                    exoPlayer?.setPlaybackSpeed(1.0f)
+                    musicPlaybackManager.updatePodcastContext(null, 1.0f)
+                }
+            }
+        }
     }
 
     private fun stopPositionUpdates() {
@@ -1074,6 +1116,7 @@ class AudioService : MediaLibraryService() {
         musicPlaybackManager.updateTrack(null)
         switchToAbs()
         val prepared = jellyfinAudiobookStarter.prepareForResumption(itemId) ?: return null
+        exoPlayer?.setPlaybackSpeed(prepared.playbackSpeed)
         return MediaSession.MediaItemsWithStartPosition(
             prepared.mediaItems,
             prepared.startIndex,
@@ -1110,6 +1153,7 @@ class AudioService : MediaLibraryService() {
         musicPlaybackManager.updateTrack(null)
         switchToAbs()
         val prepared = absPlaybackStarter.prepareForResumption(itemId, episodeId) ?: return null
+        exoPlayer?.setPlaybackSpeed(prepared.playbackSpeed)
         return MediaSession.MediaItemsWithStartPosition(
             prepared.mediaItems,
             prepared.startIndex,
@@ -1127,6 +1171,9 @@ class AudioService : MediaLibraryService() {
         ensurePlayerInitialized()
         val player = exoPlayer ?: return
         player.setMediaItems(items.mediaItems, items.startIndex, items.startPositionMs)
+        if (activeEngine == ActiveEngine.ABS) {
+            player.setPlaybackSpeed(absPlaybackManager.playbackState.value.playbackSpeed)
+        }
         player.prepare()
         player.play()
     }
@@ -1236,6 +1283,7 @@ class AudioService : MediaLibraryService() {
         musicQueueJob?.cancel()
         musicRearrangeJob?.cancel()
         skipSilenceJob?.cancel()
+        musicSpeedJob?.cancel()
         serviceScope.cancel()
         super.onDestroy()
     }

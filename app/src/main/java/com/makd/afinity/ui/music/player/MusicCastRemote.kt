@@ -26,6 +26,7 @@ import com.makd.afinity.R
 import com.makd.afinity.data.models.music.AfinityLyricLine
 import com.makd.afinity.data.models.music.RepeatMode
 import com.makd.afinity.data.models.player.PlaybackStats
+import com.makd.afinity.ui.audiobookshelf.player.components.formatSpeed
 import com.makd.afinity.ui.components.formatClock
 import com.makd.afinity.ui.player.cast.CastInfoBottomSheet
 import com.makd.afinity.ui.player.cast.CastRemoteAction
@@ -34,6 +35,7 @@ import com.makd.afinity.ui.player.cast.CastRemoteIconButton
 import com.makd.afinity.ui.player.cast.CastRemoteLayout
 import com.makd.afinity.ui.player.cast.CastRemoteTitle
 import com.makd.afinity.ui.player.cast.CastRemoteTransport
+import com.makd.afinity.ui.player.cast.CastRemoteValueAction
 import com.makd.afinity.ui.player.components.SwipeCoverItem
 import com.makd.afinity.ui.player.components.SwipeableCover
 
@@ -50,6 +52,7 @@ fun MusicCastRemote(
     onNavigateToArtist: (String) -> Unit,
     onOpenQueue: () -> Unit,
     onOpenMore: () -> Unit,
+    onOpenSpeed: () -> Unit,
 ) {
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     val castState by viewModel.castManager.castState.collectAsStateWithLifecycle()
@@ -133,13 +136,23 @@ fun MusicCastRemote(
                 onClick = onOpenQueue,
                 accentColor = accentColor,
             )
-            CastRemoteAction(
-                painter = painterResource(R.drawable.ic_article),
-                label = stringResource(R.string.cd_music_lyrics),
-                onClick = viewModel::toggleLyrics,
-                accentColor = accentColor,
-                active = showLyrics,
-            )
+            if (playbackState.isPodcast) {
+                CastRemoteValueAction(
+                    value = "${formatSpeed(playbackState.playbackSpeed)}x",
+                    label = stringResource(R.string.cd_playback_speed),
+                    onClick = onOpenSpeed,
+                    accentColor = accentColor,
+                    active = playbackState.playbackSpeed != 1.0f,
+                )
+            } else {
+                CastRemoteAction(
+                    painter = painterResource(R.drawable.ic_article),
+                    label = stringResource(R.string.cd_music_lyrics),
+                    onClick = viewModel::toggleLyrics,
+                    accentColor = accentColor,
+                    active = showLyrics,
+                )
+            }
             CastRemoteAction(
                 painter = painterResource(R.drawable.ic_arrows_shuffle),
                 label = stringResource(R.string.cd_music_shuffle),
@@ -183,7 +196,7 @@ fun MusicCastRemote(
             }
         },
         artworkOverlay = {
-            if (showLyrics) {
+            if (showLyrics && !playbackState.isPodcast) {
                 Box(
                     modifier =
                         Modifier.matchParentSize().background(Color.Black.copy(alpha = 0.62f)),

@@ -216,6 +216,19 @@ constructor(
         _state.update { it.copy(shuffled = shuffled) }
     }
 
+    fun updatePlaybackSpeed(speed: Float) {
+        _state.update { it.copy(playbackSpeed = speed) }
+    }
+
+    fun updatePodcastContext(librarySpeedKey: String?, playbackSpeed: Float) {
+        _state.update { it.copy(librarySpeedKey = librarySpeedKey, playbackSpeed = playbackSpeed) }
+    }
+
+    fun setPlaybackSpeed(speed: Float) {
+        exoPlayer?.setPlaybackSpeed(speed)
+        _state.update { it.copy(playbackSpeed = speed) }
+    }
+
     fun play() {
         exoPlayer?.play()
     }

@@ -428,6 +428,7 @@ constructor(
         serverBaseUrl: String,
         token: String,
         repeatMode: RepeatMode = RepeatMode.OFF,
+        playbackSpeed: Float = 1.0f,
     ) {
         scope.launch {
             try {
@@ -476,11 +477,16 @@ constructor(
                         .setRepeatMode(repeatMode.toCastRepeatMode())
                         .build()
 
+                val castSpeed = playbackSpeed.coerceIn(MIN_CAST_SPEED, MAX_CAST_SPEED)
                 val loadRequest =
-                    MediaLoadRequestData.Builder().setQueueData(queueData).setAutoplay(true).build()
+                    MediaLoadRequestData.Builder()
+                        .setQueueData(queueData)
+                        .setAutoplay(true)
+                        .setPlaybackRate(castSpeed.toDouble())
+                        .build()
 
                 client.load(loadRequest)
-                _castState.update { it.copy(isMusicCasting = true) }
+                _castState.update { it.copy(isMusicCasting = true, playbackSpeed = castSpeed) }
                 startPositionPolling()
 
                 Timber.d(

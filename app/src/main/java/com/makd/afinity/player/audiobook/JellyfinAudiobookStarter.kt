@@ -6,15 +6,18 @@ import androidx.media3.common.util.UnstableApi
 import com.makd.afinity.data.audiobooks.AudiobookDownloadStore
 import com.makd.afinity.data.audiobooks.JellyfinAudiobookLoader
 import com.makd.afinity.data.models.audiobookshelf.AudioTrack
+import com.makd.afinity.data.models.common.CollectionType
 import com.makd.afinity.data.models.media.AfinityAudiobook
 import com.makd.afinity.data.models.media.timeline
 import com.makd.afinity.data.repository.media.MediaRepository
+import com.makd.afinity.player.LibraryPlaybackSpeedStore
 import com.makd.afinity.player.audiobookshelf.AudiobookshelfPlayer
 import com.makd.afinity.player.audiobookshelf.JellyfinAudiobookSession
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.first
 import timber.log.Timber
 
 private const val TICKS_PER_SECOND = 10_000_000.0
@@ -30,6 +33,7 @@ constructor(
     private val downloadStore: AudiobookDownloadStore,
     private val mediaRepository: MediaRepository,
     private val audiobookshelfPlayer: AudiobookshelfPlayer,
+    private val libraryPlaybackSpeedStore: LibraryPlaybackSpeedStore,
 ) {
 
     @OptIn(UnstableApi::class)
@@ -81,11 +85,40 @@ constructor(
     private fun resumePosition(book: AfinityAudiobook): Double =
         if (book.played) 0.0 else book.playbackPositionTicks / TICKS_PER_SECOND
 
+    private suspend fun resolveLibraryId(book: AfinityAudiobook): UUID? {
+        val bookLibraries =
+            mediaRepository.libraries.first().filter { it.type == CollectionType.Books }
+        val parentId = book.parentId
+        if (parentId != null && bookLibraries.any { it.id == parentId }) {
+            libraryPlaybackSpeedStore.cacheJellyfinItemLibrary(book.id, parentId)
+            return parentId
+        }
+        if (bookLibraries.size == 1) {
+            val onlyLibId = bookLibraries.first().id
+            libraryPlaybackSpeedStore.cacheJellyfinItemLibrary(book.id, onlyLibId)
+            return onlyLibId
+        }
+        if (bookLibraries.size > 1) {
+            val probeId = book.playableParts.firstOrNull()?.id ?: book.id
+            val resolved =
+                mediaRepository.getItemLibraryId(
+                    itemId = probeId,
+                    candidateLibraryIds = bookLibraries.map { it.id }.toSet(),
+                )
+            if (resolved != null) {
+                libraryPlaybackSpeedStore.cacheJellyfinItemLibrary(book.id, resolved)
+                return resolved
+            }
+        }
+        return libraryPlaybackSpeedStore.getCachedJellyfinItemLibrary(book.id)
+    }
+
     private suspend fun sessionFor(
         book: AfinityAudiobook,
         routeId: UUID,
     ): JellyfinAudiobookSession {
         val baseUrl = mediaRepository.getBaseUrl().trimEnd('/')
+        val libraryId = resolveLibraryId(book)
         val parts = book.playableParts
         var offset = 0.0
         val tracks = parts.mapIndexed { index, part ->
@@ -111,6 +144,7 @@ constructor(
             partIds = parts.map { it.id },
             partRuntimeTicks = parts.map { it.runtimeTicks },
             localUris = parts.map { downloadStore.localFile(it.id)?.toUri()?.toString() },
+            libraryId = libraryId,
         )
     }
 }

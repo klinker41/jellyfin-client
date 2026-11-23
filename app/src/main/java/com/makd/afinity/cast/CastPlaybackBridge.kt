@@ -1,16 +1,20 @@
 package com.makd.afinity.cast
 
 import android.os.SystemClock
+import com.makd.afinity.player.LibraryPlaybackSpeedStore
 import com.makd.afinity.player.audiobook.JellyfinAudiobookReporter
 import com.makd.afinity.player.audiobookshelf.AudiobookSource
 import com.makd.afinity.player.audiobookshelf.AudiobookshelfPlaybackManager
 import com.makd.afinity.player.music.MusicPlaybackManager
 import com.makd.afinity.player.music.MusicQueueManager
+import com.makd.afinity.player.music.PodcastProgressTracker
+import com.makd.afinity.player.music.PodcastTrackInfo
 import dagger.Lazy
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
@@ -25,9 +29,12 @@ constructor(
     private val musicQueueManager: Lazy<MusicQueueManager>,
     private val audiobookshelfPlaybackManager: Lazy<AudiobookshelfPlaybackManager>,
     private val jellyfinAudiobookReporter: Lazy<JellyfinAudiobookReporter>,
+    private val podcastProgressTracker: Lazy<PodcastProgressTracker>,
+    private val libraryPlaybackSpeedStore: Lazy<LibraryPlaybackSpeedStore>,
 ) {
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var started = false
+    private var castMusicSpeedJob: Job? = null
 
     fun start() {
         if (started) return
@@ -51,7 +58,30 @@ constructor(
             val index = queue.indexOfFirst { it.id == trackId }
             if (index >= 0) {
                 queueManager.onTrackChanged(index)
-                playbackManager.updateTrack(queue[index])
+                val track = queue[index]
+                playbackManager.updateTrack(track)
+                castMusicSpeedJob?.cancel()
+                castMusicSpeedJob = scope.launch {
+                    val info = podcastProgressTracker.get().resolvePodcastTrack(track)
+                    if (
+                        !castManager.castState.value.isMusicCasting ||
+                            playbackManager.state.value.currentTrack?.id != track.id
+                    ) {
+                        return@launch
+                    }
+                    when (info) {
+                        is PodcastTrackInfo.Podcast -> {
+                            val key = LibraryPlaybackSpeedStore.jellyfinPodcastKey(info.libraryId)
+                            val savedSpeed = libraryPlaybackSpeedStore.get().getSpeed(key)
+                            val applied = castManager.setPlaybackSpeed(savedSpeed)
+                            playbackManager.updatePodcastContext(key, applied)
+                        }
+                        PodcastTrackInfo.NotPodcast -> {
+                            castManager.setPlaybackSpeed(1.0f)
+                            playbackManager.updatePodcastContext(null, 1.0f)
+                        }
+                    }
+                }
             }
         }
         val durationMs =

@@ -34,6 +34,12 @@ private const val COMPLETION_REMAINING_MS = 30_000L
 private const val COMPLETION_FRACTION = 0.95
 private const val PODCAST_ALBUMS_LIMIT = 500
 
+sealed interface PodcastTrackInfo {
+    data object NotPodcast : PodcastTrackInfo
+
+    data class Podcast(val libraryId: UUID?) : PodcastTrackInfo
+}
+
 data class PodcastProgressOutcome(
     val played: Boolean,
     val playbackPositionTicks: Long,
@@ -76,18 +82,21 @@ constructor(
 ) {
     private val cacheMutex = Mutex()
     private var cachedSessionKey: String? = null
-    private var cachedPodcastAlbumIds: Set<UUID>? = null
+    private var cachedPodcastAlbumLibraries: Map<UUID, UUID>? = null
 
-    private suspend fun podcastAlbumIds(): Set<UUID> {
-        val session = sessionManager.currentSession.value ?: return emptySet()
+    private suspend fun podcastAlbumLibraries(): Map<UUID, UUID> {
+        val session = sessionManager.currentSession.value ?: return emptyMap()
         val sessionKey = "${session.serverId}_${session.userId}"
         return cacheMutex.withLock {
-            val cached = cachedPodcastAlbumIds
+            val cached = cachedPodcastAlbumLibraries
             if (cachedSessionKey == sessionKey && cached != null) {
                 return@withLock cached
             }
             val persisted =
-                autoDownloadPreferences.getCachedPodcastAlbumIds(session.serverId, session.userId)
+                autoDownloadPreferences.getCachedPodcastAlbumLibraries(
+                    session.serverId,
+                    session.userId,
+                )
             if (preferencesRepository.getOfflineMode()) {
                 return@withLock persisted
             }
@@ -98,15 +107,20 @@ constructor(
             val libs = allLibraries.podcastLibraries()
             if (libs.isEmpty()) {
                 cachedSessionKey = sessionKey
-                cachedPodcastAlbumIds = emptySet()
+                cachedPodcastAlbumLibraries = emptyMap()
+                autoDownloadPreferences.setCachedPodcastAlbumLibraries(
+                    session.serverId,
+                    session.userId,
+                    emptyMap(),
+                )
                 autoDownloadPreferences.setCachedPodcastAlbumIds(
                     session.serverId,
                     session.userId,
                     emptySet(),
                 )
-                return@withLock emptySet()
+                return@withLock emptyMap()
             }
-            val ids = HashSet<UUID>()
+            val albumToLib = HashMap<UUID, UUID>()
             var allSucceeded = true
             for (lib in libs) {
                 val result =
@@ -124,31 +138,67 @@ constructor(
                 } else {
                     for (dto in result.getOrNull()?.items.orEmpty()) {
                         if (dto.type == BaseItemKind.MUSIC_ALBUM) {
-                            ids.add(dto.id)
+                            albumToLib[dto.id] = lib.id
                         }
                     }
                 }
             }
             if (allSucceeded) {
                 cachedSessionKey = sessionKey
-                cachedPodcastAlbumIds = ids
+                cachedPodcastAlbumLibraries = albumToLib
+                autoDownloadPreferences.setCachedPodcastAlbumLibraries(
+                    session.serverId,
+                    session.userId,
+                    albumToLib,
+                )
                 autoDownloadPreferences.setCachedPodcastAlbumIds(
                     session.serverId,
                     session.userId,
-                    ids,
+                    albumToLib.keys,
                 )
-                ids
+                albumToLib
             } else {
-                persisted + ids
+                persisted + albumToLib
             }
         }
     }
 
-    suspend fun isPodcastTrack(track: AfinityTrack): Boolean {
-        if (track.playbackPositionTicks > 0L) return true
-        val albumId = track.albumId ?: return false
-        return albumId in podcastAlbumIds()
+    private suspend fun hasFreshLibraryCache(): Boolean {
+        val session = sessionManager.currentSession.value ?: return false
+        val sessionKey = "${session.serverId}_${session.userId}"
+        return cacheMutex.withLock {
+            cachedSessionKey == sessionKey && cachedPodcastAlbumLibraries != null
+        }
     }
+
+    suspend fun resolvePodcastTrack(track: AfinityTrack): PodcastTrackInfo {
+        val albumId = track.albumId
+        if (albumId != null) {
+            val libraryId = podcastAlbumLibraries()[albumId]
+            if (libraryId != null) return PodcastTrackInfo.Podcast(libraryId)
+        }
+        val legacyCached =
+            if (albumId != null && !hasFreshLibraryCache()) {
+                val session = sessionManager.currentSession.value
+                session != null &&
+                    albumId in
+                        autoDownloadPreferences.getCachedPodcastAlbumIds(
+                            session.serverId,
+                            session.userId,
+                        )
+            } else {
+                false
+            }
+        if (track.playbackPositionTicks > 0L || legacyCached) {
+            val singleLibId =
+                mediaRepository.libraries.first().podcastLibraries().singleOrNull()?.id
+            return PodcastTrackInfo.Podcast(singleLibId)
+        }
+        return PodcastTrackInfo.NotPodcast
+    }
+
+    suspend fun isPodcastTrack(track: AfinityTrack): Boolean =
+        resolvePodcastTrack(track) is PodcastTrackInfo.Podcast
 
     suspend fun syncProgress(
         track: AfinityTrack,

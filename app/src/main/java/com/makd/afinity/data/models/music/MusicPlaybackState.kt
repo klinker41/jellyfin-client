@@ -14,10 +14,16 @@ data class MusicPlaybackState(
     val isServerTranscode: Boolean = false,
     val positionSampledAtMs: Long = 0L,
     val positionEpoch: Long = 0L,
+    val playbackSpeed: Float = 1.0f,
+    val librarySpeedKey: String? = null,
 ) {
+    val isPodcast: Boolean
+        get() = librarySpeedKey != null
+
     fun positionAt(uptimeMs: Long): Long {
         if (!isPlaying) return positionMs
-        val estimate = positionMs + (uptimeMs - positionSampledAtMs).coerceAtLeast(0L)
+        val elapsedMs = (uptimeMs - positionSampledAtMs).coerceAtLeast(0L)
+        val estimate = positionMs + (elapsedMs * playbackSpeed).toLong()
         return if (durationMs > 0L) estimate.coerceAtMost(durationMs) else estimate
     }
 }

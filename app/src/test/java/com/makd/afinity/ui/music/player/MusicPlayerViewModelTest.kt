@@ -6,6 +6,7 @@ import androidx.media3.common.util.UnstableApi
 import com.makd.afinity.cast.CastEvent
 import com.makd.afinity.cast.CastManager
 import com.makd.afinity.cast.CastSessionState
+import com.makd.afinity.cast.MAX_CAST_SPEED
 import com.makd.afinity.data.manager.AdminChange
 import com.makd.afinity.data.manager.AdminChangeBroadcaster
 import com.makd.afinity.data.manager.AdminChangeKind
@@ -23,6 +24,7 @@ import com.makd.afinity.data.repository.AppDataRepository
 import com.makd.afinity.data.repository.PreferencesRepository
 import com.makd.afinity.data.repository.music.MusicRepository
 import com.makd.afinity.data.repository.playback.PlaybackRepository
+import com.makd.afinity.player.LibraryPlaybackSpeedStore
 import com.makd.afinity.player.common.EqualizerPreset
 import com.makd.afinity.player.common.EqualizerState
 import com.makd.afinity.player.music.MusicEqualizerManager
@@ -108,6 +110,7 @@ class MusicPlayerViewModelTest {
         val adminChangeBroadcaster: AdminChangeBroadcaster = mockk {
             every { changes } returns adminChangesFlow
         }
+        val libraryPlaybackSpeedStore: LibraryPlaybackSpeedStore = mockk(relaxed = true)
         val context: Context = mockk(relaxed = true)
 
         val viewModel =
@@ -124,6 +127,7 @@ class MusicPlayerViewModelTest {
                 playbackRepository = playbackRepository,
                 preferencesRepository = preferencesRepository,
                 adminChangeBroadcaster = adminChangeBroadcaster,
+                libraryPlaybackSpeedStore = libraryPlaybackSpeedStore,
                 context = context,
             )
     }
@@ -265,4 +269,49 @@ class MusicPlayerViewModelTest {
             advanceTimeBy(1500)
             assertFalse(harness.viewModel.showPlaybackStats.value)
         }
+
+    @Test
+    fun `setPlaybackSpeed updates and persists speed for podcasts only and routes to cast`() =
+        runTest {
+            val harness = Harness()
+            val podcastKey = "playback_speed_jf_${testUuid(42)}"
+
+            // Regular music track (librarySpeedKey == null) is a no-op
+            harness.playbackStateFlow.value = MusicPlaybackState(librarySpeedKey = null)
+            harness.viewModel.setPlaybackSpeed(1.5f)
+            verify(exactly = 0) { harness.playbackManager.setPlaybackSpeed(any()) }
+            verify(exactly = 0) { harness.libraryPlaybackSpeedStore.saveSpeed(any(), any()) }
+
+            // Local podcast track updates playbackManager and persists under librarySpeedKey
+            harness.playbackStateFlow.value =
+                MusicPlaybackState(librarySpeedKey = podcastKey, playbackSpeed = 1.0f)
+            harness.viewModel.setPlaybackSpeed(1.5f)
+            verify(exactly = 1) { harness.playbackManager.setPlaybackSpeed(1.5f) }
+            verify(exactly = 1) { harness.libraryPlaybackSpeedStore.saveSpeed(podcastKey, 1.5f) }
+
+            // Casting routes through castManager and saves applied cast speed
+            every { harness.castManager.setPlaybackSpeed(2.5f) } returns MAX_CAST_SPEED
+            harness.castStateFlow.value =
+                CastSessionState(isConnected = true, isMusicCasting = true)
+            advanceUntilIdle()
+            harness.viewModel.setPlaybackSpeed(2.5f)
+            verify(exactly = 1) { harness.castManager.setPlaybackSpeed(2.5f) }
+            verify(exactly = 1) { harness.playbackManager.updatePlaybackSpeed(MAX_CAST_SPEED) }
+            verify(exactly = 1) {
+                harness.libraryPlaybackSpeedStore.saveSpeed(podcastKey, MAX_CAST_SPEED)
+            }
+        }
+
+    @Test
+    fun `MusicPlaybackState positionAt scales elapsed time by playbackSpeed`() {
+        val state =
+            MusicPlaybackState(
+                isPlaying = true,
+                positionMs = 10_000L,
+                durationMs = 100_000L,
+                positionSampledAtMs = 1_000L,
+                playbackSpeed = 1.5f,
+            )
+        assertEquals(25_000L, state.positionAt(11_000L))
+    }
 }

@@ -3,6 +3,7 @@ package com.makd.afinity.player.audiobookshelf
 import com.makd.afinity.data.models.audiobookshelf.AudioTrack
 import com.makd.afinity.data.models.audiobookshelf.BookChapter
 import com.makd.afinity.data.models.audiobookshelf.PlaybackSession
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +28,13 @@ class AudiobookshelfPlaybackManager @Inject constructor() {
         _currentAudioDecoder.value = if (isHardwareAccelerated) "H/W Dec" else "S/W Dec"
     }
 
-    fun setSession(session: PlaybackSession, serverUrl: String? = null, token: String? = null) {
+    fun setSession(
+        session: PlaybackSession,
+        serverUrl: String? = null,
+        token: String? = null,
+        librarySpeedKey: String? = null,
+        playbackSpeed: Float = 1.0f,
+    ) {
         Timber.d(
             "PlaybackManager.setSession: id=${session.id} title=${session.displayTitle} author=${session.displayAuthor}",
         )
@@ -58,10 +65,16 @@ class AudiobookshelfPlaybackManager @Inject constructor() {
                 coverUrl = coverUrl,
                 isPodcastPlaylist = false,
                 playlistEpisodeIds = emptyList(),
+                playbackSpeed = playbackSpeed,
+                librarySpeedKey = librarySpeedKey,
             )
     }
 
-    fun setJellyfinSession(session: JellyfinAudiobookSession) {
+    fun setJellyfinSession(
+        session: JellyfinAudiobookSession,
+        librarySpeedKey: String? = null,
+        playbackSpeed: Float = 1.0f,
+    ) {
         _currentSession.value = null
         _playbackState.value =
             _playbackState.value.copy(
@@ -82,6 +95,8 @@ class AudiobookshelfPlaybackManager @Inject constructor() {
                 isPodcastPlaylist = false,
                 playlistEpisodeIds = emptyList(),
                 playerError = null,
+                playbackSpeed = playbackSpeed,
+                librarySpeedKey = librarySpeedKey,
             )
     }
 
@@ -197,6 +212,7 @@ data class JellyfinAudiobookSession(
     val partIds: List<java.util.UUID>,
     val partRuntimeTicks: List<Long>,
     val localUris: List<String?> = emptyList(),
+    val libraryId: UUID? = null,
 )
 
 data class AudiobookshelfPlaybackState(
@@ -213,6 +229,7 @@ data class AudiobookshelfPlaybackState(
     val isPlaying: Boolean = false,
     val isBuffering: Boolean = false,
     val playbackSpeed: Float = 1.0f,
+    val librarySpeedKey: String? = null,
     val chapters: List<BookChapter> = emptyList(),
     val audioTracks: List<AudioTrack> = emptyList(),
     val playMethod: Int? = null,

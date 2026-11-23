@@ -466,4 +466,6 @@ interface MediaRepository {
     ): List<AfinityItem>
 
     suspend fun getTopRatedByStudio(studioName: String, limit: Int = 10): List<AfinityItem>
+
+    suspend fun getItemLibraryId(itemId: UUID, candidateLibraryIds: Set<UUID>): UUID? = null
 }

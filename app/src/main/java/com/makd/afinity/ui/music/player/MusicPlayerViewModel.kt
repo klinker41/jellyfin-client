@@ -9,6 +9,8 @@ import androidx.media3.common.util.UnstableApi
 import com.makd.afinity.R
 import com.makd.afinity.cast.CastEvent
 import com.makd.afinity.cast.CastManager
+import com.makd.afinity.cast.MAX_CAST_SPEED
+import com.makd.afinity.cast.MIN_CAST_SPEED
 import com.makd.afinity.data.manager.AdminChangeBroadcaster
 import com.makd.afinity.data.manager.AdminChangeKind
 import com.makd.afinity.data.manager.OfflineModeManager
@@ -27,6 +29,7 @@ import com.makd.afinity.data.repository.PreferencesRepository
 import com.makd.afinity.data.repository.music.MusicRepository
 import com.makd.afinity.data.repository.playback.PlaybackRepository
 import com.makd.afinity.player.AudioService
+import com.makd.afinity.player.LibraryPlaybackSpeedStore
 import com.makd.afinity.player.common.EqualizerPreset
 import com.makd.afinity.player.music.MusicEqualizerManager
 import com.makd.afinity.player.music.MusicPlaybackManager
@@ -69,6 +72,7 @@ constructor(
     private val playbackRepository: PlaybackRepository,
     preferencesRepository: PreferencesRepository,
     private val adminChangeBroadcaster: AdminChangeBroadcaster,
+    private val libraryPlaybackSpeedStore: LibraryPlaybackSpeedStore,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
@@ -290,6 +294,8 @@ constructor(
         if (tracks.isEmpty()) return false
         val serverUrl = sessionManager.currentSession.value?.serverUrl ?: return false
         val token = sessionManager.getCurrentApiClient()?.accessToken ?: return false
+        val state = playbackState.value
+        val speed = if (state.isPodcast) state.playbackSpeed else 1.0f
 
         castManager.loadMusicQueue(
             tracks = tracks,
@@ -297,8 +303,12 @@ constructor(
             startPositionMs = positionMs,
             serverBaseUrl = serverUrl,
             token = token,
-            repeatMode = playbackState.value.repeatMode,
+            repeatMode = state.repeatMode,
+            playbackSpeed = speed,
         )
+        if (state.isPodcast) {
+            playbackManager.updatePlaybackSpeed(speed.coerceIn(MIN_CAST_SPEED, MAX_CAST_SPEED))
+        }
         return true
     }
 
@@ -478,4 +488,21 @@ constructor(
     fun setSleepTimer(durationMs: Long) = playbackManager.setSleepTimer(durationMs)
 
     fun cancelSleepTimer() = playbackManager.cancelSleepTimer()
+
+    fun setPlaybackSpeed(speed: Float) {
+        val key = playbackState.value.librarySpeedKey ?: return
+        if (isMusicCasting.value) {
+            val applied = castManager.setPlaybackSpeed(speed)
+            playbackManager.updatePlaybackSpeed(applied)
+            libraryPlaybackSpeedStore.saveSpeed(key, applied)
+        } else {
+            val clamped =
+                speed.coerceIn(
+                    LibraryPlaybackSpeedStore.MIN_SPEED,
+                    LibraryPlaybackSpeedStore.MAX_SPEED,
+                )
+            playbackManager.setPlaybackSpeed(clamped)
+            libraryPlaybackSpeedStore.saveSpeed(key, clamped)
+        }
+    }
 }

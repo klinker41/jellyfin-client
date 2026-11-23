@@ -362,4 +362,155 @@ class PodcastProgressTrackerTest {
             }
             coVerify(exactly = 1) { userDataSyncScheduler.triggerSync() }
         }
+
+    @Test
+    fun `resolvePodcastTrack distinguishes multiple podcast libraries, non-podcasts, and offline cache`() =
+        runTest {
+            val userId = testUuid(8)
+            val podcastLibA = testUuid(80)
+            val podcastLibB = testUuid(81)
+            val albumA = testUuid(82)
+            val albumB = testUuid(83)
+            val musicAlbum = testUuid(84)
+
+            val sessionManager: SessionManager =
+                mockk(relaxed = true) {
+                    every { currentSession } returns
+                        MutableStateFlow(Session("srv-1", userId, "https://jf.example.com"))
+                }
+            val mediaRepository: MediaRepository =
+                mockk(relaxed = true) {
+                    every { libraries } returns
+                        MutableStateFlow(
+                            listOf(
+                                testCollection(
+                                    id = podcastLibA,
+                                    name = "Podcasts",
+                                    type = CollectionType.Music,
+                                ),
+                                testCollection(
+                                    id = podcastLibB,
+                                    name = "Tech Podcasts",
+                                    type = CollectionType.Music,
+                                ),
+                                testCollection(
+                                    id = testUuid(85),
+                                    name = "Music",
+                                    type = CollectionType.Music,
+                                ),
+                            ),
+                        )
+                    coEvery {
+                        getItemsResult(
+                            parentId = podcastLibA,
+                            includeItemTypes = listOf("MUSIC_ALBUM"),
+                            limit = any(),
+                            fields = any(),
+                            recursive = true,
+                            enableImages = false,
+                            enableUserData = false,
+                        )
+                    } returns
+                        Result.success(
+                            BaseItemDtoQueryResult(
+                                items =
+                                    listOf(
+                                        BaseItemDto(
+                                            id = albumA,
+                                            type = BaseItemKind.MUSIC_ALBUM,
+                                        ),
+                                    ),
+                                startIndex = 0,
+                                totalRecordCount = 1,
+                            ),
+                        )
+                    coEvery {
+                        getItemsResult(
+                            parentId = podcastLibB,
+                            includeItemTypes = listOf("MUSIC_ALBUM"),
+                            limit = any(),
+                            fields = any(),
+                            recursive = true,
+                            enableImages = false,
+                            enableUserData = false,
+                        )
+                    } returns
+                        Result.success(
+                            BaseItemDtoQueryResult(
+                                items =
+                                    listOf(
+                                        BaseItemDto(
+                                            id = albumB,
+                                            type = BaseItemKind.MUSIC_ALBUM,
+                                        ),
+                                    ),
+                                startIndex = 0,
+                                totalRecordCount = 1,
+                            ),
+                        )
+                }
+            val autoDownloadPreferences: AutoDownloadPreferences =
+                mockk(relaxed = true) {
+                    coEvery { getCachedPodcastAlbumLibraries(any(), any()) } returns emptyMap()
+                    coEvery { getCachedPodcastAlbumIds(any(), any()) } returns emptySet()
+                }
+            val tracker =
+                PodcastProgressTracker(
+                    sessionManager = sessionManager,
+                    mediaRepository = mediaRepository,
+                    itemStore = ItemStore(),
+                    mediaRefreshBus = MediaRefreshBus(),
+                    databaseRepository = mockk(relaxed = true),
+                    preferencesRepository =
+                        mockk(relaxed = true) { coEvery { getOfflineMode() } returns false },
+                    userDataSyncScheduler = mockk(relaxed = true),
+                    autoDownloadPreferences = autoDownloadPreferences,
+                    playedItemEventBus = PlayedItemEventBus(),
+                )
+
+            val trackA = testTrack(id = testUuid(90)).copy(albumId = albumA)
+            val trackB =
+                testTrack(id = testUuid(91)).copy(albumId = albumB, playbackPositionTicks = 50_000L)
+            val song = testTrack(id = testUuid(92)).copy(albumId = musicAlbum)
+
+            assertEquals(PodcastTrackInfo.Podcast(podcastLibA), tracker.resolvePodcastTrack(trackA))
+            assertEquals(PodcastTrackInfo.Podcast(podcastLibB), tracker.resolvePodcastTrack(trackB))
+            assertEquals(PodcastTrackInfo.NotPodcast, tracker.resolvePodcastTrack(song))
+            coVerify(exactly = 1) {
+                autoDownloadPreferences.setCachedPodcastAlbumLibraries(
+                    "srv-1",
+                    userId,
+                    mapOf(albumA to podcastLibA, albumB to podcastLibB),
+                )
+            }
+
+            // Offline mode uses persisted album -> library mapping
+            val offlineAutoDownload: AutoDownloadPreferences =
+                mockk(relaxed = true) {
+                    coEvery { getCachedPodcastAlbumLibraries("srv-1", userId) } returns
+                        mapOf(albumB to podcastLibB)
+                    coEvery { getCachedPodcastAlbumIds(any(), any()) } returns emptySet()
+                }
+            val offlineTracker =
+                PodcastProgressTracker(
+                    sessionManager = sessionManager,
+                    mediaRepository =
+                        mockk(relaxed = true) {
+                            every { libraries } returns MutableStateFlow(emptyList())
+                        },
+                    itemStore = ItemStore(),
+                    mediaRefreshBus = MediaRefreshBus(),
+                    databaseRepository = mockk(relaxed = true),
+                    preferencesRepository =
+                        mockk(relaxed = true) { coEvery { getOfflineMode() } returns true },
+                    userDataSyncScheduler = mockk(relaxed = true),
+                    autoDownloadPreferences = offlineAutoDownload,
+                    playedItemEventBus = PlayedItemEventBus(),
+                )
+            assertEquals(
+                PodcastTrackInfo.Podcast(podcastLibB),
+                offlineTracker.resolvePodcastTrack(trackB),
+            )
+            assertEquals(PodcastTrackInfo.NotPodcast, offlineTracker.resolvePodcastTrack(song))
+        }
 }

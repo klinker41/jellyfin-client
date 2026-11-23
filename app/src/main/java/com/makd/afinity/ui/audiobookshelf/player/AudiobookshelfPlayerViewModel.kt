@@ -126,6 +126,7 @@ constructor(
                         }
                     }
                     is CastEvent.AbsCastDisconnected -> {
+                        audiobookshelfPlayer.restorePlaybackSpeed()
                         audiobookshelfPlayer.seekToPosition(event.lastPositionSeconds)
                         audiobookshelfPlayer.play()
                     }

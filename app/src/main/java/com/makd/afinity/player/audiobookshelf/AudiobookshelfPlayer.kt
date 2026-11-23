@@ -31,6 +31,7 @@ import com.makd.afinity.data.repository.AudiobookshelfRepository
 import com.makd.afinity.data.repository.PreferencesRepository
 import com.makd.afinity.data.repository.SecurePreferencesRepository
 import com.makd.afinity.data.repository.audiobookshelf.AbsProgressSyncScheduler
+import com.makd.afinity.player.LibraryPlaybackSpeedStore
 import com.makd.afinity.player.audiobook.JellyfinAudiobookReporter
 import com.makd.afinity.player.music.MusicPlaybackManager
 import com.makd.afinity.util.NetworkConnectivityMonitor
@@ -74,6 +75,7 @@ constructor(
     private val networkConnectivityMonitor: NetworkConnectivityMonitor,
     private val castManager: dagger.Lazy<CastManager>,
     private val jellyfinReporter: JellyfinAudiobookReporter,
+    private val libraryPlaybackSpeedStore: LibraryPlaybackSpeedStore,
 ) {
     private var mediaController: MediaController? = null
     private var controllerFuture: ListenableFuture<MediaController>? = null
@@ -89,6 +91,7 @@ constructor(
         val mediaItems: List<MediaItem>,
         val startIndex: Int,
         val startPositionMs: Long,
+        val playbackSpeed: Float = LibraryPlaybackSpeedStore.DEFAULT_SPEED,
     )
 
     private val queueListener =
@@ -237,6 +240,7 @@ constructor(
                 prepared.startIndex,
                 prepared.startPositionMs,
             )
+            controller.setPlaybackSpeed(prepared.playbackSpeed)
             controller.prepare()
             controller.play()
         }
@@ -262,16 +266,23 @@ constructor(
                 prepared.startIndex,
                 prepared.startPositionMs,
             )
+            controller.setPlaybackSpeed(prepared.playbackSpeed)
             controller.prepare()
             controller.play()
         }
     }
 
-    fun prepareJellyfinSession(
+    suspend fun prepareJellyfinSession(
         session: JellyfinAudiobookSession,
         startPosition: Double,
     ): PreparedSession {
-        playbackManager.setJellyfinSession(session)
+        val speedKey = LibraryPlaybackSpeedStore.jellyfinAudiobookKey(session.libraryId)
+        val savedSpeed = libraryPlaybackSpeedStore.getSpeed(speedKey)
+        playbackManager.setJellyfinSession(
+            session = session,
+            librarySpeedKey = speedKey,
+            playbackSpeed = savedSpeed,
+        )
         val artUri = session.coverUrl?.toUri()
         val mediaItems =
             session.tracks.mapIndexed { index, track ->
@@ -295,7 +306,7 @@ constructor(
                 0 to 0L
             }
         jellyfinReporter.begin(session, startIndex)
-        return PreparedSession(mediaItems, startIndex, startOffsetMs)
+        return PreparedSession(mediaItems, startIndex, startOffsetMs, playbackSpeed = savedSpeed)
     }
 
     fun releaseIfAbs() {
@@ -353,7 +364,22 @@ constructor(
                 session
             }
 
-        playbackManager.setSession(enhancedSession, baseUrl, token)
+        val resolvedLibraryId =
+            session.libraryId.takeIf { it.isNotBlank() }
+                ?: session.libraryItem?.libraryId?.takeIf { it.isNotBlank() }
+                ?: audiobookshelfRepository
+                    .getCachedItem(session.libraryItemId)
+                    ?.libraryId
+                    ?.takeIf { it.isNotBlank() }
+        val speedKey = LibraryPlaybackSpeedStore.absLibraryKey(resolvedLibraryId, session.mediaType)
+        val savedSpeed = libraryPlaybackSpeedStore.getSpeed(speedKey)
+        playbackManager.setSession(
+            session = enhancedSession,
+            serverUrl = baseUrl,
+            token = token,
+            librarySpeedKey = speedKey,
+            playbackSpeed = savedSpeed,
+        )
         progressSyncer.onSessionLoaded(session.episodeId)
         queueStartPositions = queue?.startPositions ?: emptyMap()
 
@@ -412,12 +438,15 @@ constructor(
                 mediaItems,
                 episodeIndex.coerceAtLeast(0),
                 (seekPosition * 1000).toLong().coerceAtLeast(0L),
+                playbackSpeed = savedSpeed,
             )
         }
-        if (seekPosition <= 0) return PreparedSession(mediaItems, 0, 0L)
+        if (seekPosition <= 0) {
+            return PreparedSession(mediaItems, 0, 0L, playbackSpeed = savedSpeed)
+        }
         playbackManager.updatePosition(seekPosition)
         val (startIndex, startOffsetMs) = locate(audioTracks, seekPosition)
-        return PreparedSession(mediaItems, startIndex, startOffsetMs)
+        return PreparedSession(mediaItems, startIndex, startOffsetMs, playbackSpeed = savedSpeed)
     }
 
     private fun locate(tracks: List<AudioTrack>, positionSeconds: Double): Pair<Int, Long> {
@@ -588,10 +617,28 @@ constructor(
             if (cast.castState.value.isAbsCasting) {
                 cast.setPlaybackSpeed(speed)
             } else {
-                mediaController?.setPlaybackSpeed(speed)
-                speed
+                val clamped =
+                    speed.coerceIn(
+                        LibraryPlaybackSpeedStore.MIN_SPEED,
+                        LibraryPlaybackSpeedStore.MAX_SPEED,
+                    )
+                mediaController?.setPlaybackSpeed(clamped)
+                clamped
             }
         playbackManager.updatePlaybackSpeed(applied)
+        playbackManager.playbackState.value.librarySpeedKey?.let { key ->
+            libraryPlaybackSpeedStore.saveSpeed(key, applied)
+        }
+    }
+
+    fun restorePlaybackSpeed() {
+        val key = playbackManager.playbackState.value.librarySpeedKey ?: return
+        scope.launch {
+            val savedSpeed = libraryPlaybackSpeedStore.getSpeed(key)
+            if (playbackManager.playbackState.value.librarySpeedKey != key) return@launch
+            mediaController?.setPlaybackSpeed(savedSpeed)
+            playbackManager.updatePlaybackSpeed(savedSpeed)
+        }
     }
 
     fun seekToPosition(positionSeconds: Double): Boolean {
