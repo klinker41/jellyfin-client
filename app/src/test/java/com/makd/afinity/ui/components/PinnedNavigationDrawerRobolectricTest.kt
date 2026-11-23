@@ -527,6 +527,97 @@ class PinnedNavigationDrawerRobolectricTest {
         assertEquals(interiorPixel, bottomEdgePixel)
     }
 
+    @Test
+    @Config(qualifiers = "w673dp-h841dp")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `pinned navigation drawer header uses uniform container color without top gradient`() {
+        lateinit var hostView: View
+        var cardBounds: Rect? = null
+        var expectedContainerArgb = 0
+        var topSpacerOffsetPx = 0f
+        var lowerBodyOffsetPx = 0f
+
+        composeTestRule.setContent {
+            PreviewHost(modifier = Modifier.fillMaxSize(), themeMode = ThemeMode.DARK) {
+                hostView = LocalView.current
+                val density = LocalDensity.current
+                expectedContainerArgb = MaterialTheme.colorScheme.surfaceContainerHigh.toArgb()
+                topSpacerOffsetPx = with(density) { 4.dp.toPx() }
+                lowerBodyOffsetPx = with(density) { 80.dp.toPx() }
+                val blurState = rememberPinnedDrawerBlurState(enabled = { false })
+
+                Box(
+                    modifier =
+                        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+                ) {
+                    AppPinnedNavigationDrawer(
+                        blurState = blurState,
+                        modifier = Modifier.align(Alignment.TopStart),
+                    ) {
+                        AppNavigationDrawerContent(
+                            currentDestination = null,
+                            userName = "jklinker",
+                            userProfileImageUrl = null,
+                            serverName = "unraid-server",
+                            connectionType = ConnectionType.REMOTE,
+                            isAdmin = false,
+                            isOffline = false,
+                            favoritesCount = 0,
+                            watchlistCount = 0,
+                            isJellyseerrAuthenticated = false,
+                            isAudiobookshelfAuthenticated = false,
+                            hasLiveTvAccess = false,
+                            librariesInDrawer = false,
+                            libraries = emptyList(),
+                            selectedLibraryId = null,
+                            sessionState = SessionSwitcherState(),
+                            onDestinationClick = {},
+                            onLibraryClick = {},
+                            onSettingsClick = {},
+                            onAddAccountClick = {},
+                            onSwitchSession = { _, _ -> },
+                            onForgetSession = {},
+                            onCloseDrawer = {},
+                            modifier =
+                                Modifier.onGloballyPositioned { cardBounds = it.boundsInRoot() },
+                            isPinned = true,
+                        )
+                    }
+                }
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        assertNotNull(cardBounds)
+        val bounds = cardBounds!!
+
+        var topHeaderPixel = 0
+        var lowerBodyPixel = 0
+
+        composeTestRule.runOnIdle {
+            val bitmap =
+                Bitmap.createBitmap(
+                    hostView.width.coerceAtLeast(1),
+                    hostView.height.coerceAtLeast(1),
+                    Bitmap.Config.ARGB_8888,
+                )
+            try {
+                hostView.draw(Canvas(bitmap))
+                val centerX = bounds.center.x.roundToInt()
+                topHeaderPixel =
+                    bitmap.getPixel(centerX, (bounds.top + topSpacerOffsetPx).roundToInt())
+                lowerBodyPixel =
+                    bitmap.getPixel(centerX, (bounds.bottom - lowerBodyOffsetPx).roundToInt())
+            } finally {
+                bitmap.recycle()
+            }
+        }
+
+        assertEquals(expectedContainerArgb, topHeaderPixel)
+        assertEquals(expectedContainerArgb, lowerBodyPixel)
+        assertEquals(lowerBodyPixel, topHeaderPixel)
+    }
+
     private fun assertDpEquals(expected: Dp, actual: Dp, tolerance: Dp = 1.dp) {
         assertEquals(expected.value, actual.value, tolerance.value)
     }

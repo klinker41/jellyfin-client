@@ -44,7 +44,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -201,20 +200,6 @@ fun AppNavigationDrawerContent(
             Column(
                 modifier =
                     Modifier.fillMaxWidth()
-                        .background(
-                            brush =
-                                Brush.verticalGradient(
-                                    colors =
-                                        listOf(
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                            if (isPinned) {
-                                                Color.Transparent
-                                            } else {
-                                                MaterialTheme.colorScheme.surfaceContainerLow
-                                            },
-                                        ),
-                                ),
-                        )
                         .then(if (isPinned) Modifier else Modifier.statusBarsPadding())
                         .then(cutoutModifier)
                         .padding(bottom = if (isPinned) 12.dp else 16.dp),

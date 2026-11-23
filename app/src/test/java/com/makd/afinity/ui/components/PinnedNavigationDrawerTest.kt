@@ -20,6 +20,20 @@ class PinnedNavigationDrawerTest {
     }
 
     @Test
+    fun `computePinnedDrawerTopInset stays below status bar or falls back to 16dp`() {
+        assertEquals(16.dp, computePinnedDrawerTopInset(0.dp))
+        assertEquals(16.dp, computePinnedDrawerTopInset(8.dp))
+        assertEquals(16.dp, computePinnedDrawerTopInset(16.dp))
+        assertEquals(36.dp, computePinnedDrawerTopInset(36.dp))
+    }
+
+    @Test
+    fun `computePinnedDrawerBottomInset adds 16dp above tappable bottom inset`() {
+        assertEquals(16.dp, computePinnedDrawerBottomInset(0.dp))
+        assertEquals(64.dp, computePinnedDrawerBottomInset(48.dp))
+    }
+
+    @Test
     fun `shouldPinNavigationDrawer returns false for phones and folded cover screens`() {
         assertFalse(
             shouldPinNavigationDrawer(

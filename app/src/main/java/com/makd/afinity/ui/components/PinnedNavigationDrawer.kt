@@ -5,14 +5,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.tappableElement
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -118,6 +118,12 @@ internal fun NavGraphBuilder.pinnedDrawerComposable(
     }
 }
 
+internal fun computePinnedDrawerTopInset(statusBarTop: Dp): Dp =
+    max(statusBarTop, PinnedDrawerInset)
+
+internal fun computePinnedDrawerBottomInset(tappableBottom: Dp): Dp =
+    tappableBottom + PinnedDrawerInset
+
 @Composable
 fun AppPinnedNavigationDrawer(
     blurState: PinnedDrawerBlurState,
@@ -127,20 +133,26 @@ fun AppPinnedNavigationDrawer(
     tintAlpha: Float = DefaultPinnedDrawerTintAlpha,
     content: @Composable () -> Unit,
 ) {
-    val safeInsets =
-        WindowInsets.statusBars
-            .union(WindowInsets.navigationBars)
-            .union(WindowInsets.displayCutout.only(WindowInsetsSides.Start))
+    val startCutout = WindowInsets.displayCutout.only(WindowInsetsSides.Start)
+    val topInset =
+        computePinnedDrawerTopInset(
+            statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
+        )
+    val bottomInset =
+        computePinnedDrawerBottomInset(
+            tappableBottom =
+                WindowInsets.tappableElement.asPaddingValues().calculateBottomPadding(),
+        )
 
     Box(
         modifier =
             modifier
                 .fillMaxHeight()
-                .windowInsetsPadding(safeInsets)
+                .windowInsetsPadding(startCutout)
                 .padding(
                     start = PinnedDrawerInset,
-                    top = PinnedDrawerInset,
-                    bottom = PinnedDrawerInset,
+                    top = topInset,
+                    bottom = bottomInset,
                 ),
     ) {
         Box(
