@@ -23,7 +23,6 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
@@ -159,7 +158,6 @@ fun AppPinnedNavigationDrawer(
             modifier =
                 Modifier.width(PinnedDrawerWidth)
                     .fillMaxHeight()
-                    .shadow(elevation = 10.dp, shape = PinnedDrawerShape, clip = false)
                     .pinnedDrawerBlurBackdrop(
                         state = blurState,
                         shape = PinnedDrawerShape,
