@@ -1,5 +1,6 @@
 package com.makd.afinity.player.audiobook
 
+import com.makd.afinity.data.autodownload.PlayedItemEventBus
 import com.makd.afinity.data.models.media.UserDataPatch
 import com.makd.afinity.data.repository.playback.PlaybackRepository
 import com.makd.afinity.data.store.ItemStore
@@ -34,6 +35,7 @@ constructor(
     private val playbackRepository: PlaybackRepository,
     private val playbackManager: AudiobookshelfPlaybackManager,
     private val itemStore: ItemStore,
+    private val playedItemEventBus: PlayedItemEventBus,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val reportOrder = Mutex()
@@ -223,6 +225,9 @@ constructor(
                 else -> UserDataPatch(playbackPositionTicks = positionTicks)
             }
         itemStore.applyPatch(partId, patch)
+        if (finished) {
+            playedItemEventBus.emitPlayed(partId)
+        }
     }
 
     private fun inOrder(block: suspend () -> Unit) {

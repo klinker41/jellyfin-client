@@ -257,6 +257,8 @@ fun StorageSettingsScreen(
                 }
             }
 
+            item(key = "auto_download") { AutoDownloadSettingsSection() }
+
             if (uiState.volumeStorageStats.size > 1) {
                 item {
                     SectionHeader(

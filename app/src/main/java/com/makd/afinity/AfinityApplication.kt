@@ -20,6 +20,7 @@ import coil3.request.crossfade
 import coil3.svg.SvgDecoder
 import com.makd.afinity.cast.CastManager
 import com.makd.afinity.cast.CastPlaybackBridge
+import com.makd.afinity.data.autodownload.AutoDownloadManager
 import com.makd.afinity.data.manager.SessionManager
 import com.makd.afinity.data.repository.CacheMaintenance
 import com.makd.afinity.data.repository.PreferencesRepository
@@ -63,6 +64,8 @@ class AfinityApplication : Application(), Configuration.Provider, SingletonImage
     @Inject lateinit var cacheMaintenance: dagger.Lazy<CacheMaintenance>
 
     @Inject lateinit var pendingJellyfinSync: dagger.Lazy<PendingJellyfinSync>
+
+    @Inject lateinit var autoDownloadManager: dagger.Lazy<AutoDownloadManager>
 
     @Inject lateinit var sessionManager: dagger.Lazy<SessionManager>
 
@@ -112,6 +115,11 @@ class AfinityApplication : Application(), Configuration.Provider, SingletonImage
             applicationScope.launch(Dispatchers.IO) {
                 runCatching { pendingJellyfinSync.get().initMonitoring() }
                     .onFailure { Timber.w(it, "Failed to start pending user data sync observer") }
+            }
+
+            applicationScope.launch(Dispatchers.IO) {
+                runCatching { autoDownloadManager.get().initMonitoring() }
+                    .onFailure { Timber.w(it, "Failed to start auto-download observer") }
             }
 
             // Cancel any periodic GitHub update checks scheduled by pre-Play Store builds.

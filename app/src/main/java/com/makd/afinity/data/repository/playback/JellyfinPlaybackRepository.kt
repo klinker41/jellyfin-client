@@ -1,5 +1,6 @@
 package com.makd.afinity.data.repository.playback
 
+import com.makd.afinity.data.autodownload.PlayedItemEventBus
 import com.makd.afinity.data.manager.SessionManager
 import com.makd.afinity.data.models.player.StreamDecision
 import com.makd.afinity.data.models.player.VideoQuality
@@ -39,6 +40,7 @@ constructor(
     private val databaseRepository: DatabaseRepository,
     private val preferencesRepository: PreferencesRepository,
     private val deviceProfileFactory: AndroidDeviceProfileFactory,
+    private val playedItemEventBus: PlayedItemEventBus,
 ) : PlaybackRepository {
 
     private fun getCurrentUserId(): UUID? {
@@ -682,6 +684,9 @@ constructor(
                     lastPlayedAt = System.currentTimeMillis(),
                 )
             databaseRepository.insertUserData(updatedData)
+            if (resolved.played) {
+                playedItemEventBus.emitPlayed(itemId)
+            }
             Timber.i(
                 "Saved playback progress locally for item $itemId: ${resolved.positionTicks / 10000}ms, played=${updatedData.played}",
             )

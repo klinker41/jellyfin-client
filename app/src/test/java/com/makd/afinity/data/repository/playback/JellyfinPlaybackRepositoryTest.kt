@@ -1,5 +1,6 @@
 package com.makd.afinity.data.repository.playback
 
+import com.makd.afinity.data.autodownload.PlayedItemEventBus
 import com.makd.afinity.data.manager.Session
 import com.makd.afinity.data.manager.SessionManager
 import com.makd.afinity.data.models.player.StreamDecision
@@ -20,7 +21,11 @@ import io.mockk.mockkObject
 import io.mockk.slot
 import io.mockk.unmockkObject
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.jellyfin.sdk.api.client.exception.ApiClientException
 import org.jellyfin.sdk.model.api.MediaStreamProtocol
@@ -83,6 +88,7 @@ class JellyfinPlaybackRepositoryTest {
                 coEvery { getOfflineMode() } returns offlineMode
             }
         val deviceProfileFactory = AndroidDeviceProfileFactory()
+        val playedItemEventBus = PlayedItemEventBus()
 
         val repository =
             JellyfinPlaybackRepository(
@@ -90,6 +96,7 @@ class JellyfinPlaybackRepositoryTest {
                 databaseRepository = databaseRepository,
                 preferencesRepository = preferencesRepository,
                 deviceProfileFactory = deviceProfileFactory,
+                playedItemEventBus = playedItemEventBus,
             )
     }
 
@@ -407,6 +414,11 @@ class JellyfinPlaybackRepositoryTest {
             assertEquals(3, savedProgress.captured.audioStreamIndex)
 
             // Stop error resolves completion (>90% marks played = true, position = 0)
+            val playedEmitted = mutableListOf<java.util.UUID>()
+            val playedCollector =
+                launch(start = CoroutineStart.UNDISPATCHED) {
+                    h.playedItemEventBus.playedItems.take(1).toList(playedEmitted)
+                }
             h.apiClient.onPost("/Sessions/Playing/Stopped") { throw ApiClientException("503") }
             assertFalse(
                 h.repository.reportPlaybackStop(
@@ -418,6 +430,8 @@ class JellyfinPlaybackRepositoryTest {
                     isEnded = false,
                 ),
             )
+            playedCollector.join()
+            assertEquals(listOf(itemId), playedEmitted)
             val saved = mutableListOf<AfinityUserDataDto>()
             coVerify(atLeast = 2) { h.databaseRepository.insertUserData(capture(saved)) }
             val savedStop = saved.last()

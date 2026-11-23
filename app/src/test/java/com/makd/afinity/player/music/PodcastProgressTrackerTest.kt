@@ -1,12 +1,18 @@
 package com.makd.afinity.player.music
 
+import com.makd.afinity.data.autodownload.AutoDownloadPreferences
+import com.makd.afinity.data.autodownload.PlayedItemEventBus
 import com.makd.afinity.data.manager.MediaRefreshBus
 import com.makd.afinity.data.manager.RefreshTrigger
 import com.makd.afinity.data.manager.Session
 import com.makd.afinity.data.manager.SessionManager
 import com.makd.afinity.data.models.common.CollectionType
+import com.makd.afinity.data.models.user.AfinityUserDataDto
+import com.makd.afinity.data.repository.DatabaseRepository
+import com.makd.afinity.data.repository.PreferencesRepository
 import com.makd.afinity.data.repository.media.MediaRepository
 import com.makd.afinity.data.store.ItemStore
+import com.makd.afinity.data.sync.UserDataSyncScheduler
 import com.makd.afinity.testutil.FakeApiClient
 import com.makd.afinity.testutil.TestMediaFixtures.testCollection
 import com.makd.afinity.testutil.TestMediaFixtures.testTrack
@@ -18,9 +24,13 @@ import io.mockk.mockk
 import io.mockk.verify
 import java.util.UUID
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.api.BaseItemDtoQueryResult
@@ -146,8 +156,27 @@ class PodcastProgressTrackerTest {
                 }
             val itemStore = ItemStore()
             val refreshBus = MediaRefreshBus()
+            val databaseRepository: DatabaseRepository = mockk(relaxed = true)
+            val preferencesRepository: PreferencesRepository =
+                mockk(relaxed = true) { coEvery { getOfflineMode() } returns false }
+            val userDataSyncScheduler: UserDataSyncScheduler = mockk(relaxed = true)
+            val autoDownloadPreferences: AutoDownloadPreferences =
+                mockk(relaxed = true) {
+                    coEvery { getCachedPodcastAlbumIds(any(), any()) } returns emptySet()
+                }
+            val playedItemEventBus = PlayedItemEventBus()
             val tracker =
-                PodcastProgressTracker(sessionManager, mediaRepository, itemStore, refreshBus)
+                PodcastProgressTracker(
+                    sessionManager = sessionManager,
+                    mediaRepository = mediaRepository,
+                    itemStore = itemStore,
+                    mediaRefreshBus = refreshBus,
+                    databaseRepository = databaseRepository,
+                    preferencesRepository = preferencesRepository,
+                    userDataSyncScheduler = userDataSyncScheduler,
+                    autoDownloadPreferences = autoDownloadPreferences,
+                    playedItemEventBus = playedItemEventBus,
+                )
 
             val song =
                 testTrack(id = songId).copy(albumId = musicAlbumId, runtimeTicks = 2_400_000_000L)
@@ -225,7 +254,21 @@ class PodcastProgressTrackerTest {
                     )
             }
         val tracker =
-            PodcastProgressTracker(sessionManager, mediaRepository, ItemStore(), MediaRefreshBus())
+            PodcastProgressTracker(
+                sessionManager = sessionManager,
+                mediaRepository = mediaRepository,
+                itemStore = ItemStore(),
+                mediaRefreshBus = MediaRefreshBus(),
+                databaseRepository = mockk(relaxed = true),
+                preferencesRepository =
+                    mockk(relaxed = true) { coEvery { getOfflineMode() } returns false },
+                userDataSyncScheduler = mockk(relaxed = true),
+                autoDownloadPreferences =
+                    mockk(relaxed = true) {
+                        coEvery { getCachedPodcastAlbumIds(any(), any()) } returns emptySet()
+                    },
+                playedItemEventBus = PlayedItemEventBus(),
+            )
         val track = testTrack(id = testUuid(40)).copy(albumId = testUuid(41))
 
         assertFalse(tracker.isPodcastTrack(track))
@@ -245,4 +288,78 @@ class PodcastProgressTrackerTest {
             )
         }
     }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `offline syncProgress persists pending userData, schedules sync, and emits played event`() =
+        runTest {
+            val userId = testUuid(5)
+            val podcastAlbumId = testUuid(25)
+            val episodeId = testUuid(35)
+
+            val sessionManager: SessionManager =
+                mockk(relaxed = true) {
+                    every { currentSession } returns
+                        MutableStateFlow(Session("srv-1", userId, "https://jf.example.com"))
+                    every { getCurrentApiClient() } returns null
+                }
+            val mediaRepository: MediaRepository =
+                mockk(relaxed = true) { every { libraries } returns MutableStateFlow(emptyList()) }
+            val databaseRepository: DatabaseRepository =
+                mockk(relaxed = true) { coEvery { getUserData(userId, episodeId) } returns null }
+            val preferencesRepository: PreferencesRepository =
+                mockk(relaxed = true) { coEvery { getOfflineMode() } returns true }
+            val userDataSyncScheduler: UserDataSyncScheduler = mockk(relaxed = true)
+            val autoDownloadPreferences: AutoDownloadPreferences =
+                mockk(relaxed = true) {
+                    coEvery { getCachedPodcastAlbumIds("srv-1", userId) } returns
+                        setOf(podcastAlbumId)
+                }
+            val playedItemEventBus = PlayedItemEventBus()
+            val itemStore = ItemStore()
+            val tracker =
+                PodcastProgressTracker(
+                    sessionManager = sessionManager,
+                    mediaRepository = mediaRepository,
+                    itemStore = itemStore,
+                    mediaRefreshBus = MediaRefreshBus(),
+                    databaseRepository = databaseRepository,
+                    preferencesRepository = preferencesRepository,
+                    userDataSyncScheduler = userDataSyncScheduler,
+                    autoDownloadPreferences = autoDownloadPreferences,
+                    playedItemEventBus = playedItemEventBus,
+                )
+
+            val episode =
+                testTrack(id = episodeId, played = false)
+                    .copy(albumId = podcastAlbumId, runtimeTicks = 18_000_000_000L)
+            itemStore.put(episode)
+
+            assertTrue(tracker.isPodcastTrack(episode))
+
+            val emitted = mutableListOf<UUID>()
+            val collector =
+                launch(start = CoroutineStart.UNDISPATCHED) {
+                    playedItemEventBus.playedItems.take(1).toList(emitted)
+                }
+
+            tracker.syncProgress(episode, positionMs = 1_800_000L, isEnded = true)
+            advanceUntilIdle()
+            collector.join()
+
+            assertEquals(listOf(episodeId), emitted)
+            coVerify(exactly = 1) {
+                databaseRepository.insertUserData(
+                    match<AfinityUserDataDto> {
+                        it.itemId == episodeId &&
+                            it.userId == userId &&
+                            it.serverId == "srv-1" &&
+                            it.played &&
+                            it.playbackPositionTicks == 0L &&
+                            it.toBeSynced
+                    },
+                )
+            }
+            coVerify(exactly = 1) { userDataSyncScheduler.triggerSync() }
+        }
 }

@@ -1,5 +1,6 @@
 package com.makd.afinity.data.books
 
+import com.makd.afinity.data.autodownload.PlayedItemEventBus
 import com.makd.afinity.data.manager.MediaChangeManager
 import com.makd.afinity.data.manager.MediaChangeSource
 import com.makd.afinity.data.manager.MediaRefreshBus
@@ -27,6 +28,7 @@ constructor(
     private val mediaRefreshBus: MediaRefreshBus,
     private val itemStore: ItemStore,
     private val userDataRepository: UserDataRepository,
+    private val playedItemEventBus: PlayedItemEventBus,
     @param:ApplicationScope private val applicationScope: CoroutineScope,
 ) {
     private val sessionId = UUID.randomUUID().toString()
@@ -85,7 +87,10 @@ constructor(
         started = false
         val runtime = runtimeTicks
         val finishedPatch = UserDataPatch(played = true, playbackPositionTicks = 0L)
-        if (finished) itemStore.applyPatch(id, finishedPatch)
+        if (finished) {
+            itemStore.applyPatch(id, finishedPatch)
+            playedItemEventBus.emitPlayed(id)
+        }
         applicationScope.launch {
             try {
                 playbackRepository.reportPlaybackStop(

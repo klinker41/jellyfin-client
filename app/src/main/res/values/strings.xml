@@ -2951,6 +2951,15 @@
 
     <!--Download Settings Sections-->
     <string name="section_downloads">Downloads</string>
+    <string name="section_auto_download">Auto-download</string>
+    <string name="pref_auto_download_libraries_title">Auto-download libraries</string>
+    <string name="pref_auto_download_libraries_off">Off · Tap to choose libraries</string>
+    <string name="pref_auto_download_libraries_description">Unplayed and in-progress items from selected libraries download automatically and are removed after finishing playback.</string>
+    <string name="pref_auto_download_no_libraries">No downloadable libraries found for this server.</string>
+    <string name="pref_auto_download_not_allowed">Your account is not permitted to download from this server.</string>
+    <string name="pref_auto_download_sync_now_title">Check for new items now</string>
+    <string name="pref_auto_download_sync_now_summary">Queue unplayed and in-progress items from selected libraries</string>
+    <string name="pref_auto_download_syncing">Checking libraries…</string>
     <string name="section_storage_cache">Storage &amp; cache</string>
     <string name="section_videos">Videos</string>
     <string name="section_download_audiobooks">Audiobooks</string>
