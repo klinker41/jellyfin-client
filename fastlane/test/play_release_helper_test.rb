@@ -136,6 +136,14 @@ class PlayReleaseHelperTest < Minitest::Test
     end
   end
 
+  def test_parse_tracks
+    assert_equal(%w[internal alpha], PlayReleaseHelper.parse_tracks("internal,alpha"))
+    assert_equal(%w[internal alpha], PlayReleaseHelper.parse_tracks(" internal , alpha,,internal "))
+    assert_equal(%w[alpha], PlayReleaseHelper.parse_tracks("alpha"))
+    assert_raises(ArgumentError) { PlayReleaseHelper.parse_tracks("") }
+    assert_raises(ArgumentError) { PlayReleaseHelper.parse_tracks(nil) }
+  end
+
   def test_resolve_aab_path
     Dir.mktmpdir do |dir|
       assert_raises(ArgumentError) { PlayReleaseHelper.resolve_aab_path(dir) }

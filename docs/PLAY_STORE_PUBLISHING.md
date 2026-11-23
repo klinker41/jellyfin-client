@@ -1,8 +1,9 @@
 # Google Play Store Release Publishing
 
 Jenkins automatically builds a release-signed Android App Bundle
-(`.aab`) for `xyz.klinker.jellyfin` and publishes it to the Google Play `alpha`
-(Closed testing) track via `fastlane android publish_release`.
+(`.aab`) for `xyz.klinker.jellyfin` and publishes it to the Google Play
+`internal` and `alpha` (Closed testing) tracks via
+`fastlane android publish_release`.
 
 Until both the signing keystore and Google Play Service Account credentials are
 configured in Jenkins, builds still compile and archive an unsigned `.aab` but
@@ -91,8 +92,9 @@ automated uploads:
    release.
 4. Once `google-play-service-account` (`PLAY_SERVICE_ACCOUNT_JSON`) is also
    bound in Jenkins, every subsequent successful build automatically runs
-   `fastlane android publish_release` to publish the next release build to the
-   `alpha` track.
+   `fastlane android publish_release` to upload the next release build to the
+   `internal` track and promote the same build to the `alpha` (Closed testing)
+   track.
 
 > [!NOTE]
 > If your Play Console app is still in **Draft** state while testing automated
@@ -107,6 +109,7 @@ automated uploads:
   on any track (`production`, `beta`, `alpha`, `internal`).
 - **Version name**: `app.versionName` from `gradle.properties`, unchanged.
 - **Optional environment overrides**:
-  - `PLAY_TRACK` (default: `alpha`)
+  - `PLAY_TRACKS` (default: `internal,alpha`): comma-separated tracks. The
+    build is uploaded to the first track and promoted to the others.
   - `PLAY_RELEASE_STATUS` (default: `completed`)
   - `PLAY_PACKAGE_NAME` (default: `xyz.klinker.jellyfin`)

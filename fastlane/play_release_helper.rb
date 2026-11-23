@@ -85,6 +85,14 @@ module PlayReleaseHelper
     raise ArgumentError, "Missing Play release configuration: #{missing.join(', ')}"
   end
 
+  # Parses a comma-separated list of Play tracks (e.g. "internal,alpha").
+  def parse_tracks(value)
+    tracks = value.to_s.split(",").map(&:strip).reject(&:empty?).uniq
+    raise ArgumentError, "No Play tracks configured" if tracks.empty?
+
+    tracks
+  end
+
   def resolve_aab_path(bundle_dir)
     candidates = Dir.glob(File.join(bundle_dir, "*.aab"))
     raise ArgumentError, "No .aab found in #{bundle_dir}" if candidates.empty?
