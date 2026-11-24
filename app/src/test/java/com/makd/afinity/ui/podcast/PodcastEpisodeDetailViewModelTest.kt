@@ -386,4 +386,16 @@ class PodcastEpisodeDetailViewModelTest {
         assertEquals("Recovered Pod", errVm.uiState.value.episode?.name)
         assertNull(errVm.uiState.value.errorRes)
     }
+
+    @Test
+    fun `formatPodcastEpisodeNumber combines episode and disc numbers when present`() {
+        assertEquals("#665 · Disc 1", formatPodcastEpisodeNumber(665, "Disc 1"))
+        assertEquals("#0 · Disc 2", formatPodcastEpisodeNumber(0, "Disc 2"))
+        assertEquals("#665", formatPodcastEpisodeNumber(665, null))
+        assertEquals("#665", formatPodcastEpisodeNumber(665, "   "))
+        assertEquals("Disc 2", formatPodcastEpisodeNumber(null, "Disc 2"))
+        assertEquals("Disc 2", formatPodcastEpisodeNumber(-1, "Disc 2"))
+        assertNull(formatPodcastEpisodeNumber(null, null))
+        assertNull(formatPodcastEpisodeNumber(-1, " "))
+    }
 }

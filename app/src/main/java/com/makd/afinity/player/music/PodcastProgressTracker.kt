@@ -171,24 +171,33 @@ constructor(
         }
     }
 
+    private suspend fun isLegacyCachedPodcastAlbum(albumId: UUID): Boolean {
+        if (hasFreshLibraryCache()) return false
+        val session = sessionManager.currentSession.value ?: return false
+        return albumId in
+            autoDownloadPreferences.getCachedPodcastAlbumIds(
+                session.serverId,
+                session.userId,
+            )
+    }
+
+    suspend fun isPodcastAlbum(albumId: UUID): Boolean =
+        try {
+            albumId in podcastAlbumLibraries() || isLegacyCachedPodcastAlbum(albumId)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to resolve whether album $albumId is a podcast")
+            false
+        }
+
     suspend fun resolvePodcastTrack(track: AfinityTrack): PodcastTrackInfo {
         val albumId = track.albumId
         if (albumId != null) {
             val libraryId = podcastAlbumLibraries()[albumId]
             if (libraryId != null) return PodcastTrackInfo.Podcast(libraryId)
         }
-        val legacyCached =
-            if (albumId != null && !hasFreshLibraryCache()) {
-                val session = sessionManager.currentSession.value
-                session != null &&
-                    albumId in
-                        autoDownloadPreferences.getCachedPodcastAlbumIds(
-                            session.serverId,
-                            session.userId,
-                        )
-            } else {
-                false
-            }
+        val legacyCached = albumId != null && isLegacyCachedPodcastAlbum(albumId)
         if (track.playbackPositionTicks > 0L || legacyCached) {
             val singleLibId =
                 mediaRepository.libraries.first().podcastLibraries().singleOrNull()?.id

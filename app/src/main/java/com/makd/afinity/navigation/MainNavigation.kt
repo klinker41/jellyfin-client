@@ -2076,6 +2076,13 @@ fun MainNavigation(
                                                 Destination.createItemDetailRoute(videoId),
                                             )
                                         },
+                                        onPodcastEpisodeClick = { episodeId ->
+                                            navController.navigate(
+                                                Destination.createPodcastEpisodeDetailRoute(
+                                                    episodeId,
+                                                ),
+                                            )
+                                        },
                                         onHomeClick = { navController.navigateHome() },
                                         onEditMetadataClick = { itemId ->
                                             navController.navigateToEditMetadata(itemId)

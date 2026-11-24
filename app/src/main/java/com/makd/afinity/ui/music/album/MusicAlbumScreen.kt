@@ -104,6 +104,7 @@ fun MusicAlbumScreen(
     onEditLyricsClick: (String) -> Unit,
     onIdentifyClick: (String) -> Unit,
     onNavigateUp: () -> Unit,
+    onPodcastEpisodeClick: (String) -> Unit = {},
     viewModel: MusicAlbumViewModel = hiltViewModel(),
     playerViewModel: MusicPlayerViewModel = hiltViewModel(),
     addToPlaylistViewModel: AddToPlaylistViewModel = hiltViewModel(),
@@ -429,9 +430,13 @@ fun MusicAlbumScreen(
                     isHot = track.id in uiState.hotTrackIds,
                     showAlbumArt = false,
                     onClick = {
-                        val index = uiState.tracks.indexOf(track)
-                        startMusicService(context)
-                        playerViewModel.playQueue(uiState.tracks, index)
+                        if (uiState.isPodcast) {
+                            onPodcastEpisodeClick(track.id.toString())
+                        } else {
+                            val index = uiState.tracks.indexOf(track)
+                            startMusicService(context)
+                            playerViewModel.playQueue(uiState.tracks, index)
+                        }
                     },
                     onInstantMix =
                         if (isOffline) null

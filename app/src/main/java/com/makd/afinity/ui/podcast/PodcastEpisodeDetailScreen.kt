@@ -552,11 +552,16 @@ private fun PodcastEpisodeDetailsSection(episode: AfinityTrack) {
         episode.artist?.takeIf { it.isNotBlank() && !it.equals(showName, ignoreCase = true) }
     val releasedDate = episode.premiereDate?.takeIf { it.year > 1 }
     val addedDate = episode.dateCreated?.takeIf { it.year > 1 }
+    val discLabel =
+        episode.discNumber
+            ?.takeIf { it > 0 }
+            ?.let { stringResource(R.string.music_disc_number_fmt, it) }
+    val episodeNumber = formatPodcastEpisodeNumber(episode.indexNumber, discLabel)
     val rows =
         listOfNotNull(
             showName?.let { stringResource(R.string.podcast_details_show) to it },
             hostName?.let { stringResource(R.string.podcast_details_host) to it },
-            episode.indexNumber?.let { stringResource(R.string.podcast_details_episode) to "#$it" },
+            episodeNumber?.let { stringResource(R.string.podcast_details_episode) to it },
             releasedDate?.let {
                 stringResource(R.string.book_details_released) to it.format(dateFormatter)
             },
@@ -596,5 +601,19 @@ private fun PodcastEpisodeDetailsSection(episode: AfinityTrack) {
             )
             Spacer(modifier = Modifier.height(4.dp))
         }
+    }
+}
+
+internal fun formatPodcastEpisodeNumber(
+    indexNumber: Int?,
+    discLabel: String?,
+): String? {
+    val validIndex = indexNumber?.takeIf { it >= 0 }
+    val validDisc = discLabel?.takeIf { it.isNotBlank() }
+    return when {
+        validIndex != null && validDisc != null -> "#$validIndex · $validDisc"
+        validIndex != null -> "#$validIndex"
+        validDisc != null -> validDisc
+        else -> null
     }
 }

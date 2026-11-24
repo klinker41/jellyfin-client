@@ -513,4 +513,120 @@ class PodcastProgressTrackerTest {
             )
             assertEquals(PodcastTrackInfo.NotPodcast, offlineTracker.resolvePodcastTrack(song))
         }
+
+    @Test
+    fun `isPodcastAlbum checks podcast libraries, offline cache, legacy cache, and fails safely`() =
+        runTest {
+            val userId = testUuid(1)
+            val podcastLibId = testUuid(10)
+            val podcastAlbumId = testUuid(20)
+            val musicAlbumId = testUuid(21)
+            val legacyAlbumId = testUuid(22)
+
+            val sessionManager: SessionManager =
+                mockk(relaxed = true) {
+                    every { currentSession } returns
+                        MutableStateFlow(Session("srv-1", userId, "https://jf.example.com"))
+                }
+            val podcastLib =
+                testCollection(id = podcastLibId, name = "Podcasts", type = CollectionType.Music)
+            val mediaRepository: MediaRepository =
+                mockk(relaxed = true) {
+                    every { libraries } returns MutableStateFlow(listOf(podcastLib))
+                    coEvery {
+                        getItemsResult(
+                            parentId = podcastLibId,
+                            includeItemTypes = listOf("MUSIC_ALBUM"),
+                            limit = any(),
+                            fields = any(),
+                            recursive = true,
+                            enableImages = false,
+                            enableUserData = false,
+                        )
+                    } returns
+                        Result.success(
+                            BaseItemDtoQueryResult(
+                                items =
+                                    listOf(
+                                        BaseItemDto(
+                                            id = podcastAlbumId,
+                                            type = BaseItemKind.MUSIC_ALBUM,
+                                        ),
+                                    ),
+                                startIndex = 0,
+                                totalRecordCount = 1,
+                            ),
+                        )
+                }
+            val autoDownloadPreferences: AutoDownloadPreferences =
+                mockk(relaxed = true) {
+                    coEvery { getCachedPodcastAlbumLibraries(any(), any()) } returns emptyMap()
+                    coEvery { getCachedPodcastAlbumIds(any(), any()) } returns emptySet()
+                }
+            val onlineTracker =
+                PodcastProgressTracker(
+                    sessionManager = sessionManager,
+                    mediaRepository = mediaRepository,
+                    itemStore = ItemStore(),
+                    mediaRefreshBus = MediaRefreshBus(),
+                    databaseRepository = mockk(relaxed = true),
+                    preferencesRepository =
+                        mockk(relaxed = true) { coEvery { getOfflineMode() } returns false },
+                    userDataSyncScheduler = mockk(relaxed = true),
+                    autoDownloadPreferences = autoDownloadPreferences,
+                    playedItemEventBus = PlayedItemEventBus(),
+                )
+
+            assertTrue(onlineTracker.isPodcastAlbum(podcastAlbumId))
+            assertFalse(onlineTracker.isPodcastAlbum(musicAlbumId))
+
+            val offlinePrefs: AutoDownloadPreferences =
+                mockk(relaxed = true) {
+                    coEvery { getCachedPodcastAlbumLibraries("srv-1", userId) } returns
+                        mapOf(podcastAlbumId to podcastLibId)
+                    coEvery { getCachedPodcastAlbumIds("srv-1", userId) } returns
+                        setOf(legacyAlbumId)
+                }
+            val offlineTracker =
+                PodcastProgressTracker(
+                    sessionManager = sessionManager,
+                    mediaRepository =
+                        mockk(relaxed = true) {
+                            every { libraries } returns MutableStateFlow(emptyList())
+                        },
+                    itemStore = ItemStore(),
+                    mediaRefreshBus = MediaRefreshBus(),
+                    databaseRepository = mockk(relaxed = true),
+                    preferencesRepository =
+                        mockk(relaxed = true) { coEvery { getOfflineMode() } returns true },
+                    userDataSyncScheduler = mockk(relaxed = true),
+                    autoDownloadPreferences = offlinePrefs,
+                    playedItemEventBus = PlayedItemEventBus(),
+                )
+
+            assertTrue(offlineTracker.isPodcastAlbum(podcastAlbumId))
+            assertTrue(offlineTracker.isPodcastAlbum(legacyAlbumId))
+            assertFalse(offlineTracker.isPodcastAlbum(musicAlbumId))
+
+            val failingPrefs: AutoDownloadPreferences =
+                mockk(relaxed = true) {
+                    coEvery { getCachedPodcastAlbumLibraries(any(), any()) } throws
+                        RuntimeException("datastore error")
+                }
+            val failingTracker =
+                PodcastProgressTracker(
+                    sessionManager = sessionManager,
+                    mediaRepository = mediaRepository,
+                    itemStore = ItemStore(),
+                    mediaRefreshBus = MediaRefreshBus(),
+                    databaseRepository = mockk(relaxed = true),
+                    preferencesRepository =
+                        mockk(relaxed = true) { coEvery { getOfflineMode() } returns false },
+                    userDataSyncScheduler = mockk(relaxed = true),
+                    autoDownloadPreferences = failingPrefs,
+                    playedItemEventBus = PlayedItemEventBus(),
+                )
+
+            assertFalse(failingTracker.isPodcastAlbum(podcastAlbumId))
+        }
 }

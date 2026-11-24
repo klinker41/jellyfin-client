@@ -23,6 +23,7 @@ import com.makd.afinity.data.repository.lastfm.LastFmRepository
 import com.makd.afinity.data.repository.media.MediaRepository
 import com.makd.afinity.data.repository.music.MusicRepository
 import com.makd.afinity.data.store.ItemStore
+import com.makd.afinity.player.music.PodcastProgressTracker
 import com.makd.afinity.ui.components.DownloadConfirm
 import com.makd.afinity.ui.components.DownloadConfirmKind
 import com.makd.afinity.util.NetworkConnectivityMonitor
@@ -57,6 +58,7 @@ data class MusicAlbumUiState(
     val musicVideos: List<AfinityMusicVideo> = emptyList(),
     val hotTrackIds: Set<UUID> = emptySet(),
     val hasInternet: Boolean = true,
+    val isPodcast: Boolean = false,
 )
 
 @HiltViewModel
@@ -73,6 +75,7 @@ constructor(
     private val offlineModeManager: OfflineModeManager,
     private val networkMonitor: NetworkConnectivityMonitor,
     private val mediaRepository: MediaRepository,
+    private val podcastProgressTracker: PodcastProgressTracker,
     preferencesRepository: PreferencesRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
@@ -166,6 +169,7 @@ constructor(
             try {
                 val albumDeferred = async { musicRepository.getAlbumById(albumId) }
                 val tracksDeferred = async { musicRepository.getAlbumTracks(albumId) }
+                val isPodcastDeferred = async { podcastProgressTracker.isPodcastAlbum(albumId) }
                 val album = albumDeferred.await()
                 val artistDeferred = async {
                     album?.artistId?.let {
@@ -173,6 +177,7 @@ constructor(
                     }
                 }
                 val tracks = tracksDeferred.await()
+                val isPodcast = isPodcastDeferred.await()
                 val artistImageUrl = artistDeferred.await()?.images?.primary?.toString()
                 val hasInternet = offlineModeManager.isInternetAvailable()
                 _uiState.update {
@@ -182,6 +187,7 @@ constructor(
                         artistImageUrl = artistImageUrl,
                         isLoading = false,
                         hasInternet = hasInternet,
+                        isPodcast = isPodcast,
                     )
                 }
                 updateDownloadState(lastAllDownloads)
