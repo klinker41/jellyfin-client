@@ -55,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
@@ -98,6 +99,7 @@ import com.makd.afinity.data.models.media.AfinityShow
 import com.makd.afinity.navigation.LocalHeroStyle
 import com.makd.afinity.navigation.LocalShowRatings
 import com.makd.afinity.ui.theme.CardDimensions
+import com.makd.afinity.ui.theme.focusOutline
 import com.makd.afinity.ui.utils.bottomOverlap
 import com.makd.afinity.util.formatOneDecimal
 import com.makd.afinity.util.perfTraceAsync
@@ -408,17 +410,21 @@ fun HeroCarousel(
             )
         }
 
+    var isHeroFocused by remember { mutableStateOf(false) }
+
     HeroCarouselAutoScrollAndPrefetch(
         pagerState = pagerState,
         items = items,
         isScrolling = isScrolling,
         isScrollingProvider = isScrollingProvider,
+        isFocused = isHeroFocused,
         slideSeconds = slideSeconds,
         logoWidthPx = with(density) { logoSize.width.toPx().toInt() },
         logoHeightPx = with(density) { logoSize.height.toPx().toInt() },
     )
 
     CompositionLocalProvider(LocalHeroIndicator provides indicator) {
+        val focusTrackedModifier = modifier.onFocusChanged { isHeroFocused = it.hasFocus }
         if (peekMetrics != null) {
             HeroCardCarousel(
                 pagerState = pagerState,
@@ -431,7 +437,7 @@ fun HeroCarousel(
                 onWatchNowClick = onWatchNowClick,
                 onPlayTrailerClick = onPlayTrailerClick,
                 onMoreInformationClick = onMoreInformationClick,
-                modifier = modifier,
+                modifier = focusTrackedModifier,
             )
         } else {
             HeroFullBleed(
@@ -444,7 +450,7 @@ fun HeroCarousel(
                 onWatchNowClick = onWatchNowClick,
                 onPlayTrailerClick = onPlayTrailerClick,
                 onMoreInformationClick = onMoreInformationClick,
-                modifier = modifier,
+                modifier = focusTrackedModifier,
             )
         }
     }
@@ -663,6 +669,7 @@ private fun HeroCarouselAutoScrollAndPrefetch(
     items: List<AfinityItem>,
     isScrolling: Boolean,
     isScrollingProvider: (() -> Boolean)?,
+    isFocused: Boolean,
     slideSeconds: Int,
     logoWidthPx: Int,
     logoHeightPx: Int,
@@ -674,8 +681,8 @@ private fun HeroCarouselAutoScrollAndPrefetch(
             derivedStateOf { isScrollingProvider?.invoke() ?: isScrolling }
         }
 
-    LaunchedEffect(pagerState.settledPage, scrollInProgress, isDragged, slideSeconds) {
-        if (!isDragged && !scrollInProgress && items.size > 1) {
+    LaunchedEffect(pagerState.settledPage, scrollInProgress, isDragged, isFocused, slideSeconds) {
+        if (!isDragged && !isFocused && !scrollInProgress && items.size > 1) {
             if (
                 !pagerState.isScrollInProgress &&
                     kotlin.math.abs(pagerState.currentPageOffsetFraction) > 0.001f
@@ -1126,7 +1133,10 @@ private fun HeroRoundButton(
     IconButton(
         onClick = onClick,
         enabled = enabled,
-        modifier = Modifier.size(size * scale).background(containerColor, CircleShape),
+        modifier =
+            Modifier.size(size * scale)
+                .focusOutline(CircleShape)
+                .background(containerColor, CircleShape),
     ) {
         Icon(
             painter = painterResource(id = iconRes),
@@ -1275,6 +1285,7 @@ private fun BoxScope.HeroContentCentered(
             modifier =
                 Modifier.align(Alignment.CenterStart)
                     .size(HeroButtonSize * buttonScale)
+                    .focusOutline(CircleShape)
                     .background(buttonContainer.copy(alpha = 0.8f), CircleShape),
         ) {
             Icon(
@@ -1292,6 +1303,7 @@ private fun BoxScope.HeroContentCentered(
                 onClick = { onPlayTrailerClick(currentItem) },
                 modifier =
                     Modifier.size(HeroButtonSize * buttonScale)
+                        .focusOutline(CircleShape)
                         .background(buttonContainer.copy(alpha = 0.8f), CircleShape),
             ) {
                 Icon(
@@ -1305,6 +1317,7 @@ private fun BoxScope.HeroContentCentered(
                 onClick = { onWatchNowClick(currentItem) },
                 modifier =
                     Modifier.size(HeroButtonSize * buttonScale)
+                        .focusOutline(CircleShape)
                         .background(MaterialTheme.colorScheme.primary, CircleShape),
             ) {
                 Icon(
@@ -1452,6 +1465,7 @@ private fun HeroContentRich(
                         onClick = { onMoreInformationClick(currentItem) },
                         modifier =
                             Modifier.size(HeroRichButtonSize * buttonScale)
+                                .focusOutline(CircleShape)
                                 .background(buttonContainer.copy(alpha = 0.8f), CircleShape),
                     ) {
                         Icon(
@@ -1465,6 +1479,7 @@ private fun HeroContentRich(
                         onClick = { onPlayTrailerClick(currentItem) },
                         modifier =
                             Modifier.size(HeroRichButtonSize * buttonScale)
+                                .focusOutline(CircleShape)
                                 .background(buttonContainer.copy(alpha = 0.8f), CircleShape),
                     ) {
                         Icon(
@@ -1478,6 +1493,7 @@ private fun HeroContentRich(
                         onClick = { onWatchNowClick(currentItem) },
                         modifier =
                             Modifier.size(HeroRichButtonSize * buttonScale)
+                                .focusOutline(CircleShape)
                                 .background(MaterialTheme.colorScheme.primary, CircleShape),
                     ) {
                         Icon(

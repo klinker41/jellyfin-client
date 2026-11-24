@@ -3,7 +3,9 @@ package com.makd.afinity.data.books
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
+import android.os.Build
 import android.os.ParcelFileDescriptor
+import android.os.ext.SdkExtensions
 import java.io.Closeable
 import java.io.File
 import java.io.FileOutputStream
@@ -176,10 +178,17 @@ private constructor(
     override suspend fun thumbnail(index: Int): File = render(index, THUMBNAIL_WIDTH)
 
     suspend fun pageText(index: Int): String = lock.withLock {
-        withContext(Dispatchers.IO) {
-            renderer.openPage(index).use { page ->
-                page.textContents.joinToString(" ") { it.text.orEmpty() }
+        if (
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM &&
+                SdkExtensions.getExtensionVersion(Build.VERSION_CODES.S) >= 13
+        ) {
+            withContext(Dispatchers.IO) {
+                renderer.openPage(index).use { page ->
+                    page.textContents.joinToString(" ") { it.text.orEmpty() }
+                }
             }
+        } else {
+            ""
         }
     }
 

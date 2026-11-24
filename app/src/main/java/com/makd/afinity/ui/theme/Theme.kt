@@ -1,5 +1,7 @@
 package com.makd.afinity.ui.theme
 
+import androidx.compose.foundation.IndicationNodeFactory
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -9,10 +11,13 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
+import com.makd.afinity.ui.utils.LocalIsTelevision
+import com.makd.afinity.ui.utils.isTelevision
 
 private val DarkColorScheme =
     darkColorScheme(primary = Purple80, secondary = PurpleGrey80, tertiary = Pink80)
@@ -85,8 +90,22 @@ fun AFinityTheme(
         }
 
     val currentTypography = getAppTypography(AppFont.fromString(appFont))
+    val isTelevision = remember(context) { context.isTelevision() }
 
-    CompositionLocalProvider(LocalDarkColorScheme provides darkScheme) {
-        MaterialTheme(colorScheme = colorScheme, typography = currentTypography, content = content)
+    CompositionLocalProvider(
+        LocalDarkColorScheme provides darkScheme,
+        LocalIsTelevision provides isTelevision,
+        LocalFocusRingColor provides colorScheme.primary,
+    ) {
+        MaterialTheme(colorScheme = colorScheme, typography = currentTypography) {
+            val baseIndication = LocalIndication.current
+            val focusIndication =
+                remember(baseIndication, colorScheme.primary) {
+                    (baseIndication as? IndicationNodeFactory)?.let { factory ->
+                        FocusRingIndication(delegate = factory, ringColor = colorScheme.primary)
+                    } ?: baseIndication
+                }
+            CompositionLocalProvider(LocalIndication provides focusIndication, content = content)
+        }
     }
 }

@@ -62,6 +62,7 @@ import androidx.compose.material3.SliderState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -73,18 +74,27 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.input.InputMode
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -133,6 +143,8 @@ import com.makd.afinity.ui.player.LocalSubtitleOrigin
 import com.makd.afinity.ui.player.PlayerViewModel
 import com.makd.afinity.ui.player.SubtitleSearchViewModel
 import com.makd.afinity.ui.player.toLocalizedLanguageName
+import com.makd.afinity.ui.theme.focusOutline
+import com.makd.afinity.ui.utils.LocalIsTelevision
 import java.util.Date
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.delay
@@ -685,6 +697,7 @@ fun PlayerControls(
                         showChapterSwitcherButton =
                             uiState.chapters.isNotEmpty() && !uiState.isPlayingIntro,
                         onVersionToggle = onVersionToggleRequest,
+                        isSyncPlay = isSyncPlay,
                         seekBarAnchor = seekBarAnchor,
                         modifier = Modifier.align(Alignment.BottomCenter),
                     )
@@ -713,6 +726,7 @@ fun PlayerControls(
                         playbackProgress = playbackProgress,
                         onPlayerEvent = onPlayerEvent,
                         seekBarAnchor = seekBarAnchor,
+                        isSyncPlay = isSyncPlay,
                     )
                     Spacer(modifier = Modifier.height(48.dp))
                 }
@@ -1233,7 +1247,10 @@ private fun TopControls(
                 .padding(start = 16.dp, end = 16.dp, bottom = 16.dp, top = 8.dp),
     ) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-            IconButton(onClick = onBackClick, modifier = Modifier.size(36.dp)) {
+            IconButton(
+                onClick = onBackClick,
+                modifier = Modifier.size(36.dp).focusOutline(CircleShape),
+            ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_chevron_left),
                     contentDescription = stringResource(R.string.cd_back),
@@ -1248,7 +1265,10 @@ private fun TopControls(
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(onClick = onLockToggle, modifier = Modifier.size(40.dp)) {
+                IconButton(
+                    onClick = onLockToggle,
+                    modifier = Modifier.size(40.dp).focusOutline(CircleShape),
+                ) {
                     Icon(
                         painter =
                             painterResource(
@@ -1267,7 +1287,7 @@ private fun TopControls(
                 if (!uiState.isControlsLocked && !uiState.isInPictureInPictureMode) {
                     IconButton(
                         onClick = onSyncPlayClick,
-                        modifier = Modifier.size(40.dp),
+                        modifier = Modifier.size(40.dp).focusOutline(CircleShape),
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_users_group),
@@ -1281,7 +1301,7 @@ private fun TopControls(
 
                     IconButton(
                         onClick = { onPlayerEvent(PlayerEvent.RequestCastDeviceSelection) },
-                        modifier = Modifier.size(40.dp),
+                        modifier = Modifier.size(40.dp).focusOutline(CircleShape),
                     ) {
                         Icon(
                             painter =
@@ -1298,7 +1318,10 @@ private fun TopControls(
                         )
                     }
 
-                    IconButton(onClick = onPipToggle, modifier = Modifier.size(40.dp)) {
+                    IconButton(
+                        onClick = onPipToggle,
+                        modifier = Modifier.size(40.dp).focusOutline(CircleShape),
+                    ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_pip),
                             contentDescription = stringResource(R.string.cd_enter_pip),
@@ -1309,7 +1332,7 @@ private fun TopControls(
 
                     IconButton(
                         onClick = { onPlayerEvent(PlayerEvent.CycleVideoZoomMode) },
-                        modifier = Modifier.size(40.dp),
+                        modifier = Modifier.size(40.dp).focusOutline(CircleShape),
                     ) {
                         Icon(
                             painter = uiState.videoZoomMode.getIconPainter(),
@@ -1346,18 +1369,32 @@ private fun CenterPlayButton(
     val playIconSize = if (isCompact) 32.dp else 40.dp
     val spacing = if (isCompact) 8.dp else 16.dp
 
+    val playPauseFocusRequester = remember { FocusRequester() }
+    val isTelevision = LocalIsTelevision.current
+    val inputModeManager = LocalInputModeManager.current
+
     AnimatedVisibility(
         visible = showPlayButton,
         enter = scaleIn(animationSpec = tween(200)) + fadeIn(),
         exit = scaleOut(animationSpec = tween(200)) + fadeOut(),
         modifier = modifier,
     ) {
+        LaunchedEffect(showPlayButton) {
+            if (
+                showPlayButton && (isTelevision || inputModeManager.inputMode == InputMode.Keyboard)
+            ) {
+                runCatching { playPauseFocusRequester.requestFocus() }
+            }
+        }
         Row(
             horizontalArrangement = Arrangement.spacedBy(spacing),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (showSkipButtons) {
-                IconButton(onClick = onPreviousClick, modifier = Modifier.size(buttonSize)) {
+                IconButton(
+                    onClick = onPreviousClick,
+                    modifier = Modifier.size(buttonSize).focusOutline(CircleShape),
+                ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_player_skip_back),
                         contentDescription = stringResource(R.string.cd_previous),
@@ -1368,7 +1405,10 @@ private fun CenterPlayButton(
             }
 
             if (!uiState.isPlayingIntro) {
-                IconButton(onClick = onSeekBackward, modifier = Modifier.size(buttonSize)) {
+                IconButton(
+                    onClick = onSeekBackward,
+                    modifier = Modifier.size(buttonSize).focusOutline(CircleShape),
+                ) {
                     Icon(
                         painter = painterResource(id = uiState.seekBackStep.backIcon),
                         contentDescription =
@@ -1382,7 +1422,13 @@ private fun CenterPlayButton(
                 }
             }
 
-            IconButton(onClick = onPlayPauseClick, modifier = Modifier.size(buttonSize)) {
+            IconButton(
+                onClick = onPlayPauseClick,
+                modifier =
+                    Modifier.size(buttonSize)
+                        .focusRequester(playPauseFocusRequester)
+                        .focusOutline(CircleShape),
+            ) {
                 if (isBuffering) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(playIconSize),
@@ -1404,7 +1450,10 @@ private fun CenterPlayButton(
             }
 
             if (!uiState.isPlayingIntro) {
-                IconButton(onClick = onSeekForward, modifier = Modifier.size(buttonSize)) {
+                IconButton(
+                    onClick = onSeekForward,
+                    modifier = Modifier.size(buttonSize).focusOutline(CircleShape),
+                ) {
                     Icon(
                         painter = painterResource(id = uiState.seekForwardStep.forwardIcon),
                         contentDescription =
@@ -1419,7 +1468,10 @@ private fun CenterPlayButton(
             }
 
             if (showSkipButtons) {
-                IconButton(onClick = onNextClick, modifier = Modifier.size(buttonSize)) {
+                IconButton(
+                    onClick = onNextClick,
+                    modifier = Modifier.size(buttonSize).focusOutline(CircleShape),
+                ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_player_skip_forward),
                         contentDescription = stringResource(R.string.cd_next),
@@ -1435,12 +1487,12 @@ private fun CenterPlayButton(
 @OptIn(UnstableApi::class)
 @Composable
 private fun BottomControls(
-    modifier: Modifier = Modifier,
     uiState: PlayerViewModel.PlayerUiState,
     playbackProgress: State<PlayerViewModel.PlaybackProgress>,
     onPlayerEvent: (PlayerEvent) -> Unit,
     onSpeedToggle: () -> Unit,
     onTrackPanelToggle: () -> Unit,
+    modifier: Modifier = Modifier,
     onQualityToggle: (() -> Unit)? = null,
     onSleepTimerToggle: () -> Unit = {},
     onEpisodeSwitcherToggle: () -> Unit = {},
@@ -1448,6 +1500,7 @@ private fun BottomControls(
     onChapterSwitcherToggle: () -> Unit = {},
     showChapterSwitcherButton: Boolean = false,
     onVersionToggle: () -> Unit = {},
+    isSyncPlay: Boolean = false,
     seekBarAnchor: SeekBarAnchor? = null,
 ) {
     Box(
@@ -1468,6 +1521,7 @@ private fun BottomControls(
                     playbackProgress = playbackProgress,
                     onPlayerEvent = onPlayerEvent,
                     seekBarAnchor = seekBarAnchor,
+                    isSyncPlay = isSyncPlay,
                 )
             } else {
                 Text(
@@ -1680,7 +1734,10 @@ private fun PlaybackBadges(uiState: PlayerViewModel.PlayerUiState, onClick: (() 
             if (onClick != null) {
                 Modifier.padding(end = 2.dp)
                     .clip(RoundedCornerShape(8.dp))
+                    .focusOutline(RoundedCornerShape(8.dp))
                     .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = ripple(),
                         onClickLabel = stringResource(R.string.cd_quality),
                         role = Role.Button,
                         onClick = onClick,
@@ -1725,7 +1782,13 @@ private fun LabeledControl(
         modifier =
             modifier
                 .clip(RoundedCornerShape(8.dp))
-                .clickable(role = Role.Button, onClick = onClick)
+                .focusOutline(RoundedCornerShape(8.dp))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = ripple(),
+                    role = Role.Button,
+                    onClick = onClick,
+                )
                 .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
@@ -1757,6 +1820,7 @@ private fun SeekBar(
     onPlayerEvent: (PlayerEvent) -> Unit,
     seekBarAnchor: SeekBarAnchor?,
     modifier: Modifier = Modifier,
+    isSyncPlay: Boolean = false,
 ) {
     val anchorOwner = remember { Any() }
     DisposableEffect(seekBarAnchor) { onDispose { seekBarAnchor?.release(anchorOwner) } }
@@ -1869,9 +1933,44 @@ private fun SeekBar(
                     }
                 },
                 modifier =
-                    Modifier.weight(1f).height(18.dp).padding(start = 8.dp).onGloballyPositioned {
-                        seekBarAnchor?.report(anchorOwner, it.boundsInWindow())
-                    },
+                    Modifier.weight(1f)
+                        .height(18.dp)
+                        .padding(start = 8.dp)
+                        .focusOutline(RoundedCornerShape(8.dp))
+                        .onPreviewKeyEvent { keyEvent ->
+                            if (keyEvent.type == KeyEventType.KeyDown) {
+                                val allowRepeat =
+                                    !isSyncPlay || keyEvent.nativeKeyEvent.repeatCount == 0
+                                when (keyEvent.key) {
+                                    Key.DirectionLeft -> {
+                                        if (allowRepeat) {
+                                            onPlayerEvent(
+                                                PlayerEvent.SeekRelative(
+                                                    -uiState.seekBackStep.millis,
+                                                ),
+                                            )
+                                        }
+                                        true
+                                    }
+                                    Key.DirectionRight -> {
+                                        if (allowRepeat) {
+                                            onPlayerEvent(
+                                                PlayerEvent.SeekRelative(
+                                                    uiState.seekForwardStep.millis,
+                                                ),
+                                            )
+                                        }
+                                        true
+                                    }
+                                    else -> false
+                                }
+                            } else {
+                                false
+                            }
+                        }
+                        .onGloballyPositioned {
+                            seekBarAnchor?.report(anchorOwner, it.boundsInWindow())
+                        },
             )
         }
 

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,6 +28,7 @@ import com.makd.afinity.ui.preview.PreviewData
 import com.makd.afinity.ui.preview.PreviewHost
 import com.makd.afinity.ui.preview.StressPreviews
 import com.makd.afinity.ui.preview.WidthPreviews
+import com.makd.afinity.ui.theme.focusOutline
 
 @Composable
 fun SectionRowHeader(
@@ -51,7 +53,8 @@ fun SectionRowHeader(
         if (onViewAllClick != null) {
             Box(
                 modifier =
-                    Modifier.clickable(
+                    Modifier.focusOutline(RoundedCornerShape(8.dp))
+                        .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
                             role = Role.Button,

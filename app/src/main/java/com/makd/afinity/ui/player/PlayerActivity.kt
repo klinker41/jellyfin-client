@@ -47,6 +47,7 @@ import com.makd.afinity.navigation.LocalShowRatings
 import com.makd.afinity.player.theme.ThemeMusicPlayer
 import com.makd.afinity.ui.components.LocalOriginalImages
 import com.makd.afinity.ui.theme.AFinityTheme
+import com.makd.afinity.ui.utils.isTelevision
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.UUID
 import javax.inject.Inject
@@ -234,8 +235,9 @@ class PlayerActivity : AppCompatActivity() {
             }
 
             LaunchedEffect(uiState.resolvedOrientation, uiState.isCasting) {
+                val isTv = isTelevision()
                 requestedOrientation =
-                    if (uiState.isCasting) {
+                    if (isTv || uiState.isCasting) {
                         ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
                     } else {
                         uiState.resolvedOrientation
@@ -298,53 +300,145 @@ class PlayerActivity : AppCompatActivity() {
             return true
         }
         val state = viewModel.uiState.value
-        // Only physical full keyboards get shortcuts: remotes, gamepads and D-pads keep plain
-        // focus navigation (HDMI-CEC remote keys arrive via the virtual alphabetic keyboard).
         // viewModel.player is unset until isPlayerReady; while casting, the cast controller owns
         // playback, the controls lock must block keyboard input like it blocks gestures, and an
         // open in-window panel needs the keys for its own focus navigation.
         if (
-            event.device?.keyboardType != InputDevice.KEYBOARD_TYPE_ALPHABETIC ||
-                event.device?.isVirtual != false ||
-                event.isFromSource(InputDevice.SOURCE_HDMI) ||
-                !state.isPlayerReady ||
+            !state.isPlayerReady ||
                 state.currentItem == null ||
                 viewModel.isOverlayPanelOpen ||
                 state.isCasting ||
                 viewModel.castManager.castState.value.isConnected ||
-                state.isControlsLocked ||
-                event.isCtrlPressed ||
+                state.isControlsLocked
+        ) {
+            return super.dispatchKeyEvent(event)
+        }
+        val canSeek = !state.isLiveChannel && !state.isPlayingIntro
+        val playlist = viewModel.playlistState.value
+        val mediaAction =
+            PlayerRemoteKeyHandler.resolveMediaKey(
+                keyCode = event.keyCode,
+                isPlaying = state.isPlaying,
+                playWhenReady = state.playWhenReady,
+                isEnded = viewModel.player.playbackState == Player.STATE_ENDED,
+                canSeek = canSeek,
+                seekBackMs = state.seekBackStep.millis,
+                seekForwardMs = state.seekForwardStep.millis,
+                hasNext = playlist.hasNext,
+                hasPrevious = playlist.hasPrevious,
+            )
+        if (mediaAction != null) {
+            return handleRemoteAction(event, mediaAction)
+        }
+
+        // Only physical full keyboards get shortcuts: remotes, gamepads and D-pads keep plain
+        // focus navigation (HDMI-CEC remote keys arrive via the virtual alphabetic keyboard).
+        val hasNavigationModifier =
+            event.isCtrlPressed ||
                 // Right Alt is AltGr, which some layouts need to type < and >.
                 (event.metaState and KeyEvent.META_ALT_LEFT_ON) != 0 ||
                 event.isMetaPressed
-        ) {
+        val isPhysicalKeyboard =
+            event.device?.keyboardType == InputDevice.KEYBOARD_TYPE_ALPHABETIC &&
+                event.device?.isVirtual == false &&
+                !event.isFromSource(InputDevice.SOURCE_HDMI) &&
+                !hasNavigationModifier
+        if (isPhysicalKeyboard) {
+            if (
+                event.keyCode in KeyEvent.KEYCODE_A..KeyEvent.KEYCODE_Z ||
+                    event.keyCode == KeyEvent.KEYCODE_SPACE
+            ) {
+                typingDeviceIds += event.deviceId
+            }
+            val shortcutAllowed =
+                event.keyCode !in typingGatedKeys || event.deviceId in typingDeviceIds
+            val shortcut = if (shortcutAllowed) keyboardShortcut(event, state) else null
+            if (shortcut != null) {
+                // A focused control (e.g. Enter on a Tab-focused button) keeps its own key
+                // handling. Space and the arrows stay shortcuts: a lone focused control such as
+                // the skip button would otherwise swallow them.
+                if (
+                    playerUiHasFocus &&
+                        event.keyCode != KeyEvent.KEYCODE_SPACE &&
+                        event.keyCode !in arrowKeys &&
+                        super.dispatchKeyEvent(event)
+                ) {
+                    return true
+                }
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    consumedDownKeyCodes += event.keyCode
+                    if (isShortcutRepeatAllowed(event)) shortcut()
+                }
+                return true
+            }
+        }
+
+        if (hasNavigationModifier) {
             return super.dispatchKeyEvent(event)
         }
-        if (
-            event.keyCode in KeyEvent.KEYCODE_A..KeyEvent.KEYCODE_Z ||
-                event.keyCode == KeyEvent.KEYCODE_SPACE
-        ) {
-            typingDeviceIds += event.deviceId
-        } else if (event.keyCode in typingGatedKeys && event.deviceId !in typingDeviceIds) {
+
+        val isHoldRepeat =
+            event.action == KeyEvent.ACTION_DOWN &&
+                event.repeatCount > 0 &&
+                event.keyCode in consumedDownKeyCodes
+        val remoteAction =
+            PlayerRemoteKeyHandler.resolveRemoteNavigationKey(
+                keyCode = event.keyCode,
+                showControls = state.showControls,
+                canSeek = canSeek,
+                seekBackMs = state.seekBackStep.millis,
+                seekForwardMs = state.seekForwardStep.millis,
+                hasSkipPrompt = state.showSkipButton && state.currentSegment != null,
+                hasUndoSkip = state.undoSkipPositionMs != null,
+                sleepTimerExpired = state.sleepTimerExpired,
+                isHoldRepeat = isHoldRepeat,
+            ) ?: return super.dispatchKeyEvent(event)
+
+        if (remoteAction is PlayerRemoteAction.KeepControlsAlive) {
+            if (event.action == KeyEvent.ACTION_DOWN) {
+                viewModel.keepControlsVisible()
+            }
             return super.dispatchKeyEvent(event)
         }
-        val shortcut = keyboardShortcut(event, state) ?: return super.dispatchKeyEvent(event)
-        // A focused control (e.g. Enter on a Tab-focused button) keeps its own key handling.
-        // Space and the arrows stay shortcuts: a lone focused control such as the skip button
-        // would otherwise swallow them.
-        if (
-            playerUiHasFocus &&
-                event.keyCode != KeyEvent.KEYCODE_SPACE &&
-                event.keyCode !in arrowKeys &&
-                super.dispatchKeyEvent(event)
-        ) {
-            return true
-        }
+        return handleRemoteAction(event, remoteAction)
+    }
+
+    private fun handleRemoteAction(event: KeyEvent, action: PlayerRemoteAction): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN) {
             consumedDownKeyCodes += event.keyCode
-            if (isShortcutRepeatAllowed(event)) shortcut()
+            val isRepeatAllowed =
+                event.repeatCount == 0 ||
+                    PlayerRemoteKeyHandler.isRepeatableRemoteKey(
+                        keyCode = event.keyCode,
+                        isInSyncPlay = syncPlayViewModel.syncPlayState.value.isInGroup,
+                    )
+            if (isRepeatAllowed) {
+                executeRemoteAction(action)
+            }
         }
         return true
+    }
+
+    private fun executeRemoteAction(action: PlayerRemoteAction) {
+        when (action) {
+            PlayerRemoteAction.Play -> {
+                viewModel.handlePlayerEvent(PlayerEvent.Play)
+                viewModel.showControls()
+            }
+            PlayerRemoteAction.Pause -> {
+                viewModel.handlePlayerEvent(PlayerEvent.Pause)
+                viewModel.showControls()
+            }
+            is PlayerRemoteAction.SeekRelative ->
+                viewModel.handlePlayerEvent(PlayerEvent.SeekRelative(action.deltaMs))
+            PlayerRemoteAction.NextItem -> viewModel.onNextEpisode()
+            PlayerRemoteAction.PreviousItem -> viewModel.onPreviousEpisode()
+            PlayerRemoteAction.SkipPrompt ->
+                viewModel.handlePlayerEvent(PlayerEvent.SkipPromptPressed)
+            PlayerRemoteAction.UndoSkip -> viewModel.handlePlayerEvent(PlayerEvent.UndoSkip)
+            PlayerRemoteAction.ShowControls -> viewModel.showControls()
+            PlayerRemoteAction.KeepControlsAlive -> viewModel.keepControlsVisible()
+        }
     }
 
     // Mirrors the YouTube web player's keyboard shortcuts.

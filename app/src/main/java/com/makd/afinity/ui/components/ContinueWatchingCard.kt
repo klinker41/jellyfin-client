@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -62,6 +63,7 @@ import com.makd.afinity.ui.preview.PreviewHost
 import com.makd.afinity.ui.preview.StressPreviews
 import com.makd.afinity.ui.preview.WidthPreviews
 import com.makd.afinity.ui.theme.CardDimensions
+import com.makd.afinity.ui.theme.focusOutline
 import com.makd.afinity.util.formatOneDecimal
 
 @Composable
@@ -81,7 +83,10 @@ fun ContinueWatchingCard(
     ) {
         Card(
             onClick = onClick,
-            modifier = Modifier.fillMaxWidth().aspectRatio(CardDimensions.ASPECT_RATIO_LANDSCAPE),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .aspectRatio(CardDimensions.ASPECT_RATIO_LANDSCAPE)
+                    .focusOutline(CardDefaults.shape),
             colors =
                 CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -395,6 +400,7 @@ fun ContinueWatchingCard(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier =
                         Modifier.size(20.dp)
+                            .focusOutline(CircleShape)
                             .clickable(
                                 interactionSource = moreInteractionSource,
                                 indication = null,

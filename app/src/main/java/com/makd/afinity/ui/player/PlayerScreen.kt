@@ -22,6 +22,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.InputMode
+import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -57,6 +59,7 @@ import com.makd.afinity.ui.player.components.rememberDoubleTapSeekFeedbackState
 import com.makd.afinity.ui.player.utils.KeepScreenOn
 import com.makd.afinity.ui.player.utils.PlayerSystemBarsController
 import com.makd.afinity.ui.player.utils.ScreenBrightnessController
+import com.makd.afinity.ui.utils.LocalIsTelevision
 import io.github.peerless2012.ass.media.kt.withAssSupport
 import java.util.UUID
 import kotlinx.coroutines.flow.map
@@ -217,7 +220,20 @@ fun PlayerScreen(
         }
     }
 
-    BackHandler { exitPlayer() }
+    val isTelevision = LocalIsTelevision.current
+    val inputModeManager = LocalInputModeManager.current
+
+    BackHandler {
+        if (
+            uiState.showControls &&
+                !isOverlayPanelOpen &&
+                (isTelevision || inputModeManager.inputMode == InputMode.Keyboard)
+        ) {
+            viewModel.hideControls()
+        } else {
+            exitPlayer()
+        }
+    }
     val castState by viewModel.castManager.castState.collectAsStateWithLifecycle()
 
     val launchCastChooser = rememberCastChooserLauncher()

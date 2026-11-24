@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +36,7 @@ import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -65,6 +67,7 @@ import com.makd.afinity.ui.settings.ServerSessionGroupItem
 import com.makd.afinity.ui.settings.SessionSwitcherState
 import com.makd.afinity.ui.settings.SessionSwitcherViewModel
 import com.makd.afinity.ui.settings.UserSession
+import com.makd.afinity.ui.theme.focusOutline
 import java.util.UUID
 
 @Composable
@@ -211,7 +214,12 @@ fun AppNavigationDrawerContent(
                         Modifier.fillMaxWidth()
                             .padding(horizontal = if (isPinned) 12.dp else 16.dp)
                             .clip(RoundedCornerShape(16.dp))
-                            .clickable(role = Role.Button) {
+                            .focusOutline(RoundedCornerShape(16.dp))
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = ripple(),
+                                role = Role.Button,
+                            ) {
                                 accountSwitcherExpanded = !accountSwitcherExpanded
                             }
                             .padding(
@@ -351,9 +359,10 @@ fun AppNavigationDrawerContent(
                                     colors = drawerItemColors,
                                     modifier =
                                         Modifier.padding(
-                                            horizontal = itemHorizontalPadding,
-                                            vertical = 2.dp,
-                                        ),
+                                                horizontal = itemHorizontalPadding,
+                                                vertical = 2.dp,
+                                            )
+                                            .focusOutline(RoundedCornerShape(16.dp)),
                                     shape = RoundedCornerShape(16.dp),
                                 )
                             }
@@ -416,9 +425,10 @@ fun AppNavigationDrawerContent(
                             colors = drawerItemColors,
                             modifier =
                                 Modifier.padding(
-                                    horizontal = itemHorizontalPadding,
-                                    vertical = 2.dp,
-                                ),
+                                        horizontal = itemHorizontalPadding,
+                                        vertical = 2.dp,
+                                    )
+                                    .focusOutline(RoundedCornerShape(16.dp)),
                             shape = RoundedCornerShape(16.dp),
                         )
                     }
@@ -445,9 +455,10 @@ fun AppNavigationDrawerContent(
                         colors = drawerItemColors,
                         modifier =
                             Modifier.padding(
-                                horizontal = itemHorizontalPadding,
-                                vertical = 2.dp,
-                            ),
+                                    horizontal = itemHorizontalPadding,
+                                    vertical = 2.dp,
+                                )
+                                .focusOutline(RoundedCornerShape(16.dp)),
                         shape = RoundedCornerShape(16.dp),
                     )
                 }

@@ -157,6 +157,7 @@ import com.makd.afinity.ui.settings.player.PlayerOptionsScreen
 import com.makd.afinity.ui.settings.servers.AddEditServerScreen
 import com.makd.afinity.ui.settings.servers.ServerManagementScreen
 import com.makd.afinity.ui.theme.LocalCardSize
+import com.makd.afinity.ui.utils.LocalIsTelevision
 import com.makd.afinity.ui.watchlist.WatchlistCategory
 import com.makd.afinity.ui.watchlist.WatchlistCategoryScreen
 import com.makd.afinity.ui.watchlist.WatchlistScreen
@@ -287,13 +288,15 @@ fun MainNavigation(
             ?: false
 
     val useNavRail = widthSizeClass != WindowWidthSizeClass.Compact
-    val shouldPinDrawer = shouldPinNavigationDrawer(navigationDrawerEnabled)
+    val isTelevision = LocalIsTelevision.current
+    val effectiveNavigationDrawerEnabled = navigationDrawerEnabled || isTelevision
+    val shouldPinDrawer = shouldPinNavigationDrawer(effectiveNavigationDrawerEnabled)
     val onMenuClick: (() -> Unit)? =
-        if (navigationDrawerEnabled && !shouldPinDrawer) {
+        if (effectiveNavigationDrawerEnabled && !shouldPinDrawer) {
             { coroutineScope.launch { railState.expand() } }
         } else null
     val showIndividualLibraries =
-        navigationDrawerEnabled && drawerLibrariesMode == DrawerLibrariesMode.EACH
+        effectiveNavigationDrawerEnabled && drawerLibrariesMode == DrawerLibrariesMode.EACH
     val libraryMenuClick = if (showIndividualLibraries) onMenuClick else null
     val isOnLibraryEntry =
         currentRoute == Destination.LIBRARY_CONTENT_ROUTE ||
@@ -343,10 +346,11 @@ fun MainNavigation(
         }
     }
 
-    LaunchedEffect(navigationDrawerEnabled, drawerLibrariesMode, currentDestination) {
+    LaunchedEffect(effectiveNavigationDrawerEnabled, drawerLibrariesMode, currentDestination) {
         if (
             currentDestination?.route == Destination.LIBRARIES.route &&
-                !(navigationDrawerEnabled && drawerLibrariesMode == DrawerLibrariesMode.SCREEN)
+                !(effectiveNavigationDrawerEnabled &&
+                    drawerLibrariesMode == DrawerLibrariesMode.SCREEN)
         ) {
             Timber.d("Libraries menu entry removed, navigating to HOME")
             navController.navigate(Destination.HOME.route) {
@@ -366,7 +370,7 @@ fun MainNavigation(
                 when {
                     authState !is AuthenticationState.Authenticated -> NavigationSuiteType.None
                     isPreAuth -> NavigationSuiteType.None
-                    navigationDrawerEnabled -> NavigationSuiteType.None
+                    effectiveNavigationDrawerEnabled -> NavigationSuiteType.None
                     useNavRail -> NavigationSuiteType.NavigationRail
                     else -> NavigationSuiteType.NavigationBar
                 },
@@ -606,7 +610,7 @@ fun MainNavigation(
                                         widthSizeClass = widthSizeClass,
                                         onMenuClick = onMenuClick,
                                         hideLibrariesSection =
-                                            navigationDrawerEnabled &&
+                                            effectiveNavigationDrawerEnabled &&
                                                 drawerLibrariesMode != DrawerLibrariesMode.OFF,
                                     )
                                 }
@@ -2484,7 +2488,7 @@ fun MainNavigation(
                     ) {
                         renderDrawerContent(true)
                     }
-                } else if (navigationDrawerEnabled && !shouldPinDrawer) {
+                } else if (effectiveNavigationDrawerEnabled && !shouldPinDrawer) {
                     AppModalNavigationDrawer(state = railState) { renderDrawerContent(false) }
                 }
             }

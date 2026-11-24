@@ -3840,6 +3840,12 @@ constructor(
         controlsHideJob?.cancel()
     }
 
+    fun keepControlsVisible() {
+        if (uiState.value.showControls) {
+            startControlsAutoHide()
+        }
+    }
+
     private fun startControlsAutoHide() {
         controlsHideJob?.cancel()
         controlsHideJob = viewModelScope.launch {

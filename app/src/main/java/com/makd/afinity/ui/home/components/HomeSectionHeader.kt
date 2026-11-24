@@ -5,6 +5,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -22,6 +23,7 @@ import com.makd.afinity.R
 import com.makd.afinity.ui.components.LocalPinnedDrawerStartInset
 import com.makd.afinity.ui.components.afinitySectionChevronSize
 import com.makd.afinity.ui.components.afinitySectionTitleStyle
+import com.makd.afinity.ui.theme.focusOutline
 
 @Composable
 fun HomeSectionHeader(
@@ -37,12 +39,13 @@ fun HomeSectionHeader(
                 .padding(start = LocalPinnedDrawerStartInset.current)
                 .then(
                     if (onViewAllClick != null) {
-                        Modifier.clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            role = Role.Button,
-                            onClick = onViewAllClick,
-                        )
+                        Modifier.focusOutline(RoundedCornerShape(8.dp))
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                role = Role.Button,
+                                onClick = onViewAllClick,
+                            )
                     } else Modifier,
                 )
                 .padding(start = startPadding, bottom = bottomPadding),

@@ -89,7 +89,7 @@ configure<ApplicationExtension> {
 
     defaultConfig {
         applicationId = "xyz.klinker.jellyfin"
-        minSdk = 35
+        minSdk = 34
         targetSdk = 37
         versionCode = appVersionCode.toInt()
         versionName = appVersionName

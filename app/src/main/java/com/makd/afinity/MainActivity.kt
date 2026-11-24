@@ -52,6 +52,7 @@ import com.makd.afinity.ui.components.StatusBarIconsState
 import com.makd.afinity.ui.components.afinityDialogProperties
 import com.makd.afinity.ui.theme.AFinityTheme
 import com.makd.afinity.ui.theme.ThemeMode
+import com.makd.afinity.ui.utils.isTelevision
 import com.makd.afinity.widget.AudioWidgetIntents
 import com.makd.afinity.widget.AudioWidgetUpdater
 import dagger.hilt.android.AndroidEntryPoint
@@ -224,15 +225,17 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-        lifecycleScope.launch {
-            val alreadyGranted =
-                ContextCompat.checkSelfPermission(
-                    this@MainActivity,
-                    Manifest.permission.POST_NOTIFICATIONS,
-                ) == PackageManager.PERMISSION_GRANTED
-            val declined = preferencesRepository.getNotificationPermissionDeclined()
-            if (!alreadyGranted && !declined) {
-                showNotificationRationale.value = true
+        if (!isTelevision()) {
+            lifecycleScope.launch {
+                val alreadyGranted =
+                    ContextCompat.checkSelfPermission(
+                        this@MainActivity,
+                        Manifest.permission.POST_NOTIFICATIONS,
+                    ) == PackageManager.PERMISSION_GRANTED
+                val declined = preferencesRepository.getNotificationPermissionDeclined()
+                if (!alreadyGranted && !declined) {
+                    showNotificationRationale.value = true
+                }
             }
         }
 

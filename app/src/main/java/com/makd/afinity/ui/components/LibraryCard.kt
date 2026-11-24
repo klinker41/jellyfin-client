@@ -37,6 +37,7 @@ import com.makd.afinity.data.models.extensions.primaryBlurHash
 import com.makd.afinity.data.models.extensions.primaryImageUrl
 import com.makd.afinity.data.models.media.AfinityCollection
 import com.makd.afinity.ui.theme.CardDimensions
+import com.makd.afinity.ui.theme.focusOutline
 
 @Composable
 fun LibraryCard(
@@ -49,12 +50,14 @@ fun LibraryCard(
 ) {
     Column(
         modifier =
-            modifier.clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                role = Role.Button,
-                onClick = onClick,
-            ),
+            modifier
+                .focusOutline(RoundedCornerShape(12.dp))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    role = Role.Button,
+                    onClick = onClick,
+                ),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Box(modifier = Modifier.fillMaxWidth().aspectRatio(CardDimensions.ASPECT_RATIO_LANDSCAPE)) {

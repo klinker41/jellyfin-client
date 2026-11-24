@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.unit.dp
 import com.makd.afinity.ui.theme.CardDimensions
 
@@ -18,7 +19,7 @@ fun CardRow(
     content: LazyListScope.() -> Unit,
 ) {
     LazyRow(
-        modifier = modifier,
+        modifier = modifier.focusRestorer(),
         state = state,
         contentPadding = contentPadding,
         horizontalArrangement = Arrangement.spacedBy(CardDimensions.RowGap),

@@ -50,6 +50,7 @@ import com.makd.afinity.ui.preview.PreviewHost
 import com.makd.afinity.ui.preview.StressPreviews
 import com.makd.afinity.ui.preview.WidthPreviews
 import com.makd.afinity.ui.theme.CardDimensions
+import com.makd.afinity.ui.theme.focusOutline
 import com.makd.afinity.util.formatOneDecimal
 
 fun AfinityItem.hasCardMetadata(showRatings: Boolean): Boolean {
@@ -88,7 +89,10 @@ fun MediaItemCard(
     Column(modifier = modifier.width(cardWidth)) {
         Card(
             onClick = onClick,
-            modifier = Modifier.fillMaxWidth().aspectRatio(effectiveAspectRatio),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .aspectRatio(effectiveAspectRatio)
+                    .focusOutline(CardDefaults.shape),
             colors =
                 CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),

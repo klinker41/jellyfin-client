@@ -58,6 +58,7 @@ import com.makd.afinity.ui.preview.PreviewHost
 import com.makd.afinity.ui.preview.StressPreviews
 import com.makd.afinity.ui.preview.WidthPreviews
 import com.makd.afinity.ui.theme.CardDimensions
+import com.makd.afinity.ui.theme.focusOutline
 import com.makd.afinity.util.formatOneDecimal
 
 enum class AudiobookCardFrame {
@@ -98,7 +99,10 @@ fun MediaItemGridCard(
     Column(modifier = modifier.fillMaxWidth()) {
         Card(
             onClick = onClick,
-            modifier = Modifier.fillMaxWidth().aspectRatio(aspectRatio),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .aspectRatio(aspectRatio)
+                    .focusOutline(RoundedCornerShape(12.dp)),
             shape = RoundedCornerShape(12.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {

@@ -53,6 +53,7 @@ import com.makd.afinity.data.models.extensions.thumbImageUrl
 import com.makd.afinity.data.models.media.AfinityEpisode
 import com.makd.afinity.navigation.LocalShowRatings
 import com.makd.afinity.ui.theme.CardDimensions
+import com.makd.afinity.ui.theme.focusOutline
 import com.makd.afinity.util.DateSkeleton
 import com.makd.afinity.util.formatOneDecimal
 import com.makd.afinity.util.localizedDateFormatter
@@ -74,6 +75,7 @@ fun EpisodeListCard(
         modifier =
             modifier
                 .fillMaxWidth()
+                .focusOutline(RoundedCornerShape(8.dp))
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null,

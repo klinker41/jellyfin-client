@@ -2,6 +2,7 @@ package com.makd.afinity.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -23,8 +24,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,6 +56,7 @@ import com.makd.afinity.data.models.server.ConnectionType
 import com.makd.afinity.data.repository.PreferencesRepository
 import com.makd.afinity.data.repository.server.ServerRepository
 import com.makd.afinity.ui.theme.CardDimensions
+import com.makd.afinity.ui.theme.focusOutline
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -132,7 +136,10 @@ fun AfinityTopAppBar(
                 val isMenu = onMenuClick != null
                 IconButton(
                     onClick = leadingOnClick,
-                    modifier = Modifier.padding(start = TopBarEdgeInset).size(36.dp),
+                    modifier =
+                        Modifier.padding(start = TopBarEdgeInset)
+                            .size(36.dp)
+                            .focusOutline(CircleShape),
                 ) {
                     Box(
                         modifier =
@@ -164,8 +171,14 @@ fun AfinityTopAppBar(
                     modifier =
                         Modifier.height(36.dp)
                             .clip(RoundedCornerShape(24.dp))
+                            .focusOutline(RoundedCornerShape(24.dp))
                             .background(Color.Black.copy(alpha = 0.3f))
-                            .clickable(enabled = !isRetrying, role = Role.Button) {
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = ripple(),
+                                enabled = !isRetrying,
+                                role = Role.Button,
+                            ) {
                                 if (isForcedOffline) viewModel.goOnline()
                                 else viewModel.retryConnection()
                             }
@@ -220,7 +233,7 @@ fun AfinityTopAppBar(
                         IconButton(
                             onClick = onRandomClick,
                             enabled = !isFetchingRandom,
-                            modifier = Modifier.size(36.dp),
+                            modifier = Modifier.size(36.dp).focusOutline(CircleShape),
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_dice5),
@@ -239,7 +252,10 @@ fun AfinityTopAppBar(
                         )
                     }
                     if (onSearchClick != null) {
-                        IconButton(onClick = onSearchClick, modifier = Modifier.size(36.dp)) {
+                        IconButton(
+                            onClick = onSearchClick,
+                            modifier = Modifier.size(36.dp).focusOutline(CircleShape),
+                        ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_search),
                                 contentDescription = stringResource(R.string.cd_search_icon),
@@ -259,7 +275,10 @@ fun AfinityTopAppBar(
                             compositingStrategy = CompositingStrategy.Offscreen
                         },
                 ) {
-                    IconButton(onClick = profile.onClick, modifier = Modifier.size(40.dp)) {
+                    IconButton(
+                        onClick = profile.onClick,
+                        modifier = Modifier.size(40.dp).focusOutline(CircleShape),
+                    ) {
                         UserAvatar(
                             imageUrl = profile.imageUrl,
                             name = profile.name,
@@ -322,7 +341,7 @@ fun AfinityTopBar(
 
 @Composable
 fun AfinityBackButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    IconButton(onClick = onClick, modifier = modifier) {
+    IconButton(onClick = onClick, modifier = modifier.focusOutline(CircleShape)) {
         Icon(
             painter = painterResource(id = R.drawable.ic_chevron_left),
             contentDescription = stringResource(R.string.cd_back),
