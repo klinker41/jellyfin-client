@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModelStore
 import androidx.media3.common.C
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.cache.DefaultContentMetadata
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
@@ -62,6 +63,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import java.io.IOException
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -100,7 +102,16 @@ class PlayerViewModelRobolectricTest {
     private inner class Harness {
         val context: Context = ApplicationProvider.getApplicationContext()
         val application: Application = ApplicationProvider.getApplicationContext()
-        val exoCache: SimpleCache = mockk(relaxed = true)
+        // Return C.LENGTH_UNSET (-1L) instead of relaxed 0L (which triggers instant 0-byte EOF
+        // parse errors) and throw plain IOException (not CacheException) to avoid network/DNS I/O.
+        val exoCache: SimpleCache =
+            mockk(relaxed = true) {
+                every { getContentMetadata(any()) } returns DefaultContentMetadata.EMPTY
+                every { startReadWriteNonBlocking(any(), any(), any()) } throws
+                    IOException("Cache disabled in unit test")
+                every { startReadWrite(any(), any(), any()) } throws
+                    IOException("Cache disabled in unit test")
+            }
         val userId = testUuid(1)
         val apiClient = FakeApiClient(baseUrl = "https://jf.example.com", accessToken = "tok-1")
         val sessionFlow =
@@ -283,14 +294,16 @@ class PlayerViewModelRobolectricTest {
 
     @Test
     fun `loadMedia resolves local source, direct play, and transcode fallback on decode error`() =
-        runTest(timeout = 30.seconds) {
-            val h = Harness()
+        runTest(mainDispatcherRule.testDispatcher, timeout = 30.seconds) {
+            // 1. Local source skips getPlaybackInfo and plays file:// URI.
+            // Use a dedicated Harness so the empty temp file's async ExoPlayer parse error cannot
+            // be delivered on the paused Robolectric main looper after remoteMovie loads.
+            val localHarness = Harness()
             try {
-                val vm = h.createViewModel()
+                val vm = localHarness.createViewModel()
                 runCurrent()
                 assertTrue(vm.uiState.value.isPlayerReady)
 
-                // 1. Local source skips getPlaybackInfo and plays file:// URI
                 val localFile = tempFolder.newFile("offline.mkv")
                 val localMovie =
                     testMovie(
@@ -319,7 +332,7 @@ class PlayerViewModelRobolectricTest {
                 assertEquals("src-local", vm.uiState.value.currentMediaSourceId)
                 assertEquals(PlayMethod.DIRECT_PLAY, vm.uiState.value.playMethod)
                 coVerify(exactly = 0) {
-                    h.playbackRepository.getPlaybackInfo(
+                    localHarness.playbackRepository.getPlaybackInfo(
                         itemId = localMovie.id,
                         quality = any(),
                         maxAudioChannels = any(),
@@ -331,6 +344,15 @@ class PlayerViewModelRobolectricTest {
                         allowTranscoding = any(),
                     )
                 }
+            } finally {
+                localHarness.dispose()
+            }
+
+            val h = Harness()
+            try {
+                val vm = h.createViewModel()
+                runCurrent()
+                assertTrue(vm.uiState.value.isPlayerReady)
 
                 // 2. Remote source resolves DirectPlay first, then falls back to Transcode on
                 // decode error
@@ -405,29 +427,6 @@ class PlayerViewModelRobolectricTest {
                     StreamDecision.DirectPlay(
                         "https://jf.example.com/Videos/${remoteMovie.id}/stream",
                     )
-
-                vm.handlePlayerEvent(
-                    PlayerEvent.LoadMedia(item = remoteMovie, mediaSourceId = "src-remote"),
-                )
-                runCurrent()
-                awaitOnMain { startReported.isCompleted }
-
-                assertEquals(PlayMethod.DIRECT_PLAY, vm.uiState.value.playMethod)
-                coVerify {
-                    h.playbackRepository.reportPlaybackStart(
-                        itemId = remoteMovie.id,
-                        sessionId = any(),
-                        mediaSourceId = "src-remote",
-                        audioStreamIndex = any(),
-                        subtitleStreamIndex = any(),
-                        playMethod = PlayMethod.DIRECT_PLAY.serialName,
-                        liveStreamId = any(),
-                        canSeek = any(),
-                    )
-                }
-
-                // Simulate decoder failure -> retryWithTranscodeFallback re-queries with
-                // enableDirectPlay = false
                 coEvery {
                     h.playbackRepository.getPlaybackInfo(
                         itemId = remoteMovie.id,
@@ -464,6 +463,41 @@ class PlayerViewModelRobolectricTest {
                         burnedInSubtitleIndex = null,
                     )
 
+                vm.handlePlayerEvent(
+                    PlayerEvent.LoadMedia(item = remoteMovie, mediaSourceId = "src-remote"),
+                )
+                runCurrent()
+                awaitOnMain { startReported.isCompleted }
+
+                assertEquals(PlayMethod.DIRECT_PLAY, vm.uiState.value.playMethod)
+                coVerify(exactly = 0) {
+                    h.playbackRepository.getPlaybackInfo(
+                        itemId = remoteMovie.id,
+                        quality = any(),
+                        maxAudioChannels = any(),
+                        audioStreamIndex = any(),
+                        subtitleStreamIndex = any(),
+                        mediaSourceId = "src-remote",
+                        startTimeTicks = any(),
+                        enableDirectPlay = false,
+                        allowTranscoding = any(),
+                    )
+                }
+                coVerify {
+                    h.playbackRepository.reportPlaybackStart(
+                        itemId = remoteMovie.id,
+                        sessionId = any(),
+                        mediaSourceId = "src-remote",
+                        audioStreamIndex = any(),
+                        subtitleStreamIndex = any(),
+                        playMethod = PlayMethod.DIRECT_PLAY.serialName,
+                        liveStreamId = any(),
+                        canSeek = any(),
+                    )
+                }
+
+                // Simulate decoder failure -> retryWithTranscodeFallback re-queries with
+                // enableDirectPlay = false
                 val decodeError =
                     PlaybackException(
                         "decoder failed",
@@ -473,7 +507,7 @@ class PlayerViewModelRobolectricTest {
                 vm.onPlayerError(decodeError)
                 runCurrent()
 
-                coVerify(atLeast = 1) {
+                coVerify(exactly = 1) {
                     h.playbackRepository.getPlaybackInfo(
                         itemId = remoteMovie.id,
                         quality = any(),
@@ -608,7 +642,7 @@ class PlayerViewModelRobolectricTest {
 
     @Test
     fun `errors, track switching, controls, zoom modes, and queue handoffs update state correctly`() =
-        runTest(timeout = 30.seconds) {
+        runTest(mainDispatcherRule.testDispatcher, timeout = 30.seconds) {
             val h = Harness()
             try {
                 val vm = h.createViewModel()
