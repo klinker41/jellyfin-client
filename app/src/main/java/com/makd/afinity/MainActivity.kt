@@ -45,6 +45,9 @@ import com.makd.afinity.data.repository.PreferencesRepository
 import com.makd.afinity.data.websocket.AudiobookshelfSocketManager
 import com.makd.afinity.navigation.Destination
 import com.makd.afinity.navigation.MainNavigation
+import com.makd.afinity.tvlauncher.LocalTvLauncherStatus
+import com.makd.afinity.tvlauncher.TvLauncherManager
+import com.makd.afinity.tvlauncher.TvLauncherStatus
 import com.makd.afinity.ui.components.LocalStatusBarIcons
 import com.makd.afinity.ui.components.RemoteMessagePill
 import com.makd.afinity.ui.components.StatusBarIconsEffect
@@ -52,6 +55,7 @@ import com.makd.afinity.ui.components.StatusBarIconsState
 import com.makd.afinity.ui.components.afinityDialogProperties
 import com.makd.afinity.ui.theme.AFinityTheme
 import com.makd.afinity.ui.theme.ThemeMode
+import com.makd.afinity.ui.utils.LocalIsTelevision
 import com.makd.afinity.ui.utils.isTelevision
 import com.makd.afinity.widget.AudioWidgetIntents
 import com.makd.afinity.widget.AudioWidgetUpdater
@@ -95,6 +99,8 @@ class MainActivity : AppCompatActivity() {
     @Inject lateinit var audioWidgetUpdater: AudioWidgetUpdater
 
     @Inject lateinit var remoteMessageManager: RemoteMessageManager
+
+    @Inject lateinit var tvLauncherManager: dagger.Lazy<TvLauncherManager>
 
     private val authViewModel: AuthViewModel by viewModels()
 
@@ -163,7 +169,17 @@ class MainActivity : AppCompatActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
-                    CompositionLocalProvider(LocalStatusBarIcons provides statusBarIcons) {
+                    val isTv = LocalIsTelevision.current
+                    val tvLauncherStatusFlow =
+                        remember(isTv) {
+                            if (isTv) tvLauncherManager.get().status
+                            else MutableStateFlow(TvLauncherStatus())
+                        }
+                    val tvLauncherStatus by tvLauncherStatusFlow.collectAsStateWithLifecycle()
+                    CompositionLocalProvider(
+                        LocalStatusBarIcons provides statusBarIcons,
+                        LocalTvLauncherStatus provides tvLauncherStatus,
+                    ) {
                         Box(modifier = Modifier.fillMaxSize()) {
                             MainContent(
                                 offlineModeManager = offlineModeManager,
@@ -242,8 +258,19 @@ class MainActivity : AppCompatActivity() {
         handleNavigationExtras(intent)
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (isTelevision()) {
+            tvLauncherManager.get().refresh()
+        }
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.action == Intent.ACTION_MAIN && intent.hasCategory(Intent.CATEGORY_HOME)) {
+            pendingNavigationManager.requestHome()
+        }
         handleNavigationExtras(intent)
     }
 

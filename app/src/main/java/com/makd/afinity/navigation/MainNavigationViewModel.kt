@@ -74,6 +74,7 @@ constructor(
         )
 
     val pendingNavigationRoute = pendingNavigationManager.pendingRoute
+    val homeRequested = pendingNavigationManager.homeRequested
 
     val sessionCleared = appDataRepository.sessionCleared
 

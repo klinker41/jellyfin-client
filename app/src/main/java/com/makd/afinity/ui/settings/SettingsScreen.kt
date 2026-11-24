@@ -81,6 +81,7 @@ import com.makd.afinity.data.manager.Connectivity
 import com.makd.afinity.data.manager.UnreachableReason
 import com.makd.afinity.data.models.server.ConnectionType
 import com.makd.afinity.navigation.LocalPlayerOffset
+import com.makd.afinity.tvlauncher.ui.TvLauncherSettingsSection
 import com.makd.afinity.ui.components.AfinityBackButton
 import com.makd.afinity.ui.components.AfinityScreen
 import com.makd.afinity.ui.components.AfinityTopAppBarTitle
@@ -106,6 +107,7 @@ import com.makd.afinity.ui.settings.logs.LogViewerScreen
 import com.makd.afinity.ui.settings.player.PlayerOptionsScreen
 import com.makd.afinity.ui.settings.servers.ServerManagementScreen
 import com.makd.afinity.ui.settings.update.CurrentChangelogDialog
+import com.makd.afinity.ui.utils.LocalIsTelevision
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -140,6 +142,7 @@ fun SettingsScreen(
     val hasOfflineMedia by viewModel.hasOfflineMedia.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
+    val isTelevision = LocalIsTelevision.current
     val defaultLangString = stringResource(R.string.lang_system_default)
     val appLanguageSubtitle =
         remember(defaultLangString) {
@@ -331,6 +334,12 @@ fun SettingsScreen(
                                             bottom = 8.dp,
                                         ),
                                 )
+                            }
+
+                            if (isTelevision) {
+                                item(key = "tv_launcher") {
+                                    TvLauncherSettingsSection(endPadding = listEndPadding)
+                                }
                             }
 
                             if (uiState.isAdmin) {

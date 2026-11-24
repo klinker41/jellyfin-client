@@ -3996,4 +3996,31 @@
     <string name="podcast_details_episode">Episode</string>
     <string name="podcast_details_added">Added</string>
 
+    <!-- TV Launcher -->
+    <string name="pref_group_tv_launcher">TV Launcher</string>
+    <string name="pref_tv_launcher_title">Use as TV launcher</string>
+    <string name="pref_tv_launcher_subtitle_off">Enable to show your installed apps on Home and register as a TV Home screen</string>
+    <string name="pref_tv_launcher_subtitle_pending">Home component enabled. Run the ADB command below to set it as the default TV launcher.</string>
+    <string name="pref_tv_launcher_subtitle_active">Active as the default Android TV launcher</string>
+    <string name="tv_launcher_adb_title">Set default launcher via ADB</string>
+    <string name="tv_launcher_adb_description">Google TV does not expose a Home app picker in Settings. Run this command from a computer with ADB connected to your TV:</string>
+    <string name="tv_launcher_adb_fallback_note">If your TV still opens the stock launcher after running that command, disable the stock launcher instead (re-enable it before turning this off):</string>
+    <string name="tv_launcher_refresh_status">Refresh launcher status</string>
+    <string name="tv_launcher_refresh_status_subtitle">Re-check whether this app is the active Home screen</string>
+    <string name="tv_launcher_system_settings">Android Settings</string>
+    <string name="tv_launcher_system_settings_subtitle">Open system Wi-Fi, display, and device settings</string>
+    <string name="tv_launcher_disable_blocked_title">Stock launcher is disabled</string>
+    <string name="tv_launcher_disable_blocked_message">No other enabled TV launcher was found on this device. Disabling this app\'s launcher now would leave the TV with no Home screen. Re-enable the stock launcher via ADB first, then tap Check again:</string>
+    <string name="tv_launcher_check_again">Check again</string>
+    <string name="tv_launcher_home_apps_title">Apps</string>
+    <string name="tv_launcher_all_apps_button">Apps</string>
+    <string name="tv_launcher_apps_dialog_title">Installed apps</string>
+    <string name="tv_launcher_app_action_open">Open</string>
+    <string name="tv_launcher_app_action_info">App info</string>
+    <string name="tv_launcher_app_action_uninstall">Uninstall</string>
+    <string name="tv_launcher_cd_system_settings">Open Android Settings</string>
+    <string name="tv_launcher_cd_network_connected">Network connected</string>
+    <string name="tv_launcher_cd_network_disconnected">Network disconnected</string>
+    <string name="tv_launcher_offline_apps_hint">Your installed apps and Android Settings remain available below.</string>
+
 </resources>

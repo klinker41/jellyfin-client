@@ -74,6 +74,10 @@ import com.makd.afinity.data.models.media.AfinityMovie
 import com.makd.afinity.data.models.media.AfinityShow
 import com.makd.afinity.data.podcasts.mergeContinueListening
 import com.makd.afinity.navigation.LocalPlayerOffset
+import com.makd.afinity.tvlauncher.LocalTvLauncherStatus
+import com.makd.afinity.tvlauncher.ui.TvAppsRowSection
+import com.makd.afinity.tvlauncher.ui.TvLauncherFallbackPanel
+import com.makd.afinity.tvlauncher.ui.TvLauncherTopBarActions
 import com.makd.afinity.ui.components.AfinityScreen
 import com.makd.afinity.ui.components.AfinityScreenMode
 import com.makd.afinity.ui.components.AfinityTopAppBar
@@ -123,6 +127,7 @@ import com.makd.afinity.ui.music.player.MusicPlayerViewModel
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.landscapeWidth
 import com.makd.afinity.ui.theme.CardDimensions.portraitWidth
+import com.makd.afinity.ui.utils.LocalIsTelevision
 import com.makd.afinity.ui.utils.rememberTopBarScrollProgress
 import com.makd.afinity.ui.utils.topBarScrollKey
 import com.makd.afinity.util.ReportHomeDrawn
@@ -155,6 +160,7 @@ fun HomeScreen(
     onAbsItemClick: (String) -> Unit = {},
     onMenuClick: (() -> Unit)? = null,
     hideLibrariesSection: Boolean = false,
+    homeScrollToTopTrigger: Long = 0L,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isFetchingRandom by viewModel.isFetchingRandomItem.collectAsStateWithLifecycle()
@@ -162,6 +168,8 @@ fun HomeScreen(
     val playerOffset = LocalPlayerOffset.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val randomNoneMessage = stringResource(R.string.random_item_none)
+    val isTvLauncherUiActive =
+        LocalIsTelevision.current && LocalTvLauncherStatus.current.isLauncherUiActive
 
     ReportHomeDrawn {
         !uiState.isLoading &&
@@ -177,6 +185,11 @@ fun HomeScreen(
 
     val lazyListState = rememberLazyListState()
     val scrollToTopScope = rememberCoroutineScope()
+    LaunchedEffect(homeScrollToTopTrigger) {
+        if (homeScrollToTopTrigger > 0L) {
+            lazyListState.animateScrollToItem(0)
+        }
+    }
     val showScrollToTop by remember { computedStateOf { lazyListState.firstVisibleItemIndex > 3 } }
     val continueWatchingScrollState = rememberCardRowListState()
     val nextUpMerged =
@@ -304,6 +317,11 @@ fun HomeScreen(
                         imageUrl = mainUiState.userProfileImageUrl,
                     ),
                 backgroundOpacity = backgroundOpacity,
+                actions = {
+                    if (isTvLauncherUiActive) {
+                        TvLauncherTopBarActions()
+                    }
+                },
                 isFetchingRandom = isFetchingRandom,
             )
         },
@@ -326,12 +344,22 @@ fun HomeScreen(
                 uiState.downloadedMusicTracks.isEmpty()
 
         uiState.error?.let { error ->
-            FullScreenError(
-                message = error,
-                modifier = Modifier.background(MaterialTheme.colorScheme.background),
-                actionText = stringResource(R.string.action_retry),
-                onActionClick = { viewModel.retryInitialLoad() },
-            )
+            if (isTvLauncherUiActive) {
+                TvLauncherFallbackPanel(
+                    title = stringResource(R.string.home_error_title),
+                    message = error,
+                    actionText = stringResource(R.string.action_retry),
+                    onActionClick = { viewModel.retryInitialLoad() },
+                    modifier = Modifier.background(MaterialTheme.colorScheme.background),
+                )
+            } else {
+                FullScreenError(
+                    message = error,
+                    modifier = Modifier.background(MaterialTheme.colorScheme.background),
+                    actionText = stringResource(R.string.action_retry),
+                    onActionClick = { viewModel.retryInitialLoad() },
+                )
+            }
         }
             ?: run {
                 if (uiState.isOffline && !uiState.offlineContentLoaded) {
@@ -342,23 +370,44 @@ fun HomeScreen(
                 }
                 if (offlineAndEmpty) {
                     val noRoute = uiState.offlineReason == UnreachableReason.NO_ROUTE
-                    FullScreenEmpty(
-                        icon = painterResource(R.drawable.ic_server_off),
-                        title =
-                            stringResource(
-                                if (noRoute) R.string.offline_no_route_title
-                                else R.string.offline_empty_title,
-                            ),
-                        message =
-                            stringResource(
-                                if (noRoute) R.string.offline_no_route_message
-                                else R.string.offline_empty_message,
-                            ),
-                        actionText =
-                            if (noRoute) stringResource(R.string.offline_no_route_action) else null,
-                        onActionClick = if (noRoute) onServerManagementClick else null,
-                        modifier = Modifier.background(MaterialTheme.colorScheme.background),
-                    )
+                    val emptyTitle =
+                        stringResource(
+                            if (noRoute) R.string.offline_no_route_title
+                            else R.string.offline_empty_title,
+                        )
+                    val emptyMessage =
+                        stringResource(
+                            if (noRoute) R.string.offline_no_route_message
+                            else R.string.offline_empty_message,
+                        )
+                    if (isTvLauncherUiActive) {
+                        TvLauncherFallbackPanel(
+                            title = emptyTitle,
+                            message = emptyMessage,
+                            actionText =
+                                stringResource(
+                                    if (noRoute) R.string.offline_no_route_action
+                                    else R.string.action_retry,
+                                ),
+                            onActionClick =
+                                if (noRoute) onServerManagementClick
+                                else {
+                                    { viewModel.retryInitialLoad() }
+                                },
+                            modifier = Modifier.background(MaterialTheme.colorScheme.background),
+                        )
+                    } else {
+                        FullScreenEmpty(
+                            icon = painterResource(R.drawable.ic_server_off),
+                            title = emptyTitle,
+                            message = emptyMessage,
+                            actionText =
+                                if (noRoute) stringResource(R.string.offline_no_route_action)
+                                else null,
+                            onActionClick = if (noRoute) onServerManagementClick else null,
+                            modifier = Modifier.background(MaterialTheme.colorScheme.background),
+                        )
+                    }
                     return@run
                 }
                 Box(modifier = Modifier.fillMaxSize()) {
@@ -401,6 +450,14 @@ fun HomeScreen(
                                 )
                             } else if (heroPending) {
                                 Spacer(modifier = Modifier.fillMaxWidth().height(heroHeight))
+                            }
+                        }
+
+                        if (isTvLauncherUiActive) {
+                            item(key = "tv_launcher_apps", contentType = "tv_apps_row") {
+                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                    TvAppsRowSection()
+                                }
                             }
                         }
 

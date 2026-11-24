@@ -89,6 +89,8 @@ import coil3.request.crossfade
 import com.makd.afinity.R
 import com.makd.afinity.data.models.server.Server
 import com.makd.afinity.data.models.user.User
+import com.makd.afinity.tvlauncher.LocalTvLauncherStatus
+import com.makd.afinity.tvlauncher.ui.TvLauncherLoginBar
 import com.makd.afinity.ui.components.AfinityPasswordField
 import com.makd.afinity.ui.components.AfinitySegmentedTabs
 import com.makd.afinity.ui.components.AfinityTextField
@@ -97,6 +99,7 @@ import com.makd.afinity.ui.components.LoadingButton
 import com.makd.afinity.ui.components.LocalNetworkPermissionCard
 import com.makd.afinity.ui.components.SegmentedTab
 import com.makd.afinity.ui.components.isLandscapeWindow
+import com.makd.afinity.ui.utils.LocalIsTelevision
 import com.makd.afinity.util.isInsecurePublicUrl
 
 enum class LoginMethod {
@@ -401,6 +404,12 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(bottomSpacerHeight))
                 }
+            }
+
+            if (LocalIsTelevision.current && LocalTvLauncherStatus.current.isLauncherUiActive) {
+                TvLauncherLoginBar(
+                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 12.dp, end = 16.dp),
+                )
             }
         }
     }

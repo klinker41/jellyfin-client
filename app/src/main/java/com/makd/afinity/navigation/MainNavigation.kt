@@ -2,6 +2,7 @@
 
 package com.makd.afinity.navigation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.core.animateDpAsState
@@ -34,9 +35,11 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -80,6 +83,8 @@ import com.makd.afinity.data.models.media.AfinityShow
 import com.makd.afinity.data.models.media.AfinityVideoPlaylist
 import com.makd.afinity.data.models.media.BookFormat
 import com.makd.afinity.data.websocket.WebSocketState
+import com.makd.afinity.tvlauncher.LocalTvLauncherStatus
+import com.makd.afinity.tvlauncher.TvLauncherManager
 import com.makd.afinity.ui.admin.identify.IdentifyScreen
 import com.makd.afinity.ui.admin.images.EditImagesScreen
 import com.makd.afinity.ui.admin.lyrics.EditLyricsScreen
@@ -290,8 +295,26 @@ fun MainNavigation(
 
     val useNavRail = widthSizeClass != WindowWidthSizeClass.Compact
     val isTelevision = LocalIsTelevision.current
+    val tvLauncherStatus = LocalTvLauncherStatus.current
+    val context = LocalContext.current
     val effectiveNavigationDrawerEnabled = navigationDrawerEnabled || isTelevision
     val shouldPinDrawer = shouldPinNavigationDrawer(effectiveNavigationDrawerEnabled)
+    var homeScrollToTopTrigger by remember { mutableLongStateOf(0L) }
+    val latestIsPreAuth by rememberUpdatedState(isPreAuth)
+    val latestDrawerEnabled by rememberUpdatedState(effectiveNavigationDrawerEnabled)
+    val latestShouldPinDrawer by rememberUpdatedState(shouldPinDrawer)
+
+    LaunchedEffect(Unit) {
+        viewModel.homeRequested.collect {
+            if (latestDrawerEnabled && !latestShouldPinDrawer) {
+                railState.collapse()
+            }
+            if (!latestIsPreAuth) {
+                navController.navigateHome()
+                homeScrollToTopTrigger++
+            }
+        }
+    }
     val onMenuClick: (() -> Unit)? =
         if (effectiveNavigationDrawerEnabled && !shouldPinDrawer) {
             { coroutineScope.launch { railState.expand() } }
@@ -515,6 +538,19 @@ fun MainNavigation(
                                 }
 
                                 composable(Destination.HOME.route) {
+                                    BackHandler(
+                                        enabled =
+                                            isTelevision && tvLauncherStatus.isDefaultLauncher,
+                                    ) {
+                                        coroutineScope.launch {
+                                            if (
+                                                effectiveNavigationDrawerEnabled && !shouldPinDrawer
+                                            ) {
+                                                railState.collapse()
+                                            }
+                                            homeScrollToTopTrigger++
+                                        }
+                                    }
                                     HomeScreen(
                                         onItemClick = { item ->
                                             navController.navigateToItem(item)
@@ -620,6 +656,7 @@ fun MainNavigation(
                                         hideLibrariesSection =
                                             effectiveNavigationDrawerEnabled &&
                                                 drawerLibrariesMode != DrawerLibrariesMode.OFF,
+                                        homeScrollToTopTrigger = homeScrollToTopTrigger,
                                     )
                                 }
 
@@ -2502,6 +2539,15 @@ fun MainNavigation(
                         }
                     },
                     isPinned = isPinned,
+                    onSystemSettingsClick =
+                        if (isTelevision && tvLauncherStatus.isLauncherUiActive) {
+                            {
+                                if (!isPinned) {
+                                    coroutineScope.launch { railState.collapse() }
+                                }
+                                TvLauncherManager.openSystemSettings(context)
+                            }
+                        } else null,
                 )
             }
 

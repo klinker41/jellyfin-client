@@ -94,6 +94,7 @@ fun AppNavigationDrawerContent(
     onCloseDrawer: () -> Unit,
     modifier: Modifier = Modifier,
     isPinned: Boolean = false,
+    onSystemSettingsClick: (() -> Unit)? = null,
     sessionSwitcherViewModel: SessionSwitcherViewModel = hiltViewModel(),
 ) {
     val sessionState by sessionSwitcherViewModel.state.collectAsStateWithLifecycle()
@@ -123,6 +124,7 @@ fun AppNavigationDrawerContent(
         onCloseDrawer = onCloseDrawer,
         modifier = modifier,
         isPinned = isPinned,
+        onSystemSettingsClick = onSystemSettingsClick,
     )
 }
 
@@ -154,6 +156,7 @@ fun AppNavigationDrawerContent(
     modifier: Modifier = Modifier,
     isPinned: Boolean = false,
     appVersionName: String = BuildConfig.VERSION_NAME,
+    onSystemSettingsClick: (() -> Unit)? = null,
 ) {
     var accountSwitcherExpanded by remember { mutableStateOf(false) }
     var sessionToForget by remember { mutableStateOf<UserSession?>(null) }
@@ -461,6 +464,36 @@ fun AppNavigationDrawerContent(
                                 .focusOutline(RoundedCornerShape(16.dp)),
                         shape = RoundedCornerShape(16.dp),
                     )
+
+                    if (onSystemSettingsClick != null) {
+                        NavigationDrawerItem(
+                            label = {
+                                Text(
+                                    text = stringResource(R.string.tv_launcher_system_settings),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            },
+                            selected = false,
+                            onClick = onSystemSettingsClick,
+                            icon = {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_tv),
+                                    contentDescription =
+                                        stringResource(R.string.tv_launcher_system_settings),
+                                )
+                            },
+                            colors = drawerItemColors,
+                            modifier =
+                                Modifier.padding(
+                                        horizontal = itemHorizontalPadding,
+                                        vertical = 2.dp,
+                                    )
+                                    .focusOutline(RoundedCornerShape(16.dp)),
+                            shape = RoundedCornerShape(16.dp),
+                        )
+                    }
                 }
             }
 
