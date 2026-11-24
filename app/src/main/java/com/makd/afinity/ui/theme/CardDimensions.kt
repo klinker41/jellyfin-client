@@ -20,6 +20,7 @@ import com.makd.afinity.data.models.common.CardSize
 import com.makd.afinity.ui.components.LocalPinnedDrawerStartInset
 import com.makd.afinity.ui.components.windowHeightDp
 import com.makd.afinity.ui.components.windowWidthDp
+import com.makd.afinity.ui.utils.LocalIsTelevision
 import kotlin.math.roundToInt
 
 val LocalCardSize = staticCompositionLocalOf { CardSize.DEFAULT }
@@ -121,6 +122,7 @@ object CardDimensions {
 
     val RowGap = 12.dp
     val GridRowGap = 16.dp
+    internal val TvRowFocusVerticalPadding = 8.dp
 
     val CardTextSpacing = 8.dp
 
@@ -374,7 +376,12 @@ object CardDimensions {
         aspectRatio: Float,
         titleHeight: Dp = titleLine,
         metadataHeight: Dp = metadataLine,
-    ): Dp = calculateHeight(cardWidth, aspectRatio) + CardTextSpacing + titleHeight + metadataHeight
+    ): Dp =
+        calculateHeight(cardWidth, aspectRatio) +
+            CardTextSpacing +
+            titleHeight +
+            metadataHeight +
+            if (LocalIsTelevision.current) TvRowFocusVerticalPadding * 2 else 0.dp
 
     @Composable
     @ReadOnlyComposable

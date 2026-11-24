@@ -1733,8 +1733,8 @@ private fun PlaybackBadges(uiState: PlayerViewModel.PlayerUiState, onClick: (() 
         modifier =
             if (onClick != null) {
                 Modifier.padding(end = 2.dp)
-                    .clip(RoundedCornerShape(8.dp))
                     .focusOutline(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(8.dp))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = ripple(),
@@ -1781,8 +1781,8 @@ private fun LabeledControl(
     Row(
         modifier =
             modifier
-                .clip(RoundedCornerShape(8.dp))
                 .focusOutline(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = ripple(),

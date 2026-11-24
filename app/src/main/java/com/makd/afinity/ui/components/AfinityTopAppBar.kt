@@ -170,8 +170,8 @@ fun AfinityTopAppBar(
                 Row(
                     modifier =
                         Modifier.height(36.dp)
-                            .clip(RoundedCornerShape(24.dp))
                             .focusOutline(RoundedCornerShape(24.dp))
+                            .clip(RoundedCornerShape(24.dp))
                             .background(Color.Black.copy(alpha = 0.3f))
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },

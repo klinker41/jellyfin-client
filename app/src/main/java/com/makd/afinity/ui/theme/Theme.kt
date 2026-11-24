@@ -95,14 +95,13 @@ fun AFinityTheme(
     CompositionLocalProvider(
         LocalDarkColorScheme provides darkScheme,
         LocalIsTelevision provides isTelevision,
-        LocalFocusRingColor provides colorScheme.primary,
     ) {
         MaterialTheme(colorScheme = colorScheme, typography = currentTypography) {
             val baseIndication = LocalIndication.current
             val focusIndication =
-                remember(baseIndication, colorScheme.primary) {
+                remember(baseIndication) {
                     (baseIndication as? IndicationNodeFactory)?.let { factory ->
-                        FocusRingIndication(delegate = factory, ringColor = colorScheme.primary)
+                        FocusScaleIndication(delegate = factory)
                     } ?: baseIndication
                 }
             CompositionLocalProvider(LocalIndication provides focusIndication, content = content)

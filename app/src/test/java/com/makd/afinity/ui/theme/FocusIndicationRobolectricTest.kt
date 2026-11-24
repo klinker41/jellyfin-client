@@ -3,6 +3,7 @@ package com.makd.afinity.ui.theme
 import android.app.Application
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.unit.dp
 import com.makd.afinity.ui.components.CardRow
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -34,12 +36,12 @@ class FocusIndicationRobolectricTest {
     @get:Rule val composeTestRule = createComposeRule()
 
     @Test
-    fun `AFinityTheme provides FocusRingIndication via LocalIndication`() {
-        var isFocusRingIndication = false
+    fun `AFinityTheme provides FocusScaleIndication via LocalIndication`() {
+        var isFocusScaleIndication = false
 
         composeTestRule.setContent {
             AFinityTheme(themeMode = ThemeMode.DARK.name, dynamicColor = false) {
-                isFocusRingIndication = LocalIndication.current is FocusRingIndication
+                isFocusScaleIndication = LocalIndication.current is FocusScaleIndication
                 Box(
                     modifier =
                         Modifier.size(80.dp).testTag("clickable_box").clickable(onClick = {}),
@@ -49,7 +51,7 @@ class FocusIndicationRobolectricTest {
             }
         }
 
-        assertTrue(isFocusRingIndication)
+        assertTrue(isFocusScaleIndication)
         composeTestRule
             .onNodeWithTag("clickable_box")
             .performSemanticsAction(SemanticsActions.RequestFocus)
@@ -57,7 +59,25 @@ class FocusIndicationRobolectricTest {
     }
 
     @Test
-    fun `focusOutline supports Material Card and indication-null clickable`() {
+    fun `resolveFocusScale adapts to small buttons, medium cards, wide controls, and explicit overrides`() {
+        assertEquals(1.14f, resolveFocusScale(widthDp = 48f, heightDp = 48f), 0.001f)
+        assertEquals(1.14f, resolveFocusScale(widthDp = 64f, heightDp = 64f), 0.001f)
+        assertEquals(1.06f, resolveFocusScale(widthDp = 140f, heightDp = 210f), 0.001f)
+        assertEquals(1.03f, resolveFocusScale(widthDp = 320f, heightDp = 56f), 0.001f)
+        assertEquals(
+            1.09f,
+            resolveFocusScale(widthDp = 140f, heightDp = 210f, explicitScale = 1.09f),
+            0.001f,
+        )
+        assertEquals(
+            1f,
+            resolveFocusScale(widthDp = 48f, heightDp = 48f, explicitScale = 0.9f),
+            0.001f,
+        )
+    }
+
+    @Test
+    fun `focusOutline supports Material Card, combinedClickable, and indication-null clickable`() {
         composeTestRule.setContent {
             AFinityTheme(themeMode = ThemeMode.DARK.name, dynamicColor = false) {
                 Column {
@@ -69,6 +89,16 @@ class FocusIndicationRobolectricTest {
                                 .focusOutline(RoundedCornerShape(12.dp)),
                     ) {
                         Text("Card")
+                    }
+
+                    Box(
+                        modifier =
+                            Modifier.size(100.dp)
+                                .testTag("combined_box")
+                                .focusOutline(RoundedCornerShape(12.dp))
+                                .combinedClickable(onClick = {}, onLongClick = {}),
+                    ) {
+                        Text("Combined")
                     }
 
                     Box(
@@ -92,6 +122,11 @@ class FocusIndicationRobolectricTest {
             .onNodeWithTag("focus_card")
             .performSemanticsAction(SemanticsActions.RequestFocus)
         composeTestRule.onNodeWithTag("focus_card").assertIsFocused()
+
+        composeTestRule
+            .onNodeWithTag("combined_box")
+            .performSemanticsAction(SemanticsActions.RequestFocus)
+        composeTestRule.onNodeWithTag("combined_box").assertIsFocused()
 
         composeTestRule
             .onNodeWithTag("no_indication_box")

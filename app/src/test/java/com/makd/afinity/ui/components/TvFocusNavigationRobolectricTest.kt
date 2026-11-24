@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.view.View
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -82,7 +84,7 @@ import com.makd.afinity.ui.preview.PreviewData
 import com.makd.afinity.ui.preview.PreviewHost
 import com.makd.afinity.ui.settings.SessionSwitcherState
 import com.makd.afinity.ui.settings.SessionSwitcherViewModel
-import com.makd.afinity.ui.theme.LocalFocusRingColor
+import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.ThemeMode
 import com.makd.afinity.ui.theme.focusOutline
 import com.makd.afinity.ui.utils.LocalIsTelevision
@@ -301,20 +303,19 @@ class TvFocusNavigationRobolectricTest {
     @Test
     @Config(qualifiers = "w960dp-h540dp")
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
-    fun `focused MediaItemCard and ContinueWatchingCard render focus ring highlight`() {
+    fun `focused MediaItemCard and ContinueWatchingCard scale outward beyond unfocused bounds`() {
         lateinit var hostView: View
         lateinit var inputModeManager: InputModeManager
         var mediaCardBounds: Rect? = null
         var cwCardBounds: Rect? = null
-        var expectedRingArgb = 0
-        var ringSampleInsetPx = 0
+        val blackArgb = Color.Black.toArgb()
+        var outsideInsetPx = 0
 
         composeTestRule.setContent {
             PreviewHost(modifier = Modifier.fillMaxSize(), themeMode = ThemeMode.DARK) {
                 hostView = LocalView.current
                 inputModeManager = LocalInputModeManager.current
-                expectedRingArgb = LocalFocusRingColor.current.toArgb()
-                ringSampleInsetPx = with(LocalDensity.current) { 2.dp.toPx().roundToInt() }
+                outsideInsetPx = with(LocalDensity.current) { 2.dp.toPx().roundToInt() }
 
                 Row(
                     modifier = Modifier.fillMaxSize().background(Color.Black).padding(24.dp),
@@ -342,7 +343,7 @@ class TvFocusNavigationRobolectricTest {
             }
         }
 
-        fun sampleTopEdgePixel(bounds: Rect): Int {
+        fun samplePixelOutsideTopEdge(bounds: Rect): Int {
             composeTestRule.waitForIdle()
             var pixel = 0
             composeTestRule.runOnIdle {
@@ -355,7 +356,7 @@ class TvFocusNavigationRobolectricTest {
                 try {
                     hostView.draw(Canvas(bitmap))
                     val x = bounds.center.x.roundToInt()
-                    val y = (bounds.top + ringSampleInsetPx).roundToInt()
+                    val y = (bounds.top - outsideInsetPx).roundToInt().coerceAtLeast(0)
                     pixel = bitmap.getPixel(x, y)
                 } finally {
                     bitmap.recycle()
@@ -370,26 +371,126 @@ class TvFocusNavigationRobolectricTest {
         assertNotNull(mediaBounds)
         assertNotNull(cwBounds)
 
-        val unfocusedMediaPixel = sampleTopEdgePixel(mediaBounds!!)
-        assertNotEquals(expectedRingArgb, unfocusedMediaPixel)
+        val unfocusedMediaPixel = samplePixelOutsideTopEdge(mediaBounds!!)
+        assertEquals(blackArgb, unfocusedMediaPixel)
 
         composeTestRule.runOnIdle { inputModeManager.requestInputMode(InputMode.Keyboard) }
         val mediaTarget =
             composeTestRule.onNode(hasAnyAncestor(hasTestTag("media_card")) and hasClickAction())
         mediaTarget.performSemanticsAction(SemanticsActions.RequestFocus)
         mediaTarget.assertIsFocused()
-        val focusedMediaPixel = sampleTopEdgePixel(mediaBounds)
-        assertEquals(expectedRingArgb, focusedMediaPixel)
+        val focusedMediaPixel = samplePixelOutsideTopEdge(mediaBounds)
+        assertNotEquals(blackArgb, focusedMediaPixel)
 
-        val unfocusedCwPixel = sampleTopEdgePixel(cwBounds!!)
-        assertNotEquals(expectedRingArgb, unfocusedCwPixel)
+        val unfocusedCwPixel = samplePixelOutsideTopEdge(cwBounds!!)
+        assertEquals(blackArgb, unfocusedCwPixel)
 
         val cwTarget =
             composeTestRule.onNode(hasAnyAncestor(hasTestTag("cw_card")) and hasClickAction())
         cwTarget.performSemanticsAction(SemanticsActions.RequestFocus)
         cwTarget.assertIsFocused()
-        val focusedCwPixel = sampleTopEdgePixel(cwBounds)
-        assertEquals(expectedRingArgb, focusedCwPixel)
+        val focusedCwPixel = samplePixelOutsideTopEdge(cwBounds)
+        assertNotEquals(blackArgb, focusedCwPixel)
+    }
+
+    @Test
+    @Config(qualifiers = "w960dp-h540dp")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `focusable child inside unfocused focusOutline container still scales on focus`() {
+        lateinit var hostView: View
+        lateinit var inputModeManager: InputModeManager
+        var childBounds: Rect? = null
+        val blackArgb = Color.Black.toArgb()
+        var outsideInsetPx = 0
+
+        composeTestRule.setContent {
+            PreviewHost(modifier = Modifier.fillMaxSize(), themeMode = ThemeMode.DARK) {
+                hostView = LocalView.current
+                inputModeManager = LocalInputModeManager.current
+                outsideInsetPx = with(LocalDensity.current) { 2.dp.toPx().roundToInt() }
+
+                Box(
+                    modifier =
+                        Modifier.fillMaxSize()
+                            .background(Color.Black)
+                            .padding(32.dp)
+                            .focusOutline(),
+                ) {
+                    Box(
+                        modifier =
+                            Modifier.size(48.dp)
+                                .testTag("nested_child_btn")
+                                .onGloballyPositioned { childBounds = it.boundsInRoot() }
+                                .background(Color.White)
+                                .clickable(onClick = {}),
+                    )
+                }
+            }
+        }
+
+        fun samplePixelOutsideTopEdge(bounds: Rect): Int {
+            composeTestRule.waitForIdle()
+            var pixel = 0
+            composeTestRule.runOnIdle {
+                val bitmap =
+                    Bitmap.createBitmap(
+                        hostView.width.coerceAtLeast(1),
+                        hostView.height.coerceAtLeast(1),
+                        Bitmap.Config.ARGB_8888,
+                    )
+                try {
+                    hostView.draw(Canvas(bitmap))
+                    val x = bounds.center.x.roundToInt()
+                    val y = (bounds.top - outsideInsetPx).roundToInt().coerceAtLeast(0)
+                    pixel = bitmap.getPixel(x, y)
+                } finally {
+                    bitmap.recycle()
+                }
+            }
+            return pixel
+        }
+
+        composeTestRule.waitForIdle()
+        val bounds = childBounds
+        assertNotNull(bounds)
+        assertEquals(blackArgb, samplePixelOutsideTopEdge(bounds!!))
+
+        composeTestRule.runOnIdle { inputModeManager.requestInputMode(InputMode.Keyboard) }
+        composeTestRule
+            .onNodeWithTag("nested_child_btn")
+            .performSemanticsAction(SemanticsActions.RequestFocus)
+        composeTestRule.onNodeWithTag("nested_child_btn").assertIsFocused()
+
+        assertNotEquals(blackArgb, samplePixelOutsideTopEdge(bounds))
+    }
+
+    @Test
+    @Config(qualifiers = "w960dp-h540dp")
+    fun `CardDimensions rowHeight adds vertical focus padding only on television`() {
+        var tvRowHeight = 0.dp
+        var nonTvRowHeight = 0.dp
+
+        composeTestRule.setContent {
+            PreviewHost(modifier = Modifier.fillMaxSize(), themeMode = ThemeMode.DARK) {
+                CompositionLocalProvider(LocalIsTelevision provides true) {
+                    tvRowHeight =
+                        CardDimensions.rowHeight(
+                            cardWidth = 140.dp,
+                            aspectRatio = CardDimensions.ASPECT_RATIO_PORTRAIT,
+                        )
+                }
+                CompositionLocalProvider(LocalIsTelevision provides false) {
+                    nonTvRowHeight =
+                        CardDimensions.rowHeight(
+                            cardWidth = 140.dp,
+                            aspectRatio = CardDimensions.ASPECT_RATIO_PORTRAIT,
+                        )
+                }
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        assertEquals(nonTvRowHeight + CardDimensions.TvRowFocusVerticalPadding * 2, tvRowHeight)
     }
 
     @Test

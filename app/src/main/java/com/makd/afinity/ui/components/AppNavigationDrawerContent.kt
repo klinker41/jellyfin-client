@@ -216,8 +216,8 @@ fun AppNavigationDrawerContent(
                     modifier =
                         Modifier.fillMaxWidth()
                             .padding(horizontal = if (isPinned) 12.dp else 16.dp)
-                            .clip(RoundedCornerShape(16.dp))
                             .focusOutline(RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(16.dp))
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = ripple(),

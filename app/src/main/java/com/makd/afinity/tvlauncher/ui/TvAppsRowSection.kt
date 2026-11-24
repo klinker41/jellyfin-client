@@ -210,8 +210,8 @@ private fun TvAppTile(
             modifier =
                 Modifier.fillMaxWidth()
                     .aspectRatio(CardDimensions.ASPECT_RATIO_LANDSCAPE)
-                    .clip(CardDefaults.shape)
                     .focusOutline(CardDefaults.shape)
+                    .clip(CardDefaults.shape)
                     .combinedClickable(
                         onClick = onClick,
                         onLongClick = onLongClick,
