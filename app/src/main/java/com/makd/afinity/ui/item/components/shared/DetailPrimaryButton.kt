@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -25,6 +26,8 @@ import com.makd.afinity.R
 import com.makd.afinity.ui.preview.FontScalePreviews
 import com.makd.afinity.ui.preview.PreviewHost
 import com.makd.afinity.ui.preview.StressPreviews
+import com.makd.afinity.ui.theme.focusOutline
+import com.makd.afinity.ui.utils.rememberTvInitialFocusRequester
 
 @Composable
 fun DetailPrimaryButton(
@@ -34,12 +37,28 @@ fun DetailPrimaryButton(
     icon: Painter? = null,
     enabled: Boolean = true,
     isLoading: Boolean = false,
+    requestInitialTvFocus: Boolean = true,
+    initialFocusKey: Any? = Unit,
 ) {
+    val tvFocusRequester =
+        rememberTvInitialFocusRequester(
+            enabled = requestInitialTvFocus && enabled,
+            key = initialFocusKey,
+        )
+    val buttonShape = RoundedCornerShape(28.dp)
     Button(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.fillMaxWidth().heightIn(min = 56.dp),
-        shape = RoundedCornerShape(28.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .then(
+                    if (tvFocusRequester != null) Modifier.focusRequester(tvFocusRequester)
+                    else Modifier,
+                )
+                .focusOutline(buttonShape),
+        shape = buttonShape,
         colors =
             ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,

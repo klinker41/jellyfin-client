@@ -885,6 +885,7 @@ private fun LandscapeItemDetailContent(
                             if (canPlayCollection) {
                                 Box(modifier = Modifier.widthIn(max = 200.dp)) {
                                     CollectionPlayButton(
+                                        itemId = item.id,
                                         isLoading = isStartingCollectionPlayback,
                                         onClick = { viewModel.playCollection() },
                                     )
@@ -1198,6 +1199,7 @@ private fun PortraitItemDetailContent(
             if (item is AfinityBoxSet) {
                 if (canPlayCollection) {
                     CollectionPlayButton(
+                        itemId = item.id,
                         isLoading = isStartingCollectionPlayback,
                         onClick = { viewModel.playCollection() },
                     )
@@ -1668,13 +1670,18 @@ private fun rememberMediaSourceOptions(item: AfinityItem): List<MediaSourceOptio
 }
 
 @Composable
-private fun CollectionPlayButton(isLoading: Boolean, onClick: () -> Unit) {
+private fun CollectionPlayButton(
+    isLoading: Boolean,
+    onClick: () -> Unit,
+    itemId: UUID? = null,
+) {
     DetailPrimaryButton(
         text = stringResource(R.string.action_play),
         onClick = onClick,
         icon = painterResource(id = R.drawable.ic_player_play_filled),
         enabled = !isLoading,
         isLoading = isLoading,
+        initialFocusKey = itemId ?: Unit,
     )
 }
 

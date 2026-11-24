@@ -7,13 +7,16 @@ import android.view.View
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -28,6 +31,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -49,7 +53,8 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.isEnabled
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.isFocused
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -62,9 +67,17 @@ import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.makd.afinity.R
+import com.makd.afinity.data.models.HomeRow
 import com.makd.afinity.data.models.common.HeroStyle
 import com.makd.afinity.data.models.server.ConnectionType
 import com.makd.afinity.navigation.LocalHeroStyle
+import com.makd.afinity.ui.home.HomeTvHeroFocusScrollEffect
+import com.makd.afinity.ui.home.HomeTvInitialFocusEffect
+import com.makd.afinity.ui.home.HomeTvRowBox
+import com.makd.afinity.ui.home.rememberHomeTvFocusState
+import com.makd.afinity.ui.home.resolveInitialTvFocusTarget
+import com.makd.afinity.ui.item.components.shared.PlaybackSelectionButton
+import com.makd.afinity.ui.item.components.shared.PrimaryPlaybackButton
 import com.makd.afinity.ui.preview.PreviewData
 import com.makd.afinity.ui.preview.PreviewHost
 import com.makd.afinity.ui.settings.SessionSwitcherState
@@ -381,10 +394,11 @@ class TvFocusNavigationRobolectricTest {
 
     @Test
     @Config(qualifiers = "w960dp-h540dp")
-    fun `television mode defaults initial focus to hero carousel play button instead of drawer button`() {
+    fun `television mode defaults initial focus to first item of first content row below hero`() {
         val context = ApplicationProvider.getApplicationContext<Application>()
         val watchNowDesc = context.getString(R.string.hero_btn_watch_now)
-        val rowItems = PreviewData.posterRow.take(3)
+        val cwItems = PreviewData.landscapeRow.take(2)
+        val movieItems = PreviewData.posterRow.take(2)
 
         composeTestRule.setContent {
             PreviewHost(modifier = Modifier.fillMaxSize(), themeMode = ThemeMode.DARK) {
@@ -400,6 +414,43 @@ class TvFocusNavigationRobolectricTest {
                         LocalIsTelevision provides true,
                         LocalHeroStyle provides HeroStyle.FULL_BLEED,
                     ) {
+                        val lazyListState = rememberLazyListState()
+                        val target =
+                            resolveInitialTvFocusTarget(
+                                isOffline = false,
+                                hiddenRows = HomeRow.defaultHidden,
+                                loadedPlaybackRows =
+                                    setOf(HomeRow.CONTINUE_WATCHING, HomeRow.NEXT_UP),
+                                nextUpMerged = false,
+                                combineLibrarySections = true,
+                                showTvLauncherApps = false,
+                                showLibrariesSection = false,
+                                showContinueWatchingSlot = true,
+                                hasContinueWatchingItems = true,
+                                showContinueReadingSlot = false,
+                                hasContinueReadingItems = false,
+                                showContinueListeningSlot = false,
+                                hasContinueListeningItems = false,
+                                offlineNextUpNonEmpty = false,
+                                offlineContinueReadingNonEmpty = false,
+                                offlineContinueListeningNonEmpty = false,
+                                downloadedRowKeys = emptyList(),
+                                showNextUpSlot = false,
+                                hasNextUpItems = false,
+                                latestMoviesNonEmpty = true,
+                                latestTvNonEmpty = false,
+                                latestLibraryRowKeys = emptyList(),
+                                fallbackOnlineRows = emptyList(),
+                            )
+                        val tvFocus = rememberHomeTvFocusState(target)
+                        var isHeroFocused by remember { mutableStateOf(false) }
+
+                        HomeTvInitialFocusEffect(lazyListState = lazyListState, tvFocus = tvFocus)
+                        HomeTvHeroFocusScrollEffect(
+                            isHeroFocused = isHeroFocused,
+                            lazyListState = lazyListState,
+                        )
+
                         AfinityScreen(
                             mode = AfinityScreenMode.Immersive,
                             topBar = {
@@ -418,29 +469,56 @@ class TvFocusNavigationRobolectricTest {
                                 )
                             },
                         ) {
-                            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize()) {
                                 item(key = "hero_carousel") {
                                     HeroCarousel(
                                         items = PreviewData.posterRow.take(2),
                                         onWatchNowClick = {},
                                         onPlayTrailerClick = {},
                                         onMoreInformationClick = {},
+                                        modifier =
+                                            Modifier.onFocusChanged { isHeroFocused = it.hasFocus },
                                     )
                                 }
-                                item(key = "media_row") {
-                                    CardRow(
-                                        modifier =
-                                            Modifier.testTag("media_row")
-                                                .fillMaxWidth()
-                                                .height(240.dp),
+                                item(key = "continue_watching") {
+                                    HomeTvRowBox(rowKey = "continue_watching", tvFocus = tvFocus) {
+                                        CardRow(
+                                            modifier =
+                                                Modifier.testTag("cw_row")
+                                                    .fillMaxWidth()
+                                                    .height(220.dp),
+                                        ) {
+                                            items(cwItems, key = { it.id }) { item ->
+                                                ContinueWatchingCard(
+                                                    item = item,
+                                                    onClick = {},
+                                                    cardWidth = 200.dp,
+                                                    modifier = Modifier.testTag("cw_${item.name}"),
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                item(key = "latest_movies_combined") {
+                                    HomeTvRowBox(
+                                        rowKey = "latest_movies_combined",
+                                        tvFocus = tvFocus,
                                     ) {
-                                        items(rowItems, key = { it.id }) { item ->
-                                            MediaItemCard(
-                                                item = item,
-                                                onClick = {},
-                                                cardWidth = 140.dp,
-                                                modifier = Modifier.testTag("poster_${item.name}"),
-                                            )
+                                        CardRow(
+                                            modifier =
+                                                Modifier.testTag("movies_row")
+                                                    .fillMaxWidth()
+                                                    .height(240.dp),
+                                        ) {
+                                            items(movieItems, key = { it.id }) { item ->
+                                                MediaItemCard(
+                                                    item = item,
+                                                    onClick = {},
+                                                    cardWidth = 140.dp,
+                                                    modifier =
+                                                        Modifier.testTag("poster_${item.name}"),
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -452,26 +530,30 @@ class TvFocusNavigationRobolectricTest {
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithContentDescription(watchNowDesc).assertIsFocused()
         composeTestRule.onNodeWithTag("drawer_btn").assertIsNotFocused()
-
-        composeTestRule.onNodeWithContentDescription(watchNowDesc).performKeyInput {
-            pressKey(Key.DirectionDown)
-        }
         composeTestRule.onNodeWithContentDescription(watchNowDesc).assertIsNotFocused()
         composeTestRule
             .onNode(
-                hasAnyAncestor(hasTestTag("media_row")) and hasClickAction() and isFocused(),
+                hasAnyAncestor(hasTestTag("cw_${cwItems[0].name}")) and hasClickAction(),
             )
-            .assertExists()
+            .assertIsFocused()
+
+        composeTestRule
+            .onNode(
+                hasAnyAncestor(hasTestTag("cw_${cwItems[0].name}")) and hasClickAction(),
+            )
+            .performKeyInput { pressKey(Key.DirectionUp) }
+        composeTestRule.waitForIdle()
+        composeTestRule
+            .onNode(hasAnyAncestor(hasTestTag("cw_row")) and isFocused())
+            .assertDoesNotExist()
     }
 
     @Test
     @Config(qualifiers = "w960dp-h540dp")
-    fun `television mode moves focus to hero play button when carousel finishes loading`() {
-        val context = ApplicationProvider.getApplicationContext<Application>()
-        val watchNowDesc = context.getString(R.string.hero_btn_watch_now)
-        var showCarousel by mutableStateOf(false)
+    fun `television mode waits for playback rows to finish loading then focuses latest movies when empty`() {
+        val movieItems = PreviewData.posterRow.take(2)
+        var playbackLoaded by mutableStateOf(false)
 
         composeTestRule.setContent {
             PreviewHost(modifier = Modifier.fillMaxSize(), themeMode = ThemeMode.DARK) {
@@ -482,6 +564,39 @@ class TvFocusNavigationRobolectricTest {
                     LocalIsTelevision provides true,
                     LocalHeroStyle provides HeroStyle.FULL_BLEED,
                 ) {
+                    val lazyListState = rememberLazyListState()
+                    val target =
+                        resolveInitialTvFocusTarget(
+                            isOffline = false,
+                            hiddenRows = HomeRow.defaultHidden,
+                            loadedPlaybackRows =
+                                if (playbackLoaded)
+                                    setOf(HomeRow.CONTINUE_WATCHING, HomeRow.NEXT_UP)
+                                else emptySet(),
+                            nextUpMerged = false,
+                            combineLibrarySections = true,
+                            showTvLauncherApps = false,
+                            showLibrariesSection = false,
+                            showContinueWatchingSlot = false,
+                            hasContinueWatchingItems = false,
+                            showContinueReadingSlot = false,
+                            hasContinueReadingItems = false,
+                            showContinueListeningSlot = false,
+                            hasContinueListeningItems = false,
+                            offlineNextUpNonEmpty = false,
+                            offlineContinueReadingNonEmpty = false,
+                            offlineContinueListeningNonEmpty = false,
+                            downloadedRowKeys = emptyList(),
+                            showNextUpSlot = false,
+                            hasNextUpItems = false,
+                            latestMoviesNonEmpty = true,
+                            latestTvNonEmpty = false,
+                            latestLibraryRowKeys = emptyList(),
+                            fallbackOnlineRows = emptyList(),
+                        )
+                    val tvFocus = rememberHomeTvFocusState(target)
+                    HomeTvInitialFocusEffect(lazyListState = lazyListState, tvFocus = tvFocus)
+
                     AfinityScreen(
                         mode = AfinityScreenMode.Immersive,
                         topBar = {
@@ -500,17 +615,30 @@ class TvFocusNavigationRobolectricTest {
                             )
                         },
                     ) {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize()) {
                             item(key = "hero_carousel") {
-                                if (showCarousel) {
-                                    HeroCarousel(
-                                        items = PreviewData.posterRow.take(2),
-                                        onWatchNowClick = {},
-                                        onPlayTrailerClick = {},
-                                        onMoreInformationClick = {},
-                                    )
-                                } else {
-                                    Box(modifier = Modifier.fillMaxWidth().height(320.dp))
+                                HeroCarousel(
+                                    items = PreviewData.posterRow.take(2),
+                                    onWatchNowClick = {},
+                                    onPlayTrailerClick = {},
+                                    onMoreInformationClick = {},
+                                )
+                            }
+                            item(key = "latest_movies_combined") {
+                                HomeTvRowBox(
+                                    rowKey = "latest_movies_combined",
+                                    tvFocus = tvFocus,
+                                ) {
+                                    CardRow(modifier = Modifier.fillMaxWidth().height(240.dp)) {
+                                        items(movieItems, key = { it.id }) { item ->
+                                            MediaItemCard(
+                                                item = item,
+                                                onClick = {},
+                                                cardWidth = 140.dp,
+                                                modifier = Modifier.testTag("poster_${item.name}"),
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -525,37 +653,202 @@ class TvFocusNavigationRobolectricTest {
             .performSemanticsAction(SemanticsActions.RequestFocus)
         composeTestRule.onNodeWithTag("drawer_btn").assertIsFocused()
 
-        showCarousel = true
+        playbackLoaded = true
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithContentDescription(watchNowDesc).assertIsFocused()
+        composeTestRule
+            .onNode(
+                hasAnyAncestor(hasTestTag("poster_${movieItems[0].name}")) and hasClickAction(),
+            )
+            .assertIsFocused()
         composeTestRule.onNodeWithTag("drawer_btn").assertIsNotFocused()
     }
 
     @Test
     @Config(qualifiers = "w960dp-h540dp")
-    fun `peek hero carousel defaults focus to current slide play button on television`() {
+    fun `moving focus to hero carousel scrolls LazyColumn all the way to the top`() {
         val context = ApplicationProvider.getApplicationContext<Application>()
         val watchNowDesc = context.getString(R.string.hero_btn_watch_now)
+        val moreInfoDesc = context.getString(R.string.hero_btn_more_info)
+        val playTrailerDesc = context.getString(R.string.hero_btn_play_trailer)
+        lateinit var listState: LazyListState
 
         composeTestRule.setContent {
             PreviewHost(modifier = Modifier.fillMaxSize(), themeMode = ThemeMode.DARK) {
                 val inputModeManager = LocalInputModeManager.current
-                var ready by remember { mutableStateOf(false) }
-                LaunchedEffect(Unit) {
-                    inputModeManager.requestInputMode(InputMode.Keyboard)
-                    ready = true
-                }
+                LaunchedEffect(Unit) { inputModeManager.requestInputMode(InputMode.Keyboard) }
 
-                if (ready) {
-                    CompositionLocalProvider(
-                        LocalIsTelevision provides true,
-                        LocalHeroStyle provides HeroStyle.PEEK,
-                    ) {
-                        HeroCarousel(
-                            items = PreviewData.posterRow.take(3),
-                            onWatchNowClick = {},
-                            onPlayTrailerClick = {},
-                            onMoreInformationClick = {},
+                CompositionLocalProvider(
+                    LocalIsTelevision provides true,
+                    LocalHeroStyle provides HeroStyle.FULL_BLEED,
+                ) {
+                    listState = rememberLazyListState()
+                    var isHeroFocused by remember { mutableStateOf(false) }
+
+                    HomeTvHeroFocusScrollEffect(
+                        isHeroFocused = isHeroFocused,
+                        lazyListState = listState,
+                    )
+
+                    LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+                        item(key = "hero_carousel") {
+                            HeroCarousel(
+                                items = PreviewData.posterRow.take(2),
+                                onWatchNowClick = {},
+                                onPlayTrailerClick = {},
+                                onMoreInformationClick = {},
+                                modifier = Modifier.onFocusChanged { isHeroFocused = it.hasFocus },
+                            )
+                        }
+                        items(6) { rowIndex ->
+                            CardRow(modifier = Modifier.fillMaxWidth().height(200.dp)) {
+                                items(
+                                    PreviewData.posterRow.take(2),
+                                    key = { "${rowIndex}_${it.id}" },
+                                ) { item ->
+                                    MediaItemCard(
+                                        item = item,
+                                        onClick = {},
+                                        cardWidth = 140.dp,
+                                        modifier =
+                                            Modifier.testTag("scroll_row_${rowIndex}_${item.name}"),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.runOnIdle { listState.requestScrollToItem(index = 0, scrollOffset = 220) }
+        composeTestRule.waitForIdle()
+        assertEquals(0, listState.firstVisibleItemIndex)
+        assertNotEquals(0, listState.firstVisibleItemScrollOffset)
+
+        val firstRowCard =
+            composeTestRule.onNode(
+                hasAnyAncestor(hasTestTag("scroll_row_0_${PreviewData.posterRow[0].name}")) and
+                    hasClickAction(),
+            )
+        firstRowCard.performSemanticsAction(SemanticsActions.RequestFocus)
+        firstRowCard.assertIsFocused()
+
+        firstRowCard.performKeyInput { pressKey(Key.DirectionUp) }
+        composeTestRule.waitForIdle()
+        composeTestRule
+            .onNode(
+                (hasContentDescription(watchNowDesc) or
+                    hasContentDescription(moreInfoDesc) or
+                    hasContentDescription(playTrailerDesc)) and isFocused(),
+            )
+            .assertExists()
+        assertEquals(0, listState.firstVisibleItemIndex)
+        assertEquals(0, listState.firstVisibleItemScrollOffset)
+    }
+
+    @Test
+    @Config(qualifiers = "w960dp-h540dp")
+    fun `non-television mode does not auto-focus first content row, detail play button, or action row`() {
+        val context = ApplicationProvider.getApplicationContext<Application>()
+        val playLabel = context.getString(R.string.action_play)
+        val playDesc = context.getString(R.string.cd_play)
+        val movie = PreviewData.movie()
+
+        composeTestRule.setContent {
+            PreviewHost(modifier = Modifier.fillMaxSize(), themeMode = ThemeMode.DARK) {
+                val inputModeManager = LocalInputModeManager.current
+                LaunchedEffect(Unit) { inputModeManager.requestInputMode(InputMode.Keyboard) }
+
+                CompositionLocalProvider(LocalIsTelevision provides false) {
+                    val target =
+                        resolveInitialTvFocusTarget(
+                            isOffline = false,
+                            hiddenRows = HomeRow.defaultHidden,
+                            loadedPlaybackRows = setOf(HomeRow.CONTINUE_WATCHING, HomeRow.NEXT_UP),
+                            nextUpMerged = false,
+                            combineLibrarySections = true,
+                            showTvLauncherApps = false,
+                            showLibrariesSection = false,
+                            showContinueWatchingSlot = false,
+                            hasContinueWatchingItems = false,
+                            showContinueReadingSlot = false,
+                            hasContinueReadingItems = false,
+                            showContinueListeningSlot = false,
+                            hasContinueListeningItems = false,
+                            offlineNextUpNonEmpty = false,
+                            offlineContinueReadingNonEmpty = false,
+                            offlineContinueListeningNonEmpty = false,
+                            downloadedRowKeys = emptyList(),
+                            showNextUpSlot = false,
+                            hasNextUpItems = false,
+                            latestMoviesNonEmpty = true,
+                            latestTvNonEmpty = false,
+                            latestLibraryRowKeys = emptyList(),
+                            fallbackOnlineRows = emptyList(),
+                        )
+                    val tvFocus = rememberHomeTvFocusState(target)
+                    Column {
+                        HomeTvRowBox(rowKey = "latest_movies_combined", tvFocus = tvFocus) {
+                            CardRow(modifier = Modifier.fillMaxWidth().height(180.dp)) {
+                                item {
+                                    MediaItemCard(
+                                        item = movie,
+                                        onClick = {},
+                                        cardWidth = 120.dp,
+                                        modifier = Modifier.testTag("non_tv_card"),
+                                    )
+                                }
+                            }
+                        }
+                        PrimaryPlaybackButton(
+                            item = movie,
+                            nextEpisode = null,
+                            selectedMediaSource = null,
+                            isLoading = false,
+                            onPlayRequested = { _, _ -> },
+                        )
+                        DetailActionRow(onPlay = {}) {}
+                    }
+                }
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule
+            .onNode(hasAnyAncestor(hasTestTag("non_tv_card")) and hasClickAction())
+            .assertIsNotFocused()
+        composeTestRule.onNodeWithText(playLabel).assertIsNotFocused()
+        composeTestRule.onNodeWithContentDescription(playDesc).assertIsNotFocused()
+    }
+
+    @Test
+    @Config(qualifiers = "w960dp-h540dp")
+    fun `detail PrimaryPlaybackButton focuses play immediately on TV once enabled`() {
+        val context = ApplicationProvider.getApplicationContext<Application>()
+        val playLabel = context.getString(R.string.action_play)
+        val movie = PreviewData.movie()
+        var isLoading by mutableStateOf(true)
+
+        composeTestRule.setContent {
+            PreviewHost(modifier = Modifier.fillMaxSize(), themeMode = ThemeMode.DARK) {
+                val inputModeManager = LocalInputModeManager.current
+                LaunchedEffect(Unit) { inputModeManager.requestInputMode(InputMode.Keyboard) }
+
+                CompositionLocalProvider(LocalIsTelevision provides true) {
+                    Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
+                        IconButton(
+                            onClick = {},
+                            modifier = Modifier.testTag("other_btn"),
+                        ) {
+                            Text("Back")
+                        }
+                        PrimaryPlaybackButton(
+                            item = movie,
+                            nextEpisode = null,
+                            selectedMediaSource = null,
+                            isLoading = isLoading,
+                            onPlayRequested = { _, _ -> },
                         )
                     }
                 }
@@ -564,42 +857,113 @@ class TvFocusNavigationRobolectricTest {
 
         composeTestRule.waitForIdle()
         composeTestRule
-            .onNode(hasContentDescription(watchNowDesc) and isEnabled())
-            .assertIsFocused()
+            .onNodeWithTag("other_btn")
+            .performSemanticsAction(SemanticsActions.RequestFocus)
+        composeTestRule.onNodeWithTag("other_btn").assertIsFocused()
+
+        isLoading = false
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(playLabel).assertIsFocused()
+        composeTestRule.onNodeWithTag("other_btn").assertIsNotFocused()
     }
 
     @Test
     @Config(qualifiers = "w960dp-h540dp")
-    fun `non-television mode does not auto-focus hero carousel play button`() {
+    fun `DetailActionRow focuses play FAB immediately on TV`() {
         val context = ApplicationProvider.getApplicationContext<Application>()
-        val watchNowDesc = context.getString(R.string.hero_btn_watch_now)
+        val playDesc = context.getString(R.string.cd_play)
 
         composeTestRule.setContent {
             PreviewHost(modifier = Modifier.fillMaxSize(), themeMode = ThemeMode.DARK) {
                 val inputModeManager = LocalInputModeManager.current
-                var ready by remember { mutableStateOf(false) }
-                LaunchedEffect(Unit) {
-                    inputModeManager.requestInputMode(InputMode.Keyboard)
-                    ready = true
-                }
+                LaunchedEffect(Unit) { inputModeManager.requestInputMode(InputMode.Keyboard) }
 
-                if (ready) {
-                    CompositionLocalProvider(
-                        LocalIsTelevision provides false,
-                        LocalHeroStyle provides HeroStyle.FULL_BLEED,
+                CompositionLocalProvider(LocalIsTelevision provides true) {
+                    DetailActionRow(
+                        onPlay = {},
+                        modifier = Modifier.fillMaxWidth().padding(24.dp),
                     ) {
-                        HeroCarousel(
-                            items = PreviewData.posterRow.take(2),
-                            onWatchNowClick = {},
-                            onPlayTrailerClick = {},
-                            onMoreInformationClick = {},
-                        )
+                        IconButton(onClick = {}, modifier = Modifier.testTag("leading_btn")) {
+                            Text("Fav")
+                        }
                     }
                 }
             }
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithContentDescription(watchNowDesc).assertIsNotFocused()
+        composeTestRule.onNodeWithContentDescription(playDesc).assertIsFocused()
+        composeTestRule.onNodeWithTag("leading_btn").assertIsNotFocused()
+    }
+
+    @Test
+    @Config(qualifiers = "w960dp-h540dp")
+    fun `episode side sheet moves TV focus from background list to play button`() {
+        val context = ApplicationProvider.getApplicationContext<Application>()
+        val resumeLabel = context.getString(R.string.episode_resume)
+        val episode = PreviewData.episode(progress = 0.4f)
+        var showSheet by mutableStateOf(false)
+
+        composeTestRule.setContent {
+            PreviewHost(modifier = Modifier.fillMaxSize(), themeMode = ThemeMode.DARK) {
+                val inputModeManager = LocalInputModeManager.current
+                LaunchedEffect(Unit) { inputModeManager.requestInputMode(InputMode.Keyboard) }
+
+                CompositionLocalProvider(LocalIsTelevision provides true) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        ContinueWatchingCard(
+                            item = episode,
+                            onClick = { showSheet = true },
+                            cardWidth = 220.dp,
+                            modifier = Modifier.testTag("bg_episode_card"),
+                        )
+
+                        if (showSheet) {
+                            ModalSideSheet(
+                                onDismissRequest = { showSheet = false },
+                                title = episode.name,
+                            ) {
+                                Column(modifier = Modifier.padding(24.dp)) {
+                                    PlaybackSelectionButton(
+                                        item = episode,
+                                        buttonText = resumeLabel,
+                                        buttonIcon =
+                                            androidx.compose.ui.res.painterResource(
+                                                id = R.drawable.ic_player_play_filled,
+                                            ),
+                                        onPlayClick = {},
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                    IconButton(
+                                        onClick = {},
+                                        modifier = Modifier.testTag("sheet_secondary_btn"),
+                                    ) {
+                                        Text("Favorite")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        val bgCard =
+            composeTestRule.onNode(
+                hasAnyAncestor(hasTestTag("bg_episode_card")) and hasClickAction(),
+            )
+        bgCard.performSemanticsAction(SemanticsActions.RequestFocus)
+        bgCard.assertIsFocused()
+
+        bgCard.performClick()
+        composeTestRule.waitForIdle()
+
+        val resumeButton =
+            composeTestRule.onNode(hasAnyAncestor(isDialog()) and hasText(resumeLabel))
+        resumeButton.assertIsFocused()
+
+        resumeButton.performKeyInput { pressKey(Key.DirectionDown) }
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("sheet_secondary_btn").assertIsFocused()
     }
 }

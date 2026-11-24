@@ -8,6 +8,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -26,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.dismiss
@@ -103,6 +105,7 @@ fun ModalSideSheet(
                 modifier =
                     Modifier.fillMaxSize()
                         .background(MaterialTheme.colorScheme.scrim.copy(alpha = scrimAlpha))
+                        .focusProperties { canFocus = false }
                         .clickable(
                             indication = null,
                             interactionSource = remember { MutableInteractionSource() },
@@ -118,6 +121,7 @@ fun ModalSideSheet(
                         .width(sheetWidth)
                         .fillMaxHeight()
                         .offset { IntOffset(offsetX.value.roundToInt(), 0) }
+                        .focusGroup()
                         .draggable(
                             orientation = Orientation.Horizontal,
                             state =

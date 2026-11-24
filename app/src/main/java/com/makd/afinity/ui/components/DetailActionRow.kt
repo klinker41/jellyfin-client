@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -33,6 +34,7 @@ import com.makd.afinity.ui.preview.FontScalePreviews
 import com.makd.afinity.ui.preview.PreviewHost
 import com.makd.afinity.ui.preview.WidthPreviews
 import com.makd.afinity.ui.theme.focusOutline
+import com.makd.afinity.ui.utils.rememberTvInitialFocusRequester
 
 class DetailMenuAction(
     val label: String,
@@ -54,8 +56,12 @@ fun DetailActionRow(
     moreActions: List<DetailMenuAction> = emptyList(),
     @DrawableRes playIconRes: Int = R.drawable.ic_player_play_filled,
     playContentDescription: String? = null,
+    requestInitialTvFocus: Boolean = true,
     leadingActions: @Composable RowScope.() -> Unit,
 ) {
+    val tvFocusRequester =
+        rememberTvInitialFocusRequester(enabled = requestInitialTvFocus && playbackEnabled)
+
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -102,7 +108,13 @@ fun DetailActionRow(
                     if (playbackEnabled) MaterialTheme.colorScheme.onPrimary
                     else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
                 shape = CircleShape,
-                modifier = Modifier.size(56.dp).focusOutline(CircleShape),
+                modifier =
+                    Modifier.size(56.dp)
+                        .then(
+                            if (tvFocusRequester != null) Modifier.focusRequester(tvFocusRequester)
+                            else Modifier,
+                        )
+                        .focusOutline(CircleShape),
             ) {
                 Icon(
                     painter = painterResource(playIconRes),

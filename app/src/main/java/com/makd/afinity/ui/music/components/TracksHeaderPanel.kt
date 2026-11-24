@@ -97,6 +97,7 @@ fun TracksHeaderPanel(
                         DetailActionRow(
                             onShuffle = onShuffleAll,
                             onPlay = onPlayAll,
+                            requestInitialTvFocus = false,
                             leadingActions = {},
                         )
                     }
@@ -120,6 +121,7 @@ fun TracksHeaderPanel(
                     DetailActionRow(
                         onShuffle = onShuffleAll,
                         onPlay = onPlayAll,
+                        requestInitialTvFocus = false,
                         modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp),
                         leadingActions = leadingActions,
                     )

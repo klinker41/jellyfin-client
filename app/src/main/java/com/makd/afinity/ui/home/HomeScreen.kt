@@ -40,11 +40,14 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.computedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
@@ -424,6 +427,118 @@ fun HomeScreen(
                                 WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal),
                             )
 
+                    val showLibrariesSection =
+                        !uiState.isOffline &&
+                            uiState.libraries.isNotEmpty() &&
+                            !hideLibrariesSection &&
+                            HomeRow.LIBRARIES !in uiState.hiddenRows
+                    val showContinueWatching =
+                        if (uiState.isOffline) {
+                            continueWatchingItems.isNotEmpty() &&
+                                HomeRow.CONTINUE_WATCHING !in uiState.hiddenRows
+                        } else {
+                            uiState.showsFixedRow(
+                                HomeRow.CONTINUE_WATCHING,
+                                hasItems = continueWatchingItems.isNotEmpty(),
+                                loaded = HomeRow.CONTINUE_WATCHING in uiState.loadedPlaybackRows,
+                            )
+                        }
+                    val showContinueReadingSlot =
+                        !uiState.isOffline &&
+                            uiState.showsFixedRow(
+                                HomeRow.CONTINUE_READING,
+                                hasItems = uiState.continueReading.isNotEmpty(),
+                                loaded = HomeRow.CONTINUE_READING in uiState.loadedPlaybackRows,
+                            )
+                    val showContinueListeningSlot =
+                        !uiState.isOffline &&
+                            uiState.showsFixedRow(
+                                HomeRow.CONTINUE_LISTENING,
+                                hasItems = continueListeningEntries.isNotEmpty(),
+                                loaded = HomeRow.CONTINUE_LISTENING in uiState.loadedPlaybackRows,
+                            )
+                    val showNextUpSlot =
+                        !uiState.isOffline &&
+                            !nextUpMerged &&
+                            uiState.showsFixedRow(
+                                HomeRow.NEXT_UP,
+                                hasItems = uiState.nextUp.isNotEmpty(),
+                                loaded = HomeRow.NEXT_UP in uiState.loadedPlaybackRows,
+                            )
+                    val showUpcomingSlot =
+                        !uiState.isOffline &&
+                            uiState.showsFixedRow(
+                                HomeRow.UPCOMING_EPISODES,
+                                hasItems = uiState.upcomingEpisodes.isNotEmpty(),
+                                loaded = uiState.upcomingLoaded,
+                            )
+                    val showHighestRatedSlot =
+                        !uiState.isOffline &&
+                            uiState.showsFixedRow(
+                                HomeRow.CRITICS_CHOICE,
+                                hasItems = uiState.highestRated.isNotEmpty(),
+                                loaded = uiState.highestRatedLoaded,
+                            )
+                    val showFranchisesSlot =
+                        !uiState.isOffline &&
+                            uiState.showsFixedRow(
+                                HomeRow.FRANCHISES,
+                                hasItems = uiState.franchises.isNotEmpty(),
+                                loaded = uiState.franchisesLoaded,
+                            )
+                    val showWatchAgainSlot =
+                        !uiState.isOffline &&
+                            uiState.showsFixedRow(
+                                HomeRow.WATCH_AGAIN,
+                                hasItems = uiState.watchAgain.isNotEmpty(),
+                                loaded = uiState.watchAgainLoaded,
+                            )
+                    val showPopularStudiosSlot =
+                        !uiState.isOffline &&
+                            uiState.showsFixedRow(
+                                HomeRow.POPULAR_STUDIOS,
+                                hasItems = uiState.popularStudios.isNotEmpty(),
+                                loaded = uiState.popularStudiosLoaded,
+                            )
+                    val latestLibraryRowKeys =
+                        remember(latestLibraryRows) {
+                            latestLibraryRows.map { row ->
+                                when (row) {
+                                    is LatestLibraryRow.Movies -> "movie_lib_${row.library.id}"
+                                    is LatestLibraryRow.Shows -> "tv_lib_${row.library.id}"
+                                    is LatestLibraryRow.Mixed -> "mixed_lib_${row.library.id}"
+                                }
+                            }
+                        }
+
+                    val tvFocusTarget =
+                        rememberHomeTvFocusTarget(
+                            uiState = uiState,
+                            isTvLauncherUiActive = isTvLauncherUiActive,
+                            showLibrariesSection = showLibrariesSection,
+                            showContinueWatching = showContinueWatching,
+                            hasContinueWatchingItems = continueWatchingItems.isNotEmpty(),
+                            showContinueReadingSlot = showContinueReadingSlot,
+                            showContinueListeningSlot = showContinueListeningSlot,
+                            hasContinueListeningItems = continueListeningEntries.isNotEmpty(),
+                            showNextUpSlot = showNextUpSlot,
+                            showUpcomingSlot = showUpcomingSlot,
+                            showHighestRatedSlot = showHighestRatedSlot,
+                            showFranchisesSlot = showFranchisesSlot,
+                            showWatchAgainSlot = showWatchAgainSlot,
+                            showPopularStudiosSlot = showPopularStudiosSlot,
+                            nextUpMerged = nextUpMerged,
+                            latestLibraryRowKeys = latestLibraryRowKeys,
+                        )
+                    val tvFocus = rememberHomeTvFocusState(tvFocusTarget)
+                    var isHeroFocused by remember { mutableStateOf(false) }
+
+                    HomeTvInitialFocusEffect(lazyListState = lazyListState, tvFocus = tvFocus)
+                    HomeTvHeroFocusScrollEffect(
+                        isHeroFocused = isHeroFocused,
+                        lazyListState = lazyListState,
+                    )
+
                     LazyColumn(
                         state = lazyListState,
                         modifier = Modifier.fillMaxSize().topBarBlurSource(topBarBlurState),
@@ -447,6 +562,8 @@ fun HomeScreen(
                                         viewModel.onPlayTrailerClick(context, item)
                                     },
                                     onMoreInformationClick = onItemClick,
+                                    modifier =
+                                        Modifier.onFocusChanged { isHeroFocused = it.hasFocus },
                                 )
                             } else if (heroPending) {
                                 Spacer(modifier = Modifier.fillMaxWidth().height(heroHeight))
@@ -455,20 +572,23 @@ fun HomeScreen(
 
                         if (isTvLauncherUiActive) {
                             item(key = "tv_launcher_apps", contentType = "tv_apps_row") {
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "tv_launcher_apps",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     TvAppsRowSection()
                                 }
                             }
                         }
 
-                        if (
-                            !uiState.isOffline &&
-                                uiState.libraries.isNotEmpty() &&
-                                !hideLibrariesSection &&
-                                HomeRow.LIBRARIES !in uiState.hiddenRows
-                        ) {
+                        if (showLibrariesSection) {
                             item(key = "libraries_section", contentType = "libraries_section") {
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "libraries_section",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     LibrariesSection(
                                         libraries = uiState.libraries,
                                         onLibraryClick = onLibraryClick,
@@ -478,21 +598,13 @@ fun HomeScreen(
                             }
                         }
 
-                        val showContinueWatching =
-                            if (uiState.isOffline) {
-                                continueWatchingItems.isNotEmpty() &&
-                                    HomeRow.CONTINUE_WATCHING !in uiState.hiddenRows
-                            } else {
-                                uiState.showsFixedRow(
-                                    HomeRow.CONTINUE_WATCHING,
-                                    hasItems = continueWatchingItems.isNotEmpty(),
-                                    loaded =
-                                        HomeRow.CONTINUE_WATCHING in uiState.loadedPlaybackRows,
-                                )
-                            }
                         if (showContinueWatching) {
                             item(key = "continue_watching", contentType = "landscape_media_row") {
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "continue_watching",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     if (continueWatchingItems.isNotEmpty()) {
                                         OptimizedContinueWatchingSection(
                                             items = continueWatchingItems,
@@ -517,16 +629,13 @@ fun HomeScreen(
                             }
                         }
 
-                        if (
-                            !uiState.isOffline &&
-                                uiState.showsFixedRow(
-                                    HomeRow.CONTINUE_READING,
-                                    hasItems = uiState.continueReading.isNotEmpty(),
-                                    loaded = HomeRow.CONTINUE_READING in uiState.loadedPlaybackRows,
-                                )
-                        ) {
+                        if (showContinueReadingSlot) {
                             item(key = "continue_reading", contentType = "portrait_media_row") {
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "continue_reading",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     if (uiState.continueReading.isNotEmpty()) {
                                         ContinueReadingSection(
                                             books = uiState.continueReading,
@@ -545,17 +654,13 @@ fun HomeScreen(
                             }
                         }
 
-                        if (
-                            !uiState.isOffline &&
-                                uiState.showsFixedRow(
-                                    HomeRow.CONTINUE_LISTENING,
-                                    hasItems = continueListeningEntries.isNotEmpty(),
-                                    loaded =
-                                        HomeRow.CONTINUE_LISTENING in uiState.loadedPlaybackRows,
-                                )
-                        ) {
+                        if (showContinueListeningSlot) {
                             item(key = "continue_listening", contentType = "square_media_row") {
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "continue_listening",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     if (continueListeningEntries.isNotEmpty()) {
                                         ContinueListeningRowSection(
                                             title =
@@ -582,7 +687,11 @@ fun HomeScreen(
 
                         if (uiState.isOffline && uiState.offlineNextUp.isNotEmpty()) {
                             item(key = "offline_next_up", contentType = "landscape_media_row") {
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "offline_next_up",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     NextUpSection(
                                         episodes = uiState.offlineNextUp,
                                         onEpisodeClick = { episode ->
@@ -599,7 +708,11 @@ fun HomeScreen(
                                 key = "offline_continue_reading",
                                 contentType = "portrait_media_row",
                             ) {
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "offline_continue_reading",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     ContinueReadingSection(
                                         books = uiState.offlineContinueReading,
                                         onBookClick = onItemClick,
@@ -614,7 +727,11 @@ fun HomeScreen(
                                 key = "offline_continue_listening",
                                 contentType = "square_media_row",
                             ) {
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "offline_continue_listening",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     AudiobookRowSection(
                                         title = stringResource(R.string.home_continue_listening),
                                         books = uiState.offlineContinueListening,
@@ -628,7 +745,11 @@ fun HomeScreen(
 
                         if (uiState.isOffline && uiState.downloadedMovies.isNotEmpty()) {
                             item(key = "downloaded_movies", contentType = "portrait_media_row") {
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "downloaded_movies",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     OptimizedLatestTvSeriesSection(
                                         title = stringResource(R.string.home_downloaded_movies),
                                         items = uiState.downloadedMovies,
@@ -645,7 +766,11 @@ fun HomeScreen(
 
                         if (uiState.isOffline && uiState.downloadedShows.isNotEmpty()) {
                             item(key = "downloaded_shows", contentType = "portrait_media_row") {
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "downloaded_shows",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     OptimizedLatestTvSeriesSection(
                                         title = stringResource(R.string.home_downloaded_shows),
                                         items = uiState.downloadedShows,
@@ -662,7 +787,11 @@ fun HomeScreen(
 
                         if (uiState.isOffline && uiState.downloadedVideos.isNotEmpty()) {
                             item(key = "downloaded_videos", contentType = "landscape_media_row") {
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "downloaded_videos",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     OptimizedLatestTvSeriesSection(
                                         title = stringResource(R.string.home_downloaded_videos),
                                         items = uiState.downloadedVideos,
@@ -679,7 +808,11 @@ fun HomeScreen(
 
                         if (uiState.isOffline && uiState.downloadedBooks.isNotEmpty()) {
                             item(key = "downloaded_books", contentType = "portrait_media_row") {
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "downloaded_books",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     OptimizedLatestTvSeriesSection(
                                         title = stringResource(R.string.home_downloaded_books),
                                         items = uiState.downloadedBooks,
@@ -700,7 +833,11 @@ fun HomeScreen(
                                 key = "downloaded_jellyfin_audiobooks",
                                 contentType = "square_media_row",
                             ) {
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "downloaded_jellyfin_audiobooks",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     AudiobookRowSection(
                                         title =
                                             stringResource(
@@ -724,7 +861,11 @@ fun HomeScreen(
 
                         if (uiState.isOffline && uiState.downloadedAudiobooks.isNotEmpty()) {
                             item(key = "downloaded_audiobooks", contentType = "square_media_row") {
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "downloaded_audiobooks",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     DownloadedAudiobooksSection(
                                         title = stringResource(R.string.home_downloaded_audiobooks),
                                         items = uiState.downloadedAudiobooks,
@@ -739,7 +880,11 @@ fun HomeScreen(
 
                         if (uiState.isOffline && uiState.downloadedPodcastEpisodes.isNotEmpty()) {
                             item(key = "downloaded_podcasts", contentType = "square_media_row") {
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "downloaded_podcasts",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     DownloadedAudiobooksSection(
                                         title = stringResource(R.string.home_downloaded_episodes),
                                         items = uiState.downloadedPodcastEpisodes,
@@ -757,7 +902,11 @@ fun HomeScreen(
                                 key = "downloaded_music_albums",
                                 contentType = "square_media_row",
                             ) {
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "downloaded_music_albums",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     DownloadedMusicAlbumsSection(
                                         title = stringResource(R.string.home_downloaded_albums),
                                         albums = uiState.downloadedMusicAlbums,
@@ -777,7 +926,11 @@ fun HomeScreen(
                                 key = "downloaded_music_tracks",
                                 contentType = "square_media_row",
                             ) {
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "downloaded_music_tracks",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     DownloadedMusicTracksSection(
                                         title = stringResource(R.string.home_downloaded_tracks),
                                         tracks = uiState.downloadedMusicTracks,
@@ -796,17 +949,13 @@ fun HomeScreen(
                             }
                         }
 
-                        if (
-                            !uiState.isOffline &&
-                                !nextUpMerged &&
-                                uiState.showsFixedRow(
-                                    HomeRow.NEXT_UP,
-                                    hasItems = uiState.nextUp.isNotEmpty(),
-                                    loaded = HomeRow.NEXT_UP in uiState.loadedPlaybackRows,
-                                )
-                        ) {
+                        if (showNextUpSlot) {
                             item(key = "next_up", contentType = "landscape_media_row") {
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "next_up",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     if (uiState.nextUp.isNotEmpty()) {
                                         NextUpSection(
                                             episodes = uiState.nextUp,
@@ -835,7 +984,11 @@ fun HomeScreen(
                                     key = "latest_movies_combined",
                                     contentType = "portrait_media_row",
                                 ) {
-                                    Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                    HomeTvRowBox(
+                                        rowKey = "latest_movies_combined",
+                                        tvFocus = tvFocus,
+                                        modifier = baseModifier.padding(top = 24.dp),
+                                    ) {
                                         OptimizedLatestMoviesSection(
                                             items = uiState.latestMovies,
                                             onItemClick = onItemClick,
@@ -854,7 +1007,11 @@ fun HomeScreen(
                                     key = "latest_tv_combined",
                                     contentType = "portrait_media_row",
                                 ) {
-                                    Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                    HomeTvRowBox(
+                                        rowKey = "latest_tv_combined",
+                                        tvFocus = tvFocus,
+                                        modifier = baseModifier.padding(top = 24.dp),
+                                    ) {
                                         OptimizedLatestTvSeriesSection(
                                             items = uiState.latestTvSeries,
                                             onItemClick = onItemClick,
@@ -877,7 +1034,17 @@ fun HomeScreen(
                                 },
                                 contentType = { row -> row::class },
                             ) { row ->
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                val rowKey =
+                                    when (row) {
+                                        is LatestLibraryRow.Movies -> "movie_lib_${row.library.id}"
+                                        is LatestLibraryRow.Shows -> "tv_lib_${row.library.id}"
+                                        is LatestLibraryRow.Mixed -> "mixed_lib_${row.library.id}"
+                                    }
+                                HomeTvRowBox(
+                                    rowKey = rowKey,
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     when (row) {
                                         is LatestLibraryRow.Movies ->
                                             OptimizedLatestMoviesSection(
@@ -915,7 +1082,11 @@ fun HomeScreen(
                                 key = { (library, _) -> "book_lib_${library.id}" },
                                 contentType = { "book_library_row" },
                             ) { (library, books) ->
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "book_lib_${library.id}",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     OptimizedLatestTvSeriesSection(
                                         title = library.name,
                                         items = books,
@@ -936,7 +1107,11 @@ fun HomeScreen(
                                 contentType = { "audiobook_library_row" },
                             ) { (library, books) ->
                                 val alsoHasBooks = library.id in uiState.bookLibraryIds
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "audiobook_lib_${library.id}",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     AudiobookRowSection(
                                         title =
                                             if (alsoHasBooks)
@@ -962,7 +1137,11 @@ fun HomeScreen(
                             ) { (library, episodes) ->
                                 val unplayed = remember(episodes) { episodes.filter { !it.played } }
                                 if (unplayed.isNotEmpty()) {
-                                    Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                    HomeTvRowBox(
+                                        rowKey = "podcast_lib_${library.id}",
+                                        tvFocus = tvFocus,
+                                        modifier = baseModifier.padding(top = 24.dp),
+                                    ) {
                                         LatestPodcastRowSection(
                                             title = library.name,
                                             episodes = unplayed,
@@ -984,7 +1163,11 @@ fun HomeScreen(
                                 key = { (library, _) -> "home_video_lib_${library.id}" },
                                 contentType = { "home_video_library_row" },
                             ) { (library, entries) ->
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "home_video_lib_${library.id}",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     LatestGalleryRowSection(
                                         title = library.name,
                                         items = entries,
@@ -1003,7 +1186,11 @@ fun HomeScreen(
                                 key = { (library, _) -> "music_video_lib_${library.id}" },
                                 contentType = { "music_video_library_row" },
                             ) { (library, videos) ->
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "music_video_lib_${library.id}",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     LatestMusicVideoRowSection(
                                         title = library.name,
                                         videos = videos,
@@ -1013,16 +1200,13 @@ fun HomeScreen(
                             }
                         }
 
-                        if (
-                            !uiState.isOffline &&
-                                uiState.showsFixedRow(
-                                    HomeRow.UPCOMING_EPISODES,
-                                    hasItems = uiState.upcomingEpisodes.isNotEmpty(),
-                                    loaded = uiState.upcomingLoaded,
-                                )
-                        ) {
+                        if (showUpcomingSlot) {
                             item(key = "upcoming_episodes", contentType = "landscape_media_row") {
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "upcoming_episodes",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     if (uiState.upcomingEpisodes.isNotEmpty()) {
                                         UpcomingEpisodesSection(
                                             items = uiState.upcomingEpisodes,
@@ -1042,16 +1226,13 @@ fun HomeScreen(
                             }
                         }
 
-                        if (
-                            !uiState.isOffline &&
-                                uiState.showsFixedRow(
-                                    HomeRow.CRITICS_CHOICE,
-                                    hasItems = uiState.highestRated.isNotEmpty(),
-                                    loaded = uiState.highestRatedLoaded,
-                                )
-                        ) {
+                        if (showHighestRatedSlot) {
                             item(key = "highest_rated", contentType = "portrait_media_row") {
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "highest_rated",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     if (uiState.highestRated.isNotEmpty()) {
                                         HighestRatedSection(
                                             items = uiState.highestRated,
@@ -1069,16 +1250,13 @@ fun HomeScreen(
                             }
                         }
 
-                        if (
-                            !uiState.isOffline &&
-                                uiState.showsFixedRow(
-                                    HomeRow.FRANCHISES,
-                                    hasItems = uiState.franchises.isNotEmpty(),
-                                    loaded = uiState.franchisesLoaded,
-                                )
-                        ) {
+                        if (showFranchisesSlot) {
                             item(key = "franchises", contentType = "franchises_row") {
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "franchises",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     if (uiState.franchises.isNotEmpty()) {
                                         FranchisesSection(
                                             franchises = uiState.franchises,
@@ -1099,16 +1277,13 @@ fun HomeScreen(
                             }
                         }
 
-                        if (
-                            !uiState.isOffline &&
-                                uiState.showsFixedRow(
-                                    HomeRow.WATCH_AGAIN,
-                                    hasItems = uiState.watchAgain.isNotEmpty(),
-                                    loaded = uiState.watchAgainLoaded,
-                                )
-                        ) {
+                        if (showWatchAgainSlot) {
                             item(key = "watch_again", contentType = "portrait_media_row") {
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "watch_again",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     if (uiState.watchAgain.isNotEmpty()) {
                                         ItemsRowSection(
                                             title = stringResource(R.string.home_watch_again),
@@ -1127,16 +1302,13 @@ fun HomeScreen(
                             }
                         }
 
-                        if (
-                            !uiState.isOffline &&
-                                uiState.showsFixedRow(
-                                    HomeRow.POPULAR_STUDIOS,
-                                    hasItems = uiState.popularStudios.isNotEmpty(),
-                                    loaded = uiState.popularStudiosLoaded,
-                                )
-                        ) {
+                        if (showPopularStudiosSlot) {
                             item(key = "popular_studios", contentType = "studios_row") {
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = "popular_studios",
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     if (uiState.popularStudios.isNotEmpty()) {
                                         PopularStudiosSection(
                                             studios = uiState.popularStudios,
@@ -1170,7 +1342,11 @@ fun HomeScreen(
                                     }
                                 },
                             ) { section ->
-                                Box(modifier = baseModifier.padding(top = 24.dp)) {
+                                HomeTvRowBox(
+                                    rowKey = section.key,
+                                    tvFocus = tvFocus,
+                                    modifier = baseModifier.padding(top = 24.dp),
+                                ) {
                                     when (section) {
                                         is HomeSection.Pending -> {
                                             PendingSection(
@@ -1246,7 +1422,9 @@ fun HomeScreen(
                                                 uiState.genreShows[section.genreItem.name]
                                                     ?.isEmpty() == true
                                         }
-                                Box(
+                                HomeTvRowBox(
+                                    rowKey = section.key,
+                                    tvFocus = tvFocus,
                                     modifier =
                                         if (hideSection) Modifier
                                         else baseModifier.padding(top = 24.dp),

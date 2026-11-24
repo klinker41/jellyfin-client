@@ -34,6 +34,7 @@ fun PlaybackSelectionButton(
         text = buttonText,
         icon = buttonIcon,
         modifier = modifier,
+        initialFocusKey = item.id,
         onClick = {
             val startPositionMs =
                 if (item.playbackPositionTicks > 0) {
