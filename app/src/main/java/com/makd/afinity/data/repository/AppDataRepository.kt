@@ -53,6 +53,7 @@ import com.makd.afinity.data.podcasts.LATEST_PODCASTS_LIMIT
 import com.makd.afinity.data.podcasts.PODCAST_EPISODE_FIELDS
 import com.makd.afinity.data.podcasts.isPodcastLibrary
 import com.makd.afinity.data.podcasts.podcastLibraries
+import com.makd.afinity.data.podcasts.sortedByRecency
 import com.makd.afinity.data.repository.home.HomeCacheRepository
 import com.makd.afinity.data.repository.home.HomeLayoutPreferencesRepository
 import com.makd.afinity.data.repository.home.HomeSectionsRepository
@@ -608,6 +609,7 @@ constructor(
                     .filter { it.type == BaseItemKind.AUDIO_BOOK }
                     .map { it.toAfinityAudiobook(baseUrl) }
                     .groupedIntoBooks()
+                    .sortedByRecency()
                     .take(LATEST_BOOKS_LIMIT)
                     .takeIf { it.isNotEmpty() }
                     ?.let { shelf.library() to it }
@@ -723,6 +725,7 @@ constructor(
                 .filter { it.type == BaseItemKind.AUDIO }
                 .map { it.toAfinityTrack(baseUrl) }
                 .filter { !it.played }
+                .sortedByRecency()
                 .take(LATEST_PODCASTS_LIMIT)
                 .takeIf { it.isNotEmpty() }
                 ?.let { shelf.library(CollectionType.Music) to it }
@@ -1908,6 +1911,13 @@ constructor(
                                 mediaRepository.invalidateContinueListeningCache()
                             }
                         }
+                    }
+                    if (
+                        _libraries.value.any { it.isPodcastLibrary() } &&
+                            HomeRow.LATEST_PODCASTS !in
+                                homeLayoutPreferencesRepository.getHiddenRows()
+                    ) {
+                        launch { refreshPodcastShelves(_libraries.value, currentCacheKey()) }
                     }
                 }
                 Timber.d("Refreshed playback sections (continue watching + next up)")

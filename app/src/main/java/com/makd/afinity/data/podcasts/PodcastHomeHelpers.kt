@@ -12,6 +12,30 @@ import org.jellyfin.sdk.model.api.ItemFields
 const val LATEST_PODCASTS_LIMIT = 16
 const val CONTINUE_LISTENING_LIMIT = 12
 val PODCAST_EPISODE_FIELDS = listOf(ItemFields.DATE_CREATED, ItemFields.PARENT_ID)
+val PODCAST_EPISODE_DETAIL_FIELDS =
+    listOf(ItemFields.OVERVIEW, ItemFields.DATE_CREATED, ItemFields.PARENT_ID)
+
+@JvmName("sortedAudiobooksByRecency")
+fun List<AfinityAudiobook>.sortedByRecency(): List<AfinityAudiobook> =
+    sortedWith(
+        compareByDescending<AfinityAudiobook> { it.dateCreated != null }
+            .thenByDescending { it.dateCreated }
+            .thenByDescending { it.premiereDate != null }
+            .thenByDescending { it.premiereDate }
+            .thenBy { it.name.lowercase() },
+    )
+
+@JvmName("sortedTracksByRecency")
+fun List<AfinityTrack>.sortedByRecency(): List<AfinityTrack> =
+    sortedWith(
+        compareByDescending<AfinityTrack> { it.dateCreated != null }
+            .thenByDescending { it.dateCreated }
+            .thenByDescending { it.premiereDate != null }
+            .thenByDescending { it.premiereDate }
+            .thenByDescending { it.discNumber ?: Int.MIN_VALUE }
+            .thenByDescending { it.indexNumber ?: Int.MIN_VALUE }
+            .thenBy { it.name.lowercase() },
+    )
 
 fun AfinityCollection.isPodcastLibrary(): Boolean =
     type == CollectionType.Music && name.contains("podcast", ignoreCase = true)

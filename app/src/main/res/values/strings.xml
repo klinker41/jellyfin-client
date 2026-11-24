@@ -3988,5 +3988,12 @@
     <string name="person_kind_cover_artist">Cover artist</string>
     <string name="person_kind_editor">Editor</string>
     <string name="person_kind_translator">Translator</string>
+    <string name="cd_podcast_episode_cover">Podcast episode cover</string>
+    <string name="podcast_action_go_to_show">Go to podcast</string>
+    <string name="podcast_action_play_from_start">Play from beginning</string>
+    <string name="podcast_details_show">Podcast</string>
+    <string name="podcast_details_host">Host</string>
+    <string name="podcast_details_episode">Episode</string>
+    <string name="podcast_details_added">Added</string>
 
 </resources>

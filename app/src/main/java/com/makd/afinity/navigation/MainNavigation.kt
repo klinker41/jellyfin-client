@@ -136,6 +136,7 @@ import com.makd.afinity.ui.person.PersonScreen
 import com.makd.afinity.ui.photo.PhotoViewerScreen
 import com.makd.afinity.ui.player.PlayerLauncher
 import com.makd.afinity.ui.playlist.PlaylistScreen
+import com.makd.afinity.ui.podcast.PodcastEpisodeDetailScreen
 import com.makd.afinity.ui.reader.PageReaderScreen
 import com.makd.afinity.ui.reader.epub.EpubReaderActivity
 import com.makd.afinity.ui.requests.FilterParams
@@ -598,6 +599,13 @@ fun MainNavigation(
                                         },
                                         onPersonClick = { personId ->
                                             navController.navigateToPerson(personId)
+                                        },
+                                        onPodcastEpisodeClick = { episodeId ->
+                                            navController.navigate(
+                                                Destination.createPodcastEpisodeDetailRoute(
+                                                    episodeId,
+                                                ),
+                                            )
                                         },
                                         onAbsItemClick = { itemId ->
                                             navController.navigate(
@@ -1967,6 +1975,22 @@ fun MainNavigation(
                                             )
                                         },
                                         widthSizeClass = widthSizeClass,
+                                    )
+                                }
+
+                                composable(
+                                    route = Destination.PODCAST_EPISODE_DETAIL_ROUTE,
+                                    arguments =
+                                        listOf(navArgument("itemId") { type = NavType.StringType }),
+                                ) {
+                                    PodcastEpisodeDetailScreen(
+                                        onHomeClick = { navController.navigateHome() },
+                                        onShowClick = { albumId ->
+                                            navController.navigateToMusicAlbum(albumId.toString())
+                                        },
+                                        onOpenMusicPlayer = {
+                                            navController.navigateToMusicPlayer()
+                                        },
                                     )
                                 }
 

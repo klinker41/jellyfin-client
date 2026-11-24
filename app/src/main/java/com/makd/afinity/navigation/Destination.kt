@@ -176,6 +176,7 @@ enum class Destination(
         const val PHOTO_VIEWER_ROUTE =
             "photo_viewer/{parentId}/{startId}?sortBy={sortBy}&desc={desc}"
         const val AUDIOBOOK_DETAIL_ROUTE = "audiobook/{itemId}"
+        const val PODCAST_EPISODE_DETAIL_ROUTE = "podcast/episode/{itemId}"
         const val MUSIC_ALBUM_ROUTE = "music/album/{albumId}"
         const val MUSIC_ARTIST_ROUTE = "music/artist/{artistId}"
         const val PLAYLIST_ROUTE = "playlist/{playlistId}?audioOnly={audioOnly}"
@@ -217,6 +218,8 @@ enum class Destination(
         ): String = "photo_viewer/$parentId/$startId?sortBy=$sortBy&desc=$descending"
 
         fun createAudiobookDetailRoute(itemId: String): String = "audiobook/$itemId"
+
+        fun createPodcastEpisodeDetailRoute(itemId: String): String = "podcast/episode/$itemId"
 
         fun createMusicAlbumRoute(albumId: String): String = "music/album/$albumId"
 

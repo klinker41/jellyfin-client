@@ -128,6 +128,9 @@ fun BaseItemDto.toAfinityTrack(baseUrl: String): AfinityTrack {
             ),
         playlistItemId = playlistItemId,
         lastPlayedDate = userData?.lastPlayedDate,
+        dateCreated = dateCreated,
+        premiereDate = premiereDate,
+        overview = overview,
     )
 }
 

@@ -173,4 +173,88 @@ class PodcastHomeHelpersTest {
         )
         assertEquals("album-blur", trackFallback.images.primaryImageBlurHash)
     }
+
+    @Test
+    fun `toAfinityTrack maps dateCreated premiereDate and overview`() {
+        val epId = testUuid(30)
+        val created = LocalDateTime.of(2026, 11, 22, 9, 0)
+        val premiered = LocalDateTime.of(2026, 11, 20, 6, 0)
+        val dto =
+            BaseItemDto(
+                id = epId,
+                type = BaseItemKind.AUDIO,
+                name = "Episode Overview",
+                dateCreated = created,
+                premiereDate = premiered,
+                overview = "Deep dive episode notes.",
+            )
+
+        val track = dto.toAfinityTrack("https://jf.example.com")
+
+        assertEquals(created, track.dateCreated)
+        assertEquals(premiered, track.premiereDate)
+        assertEquals("Deep dive episode notes.", track.overview)
+    }
+
+    @Test
+    fun `sortedByRecency orders audiobooks newest first and places null dates last`() {
+        val older =
+            testAudiobook(testUuid(40), "Older Book")
+                .copy(dateCreated = LocalDateTime.of(2026, 10, 1, 10, 0))
+        val newer =
+            testAudiobook(testUuid(41), "Newer Book")
+                .copy(dateCreated = LocalDateTime.of(2026, 11, 15, 10, 0))
+        val tieEarlyRelease =
+            testAudiobook(testUuid(42), "Tie Early")
+                .copy(
+                    dateCreated = LocalDateTime.of(2026, 11, 1, 10, 0),
+                    premiereDate = LocalDateTime.of(2020, 1, 1, 0, 0),
+                )
+        val tieLateRelease =
+            testAudiobook(testUuid(43), "Tie Late")
+                .copy(
+                    dateCreated = LocalDateTime.of(2026, 11, 1, 10, 0),
+                    premiereDate = LocalDateTime.of(2025, 1, 1, 0, 0),
+                )
+        val noDate = testAudiobook(testUuid(44), "No Date")
+
+        val sorted = listOf(noDate, older, tieEarlyRelease, newer, tieLateRelease).sortedByRecency()
+
+        assertEquals(
+            listOf(testUuid(41), testUuid(43), testUuid(42), testUuid(40), testUuid(44)),
+            sorted.map { it.id },
+        )
+    }
+
+    @Test
+    fun `sortedByRecency orders podcast tracks newest first with premiereDate and episode tie-breakers`() {
+        val oldest =
+            testTrack(id = testUuid(50), name = "Oldest")
+                .copy(dateCreated = LocalDateTime.of(2025, 6, 1, 8, 0))
+        val newest =
+            testTrack(id = testUuid(51), name = "Newest")
+                .copy(dateCreated = LocalDateTime.of(2026, 11, 22, 8, 0))
+        val sameDayEp1 =
+            testTrack(id = testUuid(52), name = "Ep 1")
+                .copy(
+                    indexNumber = 1,
+                    discNumber = 1,
+                    dateCreated = LocalDateTime.of(2026, 11, 10, 8, 0),
+                )
+        val sameDayEp2 =
+            testTrack(id = testUuid(53), name = "Ep 2")
+                .copy(
+                    indexNumber = 2,
+                    discNumber = 1,
+                    dateCreated = LocalDateTime.of(2026, 11, 10, 8, 0),
+                )
+        val noDate = testTrack(id = testUuid(54), name = "Undated")
+
+        val sorted = listOf(noDate, oldest, sameDayEp1, newest, sameDayEp2).sortedByRecency()
+
+        assertEquals(
+            listOf(testUuid(51), testUuid(53), testUuid(52), testUuid(50), testUuid(54)),
+            sorted.map { it.id },
+        )
+    }
 }

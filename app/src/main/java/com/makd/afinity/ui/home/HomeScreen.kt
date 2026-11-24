@@ -72,7 +72,6 @@ import com.makd.afinity.data.models.media.AfinityEpisode
 import com.makd.afinity.data.models.media.AfinityItem
 import com.makd.afinity.data.models.media.AfinityMovie
 import com.makd.afinity.data.models.media.AfinityShow
-import com.makd.afinity.data.models.music.AfinityTrack
 import com.makd.afinity.data.podcasts.mergeContinueListening
 import com.makd.afinity.navigation.LocalPlayerOffset
 import com.makd.afinity.ui.components.AfinityScreen
@@ -147,11 +146,12 @@ fun HomeScreen(
     onCustomSectionClick: (String) -> Unit,
     onSeriesClick: (String) -> Unit,
     onPersonClick: (String) -> Unit,
-    modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState,
+    widthSizeClass: WindowWidthSizeClass,
+    modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
     playerViewModel: MusicPlayerViewModel = hiltViewModel(),
-    widthSizeClass: WindowWidthSizeClass,
+    onPodcastEpisodeClick: (String) -> Unit = {},
     onAbsItemClick: (String) -> Unit = {},
     onMenuClick: (() -> Unit)? = null,
     hideLibrariesSection: Boolean = false,
@@ -202,21 +202,6 @@ fun HomeScreen(
                 uiState.continueListeningPodcasts,
             )
         }
-    val playPodcast: (AfinityTrack) -> Unit = { episode ->
-        val startPos =
-            if (!episode.played && episode.playbackPositionTicks > 0L) {
-                (episode.playbackPositionTicks / 10_000L).coerceAtLeast(0L)
-            } else {
-                0L
-            }
-        startMusicService(context)
-        playerViewModel.playQueue(
-            tracks = listOf(episode),
-            startIndex = 0,
-            startPositionMs = startPos,
-        )
-        onOpenMusicPlayer()
-    }
     LaunchedEffect(continueWatchingItems.firstOrNull()?.id) {
         if (continueWatchingItems.isNotEmpty()) {
             if (
@@ -520,7 +505,9 @@ fun HomeScreen(
                                                 stringResource(R.string.home_continue_listening),
                                             entries = continueListeningEntries,
                                             onAudiobookClick = onItemClick,
-                                            onPodcastClick = playPodcast,
+                                            onPodcastClick = { episode ->
+                                                onPodcastEpisodeClick(episode.id.toString())
+                                            },
                                             widthSizeClass = widthSizeClass,
                                         )
                                     } else {
@@ -922,7 +909,9 @@ fun HomeScreen(
                                         LatestPodcastRowSection(
                                             title = library.name,
                                             episodes = unplayed,
-                                            onEpisodeClick = playPodcast,
+                                            onEpisodeClick = { episode ->
+                                                onPodcastEpisodeClick(episode.id.toString())
+                                            },
                                             widthSizeClass = widthSizeClass,
                                         )
                                     }

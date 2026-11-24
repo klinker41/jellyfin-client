@@ -393,4 +393,212 @@ class AppDataRepositoryTest {
                 h.dispose()
             }
         }
+
+    @Test
+    fun `latestPodcastSections and latestAudiobookSections sort newest first and oldest last`() =
+        runTest(timeout = 30.seconds) {
+            val h = Harness()
+            try {
+                val podcastLib = testCollection(testUuid(85), "Podcasts", CollectionType.Music)
+                val bookLib = testCollection(testUuid(86), "Audiobooks", CollectionType.Books)
+
+                val podOld =
+                    BaseItemDto(
+                        id = testUuid(87),
+                        type = BaseItemKind.AUDIO,
+                        name = "Old Pod",
+                        dateCreated = java.time.LocalDateTime.of(2026, 10, 1, 10, 0),
+                        userData =
+                            UserItemDataDto(
+                                playbackPositionTicks = 0L,
+                                playCount = 0,
+                                isFavorite = false,
+                                played = false,
+                                key = testUuid(87).toString(),
+                                itemId = testUuid(87),
+                            ),
+                    )
+                val podNew =
+                    BaseItemDto(
+                        id = testUuid(88),
+                        type = BaseItemKind.AUDIO,
+                        name = "New Pod",
+                        dateCreated = java.time.LocalDateTime.of(2026, 11, 20, 10, 0),
+                        userData =
+                            UserItemDataDto(
+                                playbackPositionTicks = 0L,
+                                playCount = 0,
+                                isFavorite = false,
+                                played = false,
+                                key = testUuid(88).toString(),
+                                itemId = testUuid(88),
+                            ),
+                    )
+                val podMid =
+                    BaseItemDto(
+                        id = testUuid(89),
+                        type = BaseItemKind.AUDIO,
+                        name = "Mid Pod",
+                        dateCreated = java.time.LocalDateTime.of(2026, 11, 5, 10, 0),
+                        userData =
+                            UserItemDataDto(
+                                playbackPositionTicks = 0L,
+                                playCount = 0,
+                                isFavorite = false,
+                                played = false,
+                                key = testUuid(89).toString(),
+                                itemId = testUuid(89),
+                            ),
+                    )
+
+                val abOld =
+                    BaseItemDto(
+                        id = testUuid(90),
+                        type = BaseItemKind.AUDIO_BOOK,
+                        name = "Old Audiobook",
+                        parentId = bookLib.id,
+                        dateCreated = java.time.LocalDateTime.of(2026, 9, 1, 10, 0),
+                    )
+                val abNewPart1 =
+                    BaseItemDto(
+                        id = testUuid(91),
+                        type = BaseItemKind.AUDIO_BOOK,
+                        name = "Part 1",
+                        album = "Multi-Part Book",
+                        indexNumber = 1,
+                        parentId = bookLib.id,
+                        dateCreated = java.time.LocalDateTime.of(2026, 11, 22, 10, 0),
+                    )
+                val abNewPart2 =
+                    BaseItemDto(
+                        id = testUuid(92),
+                        type = BaseItemKind.AUDIO_BOOK,
+                        name = "Part 2",
+                        album = "Multi-Part Book",
+                        indexNumber = 2,
+                        parentId = bookLib.id,
+                        dateCreated = java.time.LocalDateTime.of(2026, 11, 23, 10, 0),
+                    )
+
+                coEvery { h.mediaRepository.getLibrariesResult() } returns
+                    Result.success(listOf(podcastLib, bookLib))
+                coEvery {
+                    h.mediaRepository.getItemsResult(
+                        parentId = podcastLib.id,
+                        sortBy = any(),
+                        sortDescending = any(),
+                        limit = any(),
+                        includeItemTypes = listOf("AUDIO"),
+                        fields = any(),
+                        recursive = true,
+                        criteria = match { it.isPlayed == false },
+                        enableImages = true,
+                        enableImageTypes = listOf("PRIMARY"),
+                        enableUserData = true,
+                    )
+                } returns
+                    Result.success(
+                        BaseItemDtoQueryResult(
+                            items = listOf(podOld, podNew, podMid),
+                            startIndex = 0,
+                            totalRecordCount = 3,
+                        ),
+                    )
+                coEvery {
+                    h.mediaRepository.getLatestDtos(
+                        parentId = bookLib.id,
+                        limit = any(),
+                        fields = any(),
+                        groupItems = false,
+                        includeItemTypes = listOf(BaseItemKind.AUDIO_BOOK),
+                    )
+                } returns listOf(abOld, abNewPart1, abNewPart2)
+
+                val repo = h.createRepository()
+                runCurrent()
+                repo.loadInitialData()
+                runCurrent()
+
+                assertEquals(
+                    listOf(testUuid(88), testUuid(89), testUuid(87)),
+                    repo.latestPodcastSections.value.single().second.map { it.id },
+                )
+                assertEquals(
+                    listOf("Multi-Part Book", "Old Audiobook"),
+                    repo.latestAudiobookSections.value.single().second.map { it.name },
+                )
+            } finally {
+                h.dispose()
+            }
+        }
+
+    @Test
+    fun `refreshPlaybackSections refreshes latestPodcastSections when podcast library exists and row is visible`() =
+        runTest(timeout = 30.seconds) {
+            val h = Harness()
+            try {
+                val podcastLib = testCollection(testUuid(95), "Podcasts", CollectionType.Music)
+                val firstEp =
+                    BaseItemDto(
+                        id = testUuid(96),
+                        type = BaseItemKind.AUDIO,
+                        name = "First Unplayed",
+                        dateCreated = java.time.LocalDateTime.of(2026, 11, 20, 10, 0),
+                    )
+                val secondEp =
+                    BaseItemDto(
+                        id = testUuid(97),
+                        type = BaseItemKind.AUDIO,
+                        name = "Backfilled Unplayed",
+                        dateCreated = java.time.LocalDateTime.of(2026, 11, 19, 10, 0),
+                    )
+                var currentItems = listOf(firstEp)
+
+                coEvery { h.mediaRepository.getLibrariesResult() } returns
+                    Result.success(listOf(podcastLib))
+                coEvery {
+                    h.mediaRepository.getItemsResult(
+                        parentId = podcastLib.id,
+                        sortBy = any(),
+                        sortDescending = any(),
+                        limit = any(),
+                        includeItemTypes = listOf("AUDIO"),
+                        fields = any(),
+                        recursive = true,
+                        criteria = match { it.isPlayed == false },
+                        enableImages = true,
+                        enableImageTypes = listOf("PRIMARY"),
+                        enableUserData = true,
+                    )
+                } answers
+                    {
+                        Result.success(
+                            BaseItemDtoQueryResult(
+                                items = currentItems,
+                                startIndex = 0,
+                                totalRecordCount = currentItems.size,
+                            ),
+                        )
+                    }
+
+                val repo = h.createRepository()
+                runCurrent()
+                repo.loadInitialData()
+                runCurrent()
+                assertEquals(
+                    listOf(testUuid(96)),
+                    repo.latestPodcastSections.value.single().second.map { it.id },
+                )
+
+                currentItems = listOf(secondEp)
+                repo.refreshPlaybackSections()
+                runCurrent()
+                assertEquals(
+                    listOf(testUuid(97)),
+                    repo.latestPodcastSections.value.single().second.map { it.id },
+                )
+            } finally {
+                h.dispose()
+            }
+        }
 }

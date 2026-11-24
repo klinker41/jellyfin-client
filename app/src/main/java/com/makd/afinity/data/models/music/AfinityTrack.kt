@@ -29,4 +29,7 @@ data class AfinityTrack(
     val localFilePath: String? = null,
     val localImagePath: String? = null,
     val lastPlayedDate: LocalDateTime? = null,
+    val dateCreated: LocalDateTime? = null,
+    val premiereDate: LocalDateTime? = null,
+    val overview: String? = null,
 ) : AfinityUserDataOwner
