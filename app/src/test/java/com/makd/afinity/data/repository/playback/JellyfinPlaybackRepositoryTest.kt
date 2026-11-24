@@ -330,11 +330,13 @@ class JellyfinPlaybackRepositoryTest {
                     mediaSourceId = "src-1",
                     audioStreamIndex = 1,
                     subtitleStreamIndex = 2,
+                    positionTicks = 45_000_000L,
                 ),
             )
             val startBody = h.apiClient.requests.last().requestBody as PlaybackStartInfo
             assertEquals(itemId, startBody.itemId)
             assertEquals("sess-1", startBody.playSessionId)
+            assertEquals(45_000_000L, startBody.positionTicks)
 
             assertTrue(
                 h.repository.reportPlaybackProgress(

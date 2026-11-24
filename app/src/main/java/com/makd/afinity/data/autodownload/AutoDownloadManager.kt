@@ -16,6 +16,9 @@ import com.makd.afinity.data.repository.media.MediaRepository
 import com.makd.afinity.data.storage.VolumeUnavailableException
 import com.makd.afinity.data.store.ItemStore
 import com.makd.afinity.di.ApplicationScope
+import com.makd.afinity.player.audiobookshelf.AudiobookSource
+import com.makd.afinity.player.audiobookshelf.AudiobookshelfPlaybackManager
+import com.makd.afinity.player.music.MusicPlaybackManager
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
@@ -57,6 +60,8 @@ constructor(
     private val playedItemEventBus: PlayedItemEventBus,
     private val itemStore: ItemStore,
     private val scheduler: AutoDownloadScheduler,
+    private val musicPlaybackManager: MusicPlaybackManager,
+    private val audiobookshelfPlaybackManager: AudiobookshelfPlaybackManager,
     @param:ApplicationScope private val scope: CoroutineScope,
 ) {
     private val _isSyncing = MutableStateFlow(false)
@@ -80,7 +85,11 @@ constructor(
         scope.launch(Dispatchers.IO) {
             mediaChangeManager.mediaChanges.collect { event ->
                 when {
-                    isMarkedPlayedEvent(event) -> onItemMarkedPlayed(event.itemId)
+                    isMarkedPlayedEvent(event) -> {
+                        if (!isItemActiveInPlayback(event.itemId)) {
+                            onItemMarkedPlayed(event.itemId)
+                        }
+                    }
                     isMarkedUnplayedEvent(event) -> {
                         val session = sessionManager.currentSession.value ?: return@collect
                         recentlyPlayedKeys.remove(
@@ -416,7 +425,12 @@ constructor(
         val pendingRemoval = HashSet<UUID>()
         missingFromEligible.forEach { id ->
             val fresh = freshById[id]
-            if (fresh != null && fresh.played && fresh.playbackPositionTicks == 0L) {
+            if (
+                fresh != null &&
+                    fresh.played &&
+                    fresh.playbackPositionTicks == 0L &&
+                    !isItemActiveInPlayback(id)
+            ) {
                 pendingRemoval.add(id)
             } else {
                 nextManaged.add(id)
@@ -434,11 +448,13 @@ constructor(
                     existingDownloads.values.filter {
                         it.itemType == AUDIOBOOK_DOWNLOAD_TYPE && it.seriesId == download.seriesId
                     }
-                val allSiblingsPlayed = siblings.all { sibling ->
-                    if (sibling.itemId in eligibleIds) return@all false
-                    if (sibling.itemId in pendingRemoval) return@all true
-                    isKnownPlayedLocally(serverId, userId, sibling.itemId)
-                }
+                val allSiblingsPlayed =
+                    siblings.none { isItemActiveInPlayback(it.itemId) } &&
+                        siblings.all { sibling ->
+                            if (sibling.itemId in eligibleIds) return@all false
+                            if (sibling.itemId in pendingRemoval) return@all true
+                            isKnownPlayedLocally(serverId, userId, sibling.itemId)
+                        }
                 if (allSiblingsPlayed) {
                     siblings.forEach { sibling ->
                         val removed = removeDownloadIfSafe(sibling)
@@ -600,6 +616,17 @@ constructor(
                 return false
             }
         return uncertainIds.all { freshById[it]?.played == true }
+    }
+
+    private fun isItemActiveInPlayback(itemId: UUID): Boolean {
+        if (musicPlaybackManager.state.value.currentTrack?.id == itemId) return true
+        val absState = audiobookshelfPlaybackManager.playbackState.value
+        if (absState.source == AudiobookSource.JELLYFIN && absState.sessionId != null) {
+            if (itemId in absState.jellyfinPartIds || absState.itemId == itemId.toString()) {
+                return true
+            }
+        }
+        return false
     }
 
     private suspend fun isKnownPlayedLocally(

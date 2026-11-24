@@ -11,14 +11,20 @@ import com.makd.afinity.data.models.common.CollectionType
 import com.makd.afinity.data.models.common.SortBy
 import com.makd.afinity.data.models.download.DownloadStatus
 import com.makd.afinity.data.models.media.ItemFilterCriteria
+import com.makd.afinity.data.models.music.MusicPlaybackState
 import com.makd.afinity.data.repository.DatabaseRepository
 import com.makd.afinity.data.repository.PreferencesRepository
 import com.makd.afinity.data.repository.download.DownloadRepository
 import com.makd.afinity.data.repository.media.MediaRepository
 import com.makd.afinity.data.storage.VolumeUnavailableException
 import com.makd.afinity.data.store.ItemStore
+import com.makd.afinity.player.audiobookshelf.AudiobookSource
+import com.makd.afinity.player.audiobookshelf.AudiobookshelfPlaybackManager
+import com.makd.afinity.player.audiobookshelf.AudiobookshelfPlaybackState
+import com.makd.afinity.player.music.MusicPlaybackManager
 import com.makd.afinity.testutil.TestMediaFixtures.mockUserItemDataDto
 import com.makd.afinity.testutil.TestMediaFixtures.testCollection
+import com.makd.afinity.testutil.TestMediaFixtures.testTrack
 import com.makd.afinity.testutil.TestMediaFixtures.testUuid
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -28,13 +34,16 @@ import io.mockk.verify
 import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.api.BaseItemDtoQueryResult
 import org.jellyfin.sdk.model.api.BaseItemKind
@@ -126,6 +135,12 @@ class AutoDownloadManagerTest {
         val playedItemEventBus = PlayedItemEventBus()
         val itemStore = ItemStore()
         val scheduler: AutoDownloadScheduler = mockk(relaxed = true)
+        val musicPlaybackState = MutableStateFlow(MusicPlaybackState())
+        val musicPlaybackManager: MusicPlaybackManager =
+            mockk(relaxed = true) { every { state } returns musicPlaybackState }
+        val absPlaybackState = MutableStateFlow(AudiobookshelfPlaybackState())
+        val audiobookshelfPlaybackManager: AudiobookshelfPlaybackManager =
+            mockk(relaxed = true) { every { playbackState } returns absPlaybackState }
 
         val manager =
             AutoDownloadManager(
@@ -139,6 +154,8 @@ class AutoDownloadManagerTest {
                 playedItemEventBus = playedItemEventBus,
                 itemStore = itemStore,
                 scheduler = scheduler,
+                musicPlaybackManager = musicPlaybackManager,
+                audiobookshelfPlaybackManager = audiobookshelfPlaybackManager,
                 scope = scope,
             )
     }
@@ -659,5 +676,122 @@ class AutoDownloadManagerTest {
                     alreadyDownloadedItem,
                 ),
             )
+        }
+
+    @Test
+    fun `active podcast and Jellyfin audiobook downloads are not deleted via WebSocket or reconciliation while playing`() =
+        runTest {
+            val h = Harness(tempFolder.root, backgroundScope)
+            h.manager.initMonitoring()
+            h.autoDownloadPreferences.setLibraryEnabled(
+                h.serverId,
+                h.userId,
+                h.podcastsLibId,
+                enabled = true,
+            )
+            h.autoDownloadPreferences.setLibraryEnabled(
+                h.serverId,
+                h.userId,
+                h.audiobooksLibId,
+                enabled = true,
+            )
+
+            val podId = testUuid(501)
+            val podDlId = testUuid(601)
+            val bookPart1 = testUuid(502)
+            val bookPart2 = testUuid(503)
+            val bookPart1DlId = testUuid(602)
+            val bookPart2DlId = testUuid(603)
+
+            h.autoDownloadPreferences.setManagedItemIds(
+                h.serverId,
+                h.userId,
+                h.podcastsLibId,
+                setOf(podId),
+            )
+            h.autoDownloadPreferences.setManagedItemIds(
+                h.serverId,
+                h.userId,
+                h.audiobooksLibId,
+                setOf(bookPart1, bookPart2),
+            )
+
+            val podDl = downloadDto(podDlId, podId, itemType = "Audio")
+            val part1Dl =
+                downloadDto(
+                    bookPart1DlId,
+                    bookPart1,
+                    itemType = AUDIOBOOK_DOWNLOAD_TYPE,
+                    seriesId = "well-of-ascension",
+                )
+            val part2Dl =
+                downloadDto(
+                    bookPart2DlId,
+                    bookPart2,
+                    itemType = AUDIOBOOK_DOWNLOAD_TYPE,
+                    seriesId = "well-of-ascension",
+                )
+            h.downloadsFlow.value = listOf(podDl, part1Dl, part2Dl)
+            coEvery {
+                h.databaseRepository.getDownloadByItemIdScoped(podId, h.serverId, h.userId)
+            } returns podDl
+            coEvery {
+                h.databaseRepository.getDownloadByItemIdScoped(bookPart1, h.serverId, h.userId)
+            } returns part1Dl
+            coEvery {
+                h.databaseRepository.getDownloadByItemIdScoped(bookPart2, h.serverId, h.userId)
+            } returns part2Dl
+
+            h.musicPlaybackState.value = MusicPlaybackState(currentTrack = testTrack(id = podId))
+            h.absPlaybackState.value =
+                AudiobookshelfPlaybackState(
+                    source = AudiobookSource.JELLYFIN,
+                    sessionId = "jf-session",
+                    itemId = bookPart1.toString(),
+                    jellyfinPartIds = listOf(bookPart1, bookPart2),
+                )
+
+            // WebSocket UserDataChanged(played=true) is ignored while actively playing
+            h.mediaChangesFlow.emit(
+                MediaChangeEvent(
+                    itemId = podId,
+                    source = com.makd.afinity.data.manager.MediaChangeSource.WEBSOCKET,
+                    userData = mockUserItemDataDto(played = true, playbackPositionTicks = 0L),
+                ),
+            )
+            h.mediaChangesFlow.emit(
+                MediaChangeEvent(
+                    itemId = bookPart2,
+                    source = com.makd.afinity.data.manager.MediaChangeSource.WEBSOCKET,
+                    userData = mockUserItemDataDto(played = true, playbackPositionTicks = 0L),
+                ),
+            )
+            withContext(Dispatchers.Default) { delay(50) }
+            advanceUntilIdle()
+            coVerify(exactly = 0) { h.downloadRepository.deleteDownload(any()) }
+
+            // Reconciliation during sync also preserves active downloads
+            stubLibraryQueries(h.mediaRepository, h.podcastsLibId, emptyList(), emptyList())
+            stubLibraryQueries(h.mediaRepository, h.audiobooksLibId, emptyList(), emptyList())
+            coEvery { h.mediaRepository.getUserDataByIds(any()) } answers
+                {
+                    firstArg<List<UUID>>().map { id ->
+                        mockUserItemDataDto(played = true, playbackPositionTicks = 0L).also {
+                            every { it.itemId } returns id
+                        }
+                    }
+                }
+            assertTrue(h.manager.syncEnabledLibraries())
+            coVerify(exactly = 0) { h.downloadRepository.deleteDownload(any()) }
+
+            // Genuine completion on stop via PlayedItemEventBus still cleans up
+            h.playedItemEventBus.emitPlayed(podId)
+            coVerify(timeout = 2_000L, exactly = 1) { h.downloadRepository.deleteDownload(podDlId) }
+
+            // Once audiobook session ends, reconciliation removes played parts
+            h.absPlaybackState.value = AudiobookshelfPlaybackState()
+            assertTrue(h.manager.syncEnabledLibraries())
+            coVerify(exactly = 1) { h.downloadRepository.deleteDownload(bookPart1DlId) }
+            coVerify(exactly = 1) { h.downloadRepository.deleteDownload(bookPart2DlId) }
         }
 }

@@ -33,6 +33,7 @@ private const val MIN_RESUME_POSITION_MS = 10_000L
 private const val COMPLETION_REMAINING_MS = 30_000L
 private const val COMPLETION_FRACTION = 0.95
 private const val PODCAST_ALBUMS_LIMIT = 500
+private const val PODCAST_PROGRESS_SYNC_TICKS = 3
 
 sealed interface PodcastTrackInfo {
     data object NotPodcast : PodcastTrackInfo
@@ -50,11 +51,13 @@ fun resolvePodcastProgress(
     durationMs: Long,
     isEnded: Boolean,
     wasPlayed: Boolean,
+    allowCompletion: Boolean = true,
 ): PodcastProgressOutcome? {
     val safePos = positionMs.coerceAtLeast(0L)
     val completed =
         isEnded ||
-            (durationMs > 0L &&
+            (allowCompletion &&
+                durationMs > 0L &&
                 (safePos >= durationMs - COMPLETION_REMAINING_MS ||
                     safePos.toDouble() / durationMs >= COMPLETION_FRACTION))
     return when {
@@ -191,28 +194,52 @@ constructor(
             false
         }
 
-    suspend fun resolvePodcastTrack(track: AfinityTrack): PodcastTrackInfo {
-        val albumId = track.albumId
-        if (albumId != null) {
-            val libraryId = podcastAlbumLibraries()[albumId]
-            if (libraryId != null) return PodcastTrackInfo.Podcast(libraryId)
+    suspend fun resolvePodcastTrack(track: AfinityTrack): PodcastTrackInfo =
+        try {
+            val albumId = track.albumId
+            if (albumId != null) {
+                val libraryId = podcastAlbumLibraries()[albumId]
+                if (libraryId != null) return PodcastTrackInfo.Podcast(libraryId)
+            }
+            val legacyCached = albumId != null && isLegacyCachedPodcastAlbum(albumId)
+            if (track.playbackPositionTicks > 0L || legacyCached) {
+                val singleLibId =
+                    mediaRepository.libraries.first().podcastLibraries().singleOrNull()?.id
+                PodcastTrackInfo.Podcast(singleLibId)
+            } else {
+                PodcastTrackInfo.NotPodcast
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to resolve whether track ${track.id} is a podcast")
+            PodcastTrackInfo.NotPodcast
         }
-        val legacyCached = albumId != null && isLegacyCachedPodcastAlbum(albumId)
-        if (track.playbackPositionTicks > 0L || legacyCached) {
-            val singleLibId =
-                mediaRepository.libraries.first().podcastLibraries().singleOrNull()?.id
-            return PodcastTrackInfo.Podcast(singleLibId)
-        }
-        return PodcastTrackInfo.NotPodcast
-    }
 
     suspend fun isPodcastTrack(track: AfinityTrack): Boolean =
         resolvePodcastTrack(track) is PodcastTrackInfo.Podcast
+
+    suspend fun syncPeriodicIfDue(
+        track: AfinityTrack,
+        positionMs: Long,
+        isPaused: Boolean,
+        tickCount: Int,
+    ): AfinityTrack? {
+        if (
+            isPaused ||
+                tickCount % PODCAST_PROGRESS_SYNC_TICKS != 0 ||
+                positionMs < MIN_RESUME_POSITION_MS
+        ) {
+            return null
+        }
+        return syncProgress(track, positionMs, isEnded = false, allowCompletion = false)
+    }
 
     suspend fun syncProgress(
         track: AfinityTrack,
         positionMs: Long,
         isEnded: Boolean,
+        allowCompletion: Boolean = true,
     ): AfinityTrack? {
         try {
             if (!isPodcastTrack(track)) return null
@@ -223,6 +250,7 @@ constructor(
                     durationMs = durationMs,
                     isEnded = isEnded,
                     wasPlayed = track.played,
+                    allowCompletion = allowCompletion,
                 ) ?: return null
 
             val session = sessionManager.currentSession.value ?: return null

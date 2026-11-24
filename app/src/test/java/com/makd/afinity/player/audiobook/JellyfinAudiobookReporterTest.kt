@@ -10,6 +10,7 @@ import com.makd.afinity.player.audiobookshelf.AudiobookshelfPlaybackManager
 import com.makd.afinity.player.audiobookshelf.AudiobookshelfPlaybackState
 import com.makd.afinity.player.audiobookshelf.JellyfinAudiobookSession
 import com.makd.afinity.testutil.TestMediaFixtures.testUuid
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import java.util.UUID
@@ -141,5 +142,95 @@ class JellyfinAudiobookReporterTest {
             advanceUntilIdle()
             collectJob.join()
             assertEquals(listOf(part2Id, part1Id), emitted)
+        }
+
+    @Test
+    fun `start includes positionTicks, resume reports unpaused progress, and early stop on short part does not mark played`() =
+        runTest {
+            val shortPartId = testUuid(10)
+            val shortRuntimeTicks = 6L * 60L * 10_000_000L // 6 minutes (< 10 min)
+            val playbackRepository: PlaybackRepository = mockk(relaxed = true)
+            val stateFlow =
+                MutableStateFlow(
+                    AudiobookshelfPlaybackState(isPlaying = true, currentTime = 60.0),
+                )
+            val playbackManager: AudiobookshelfPlaybackManager =
+                mockk(relaxed = true) { every { playbackState } returns stateFlow }
+            val itemStore = ItemStore()
+            itemStore.put(testPart(shortPartId, runtimeTicks = shortRuntimeTicks))
+            val playedBus = PlayedItemEventBus()
+
+            val reporter =
+                JellyfinAudiobookReporter(
+                    playbackRepository = playbackRepository,
+                    playbackManager = playbackManager,
+                    itemStore = itemStore,
+                    playedItemEventBus = playedBus,
+                )
+
+            val session =
+                JellyfinAudiobookSession(
+                    sessionId = "s-short",
+                    bookId = shortPartId.toString(),
+                    title = "Short Book",
+                    author = null,
+                    coverUrl = null,
+                    tracks = listOf(AudioTrack(0, 0.0, 360.0, "Part 1", "https://example/1", null)),
+                    chapters = emptyList(),
+                    partIds = listOf(shortPartId),
+                    partRuntimeTicks = listOf(shortRuntimeTicks),
+                    localUris = listOf(null),
+                )
+
+            val emitted = mutableListOf<UUID>()
+            val collectJob =
+                launch(start = CoroutineStart.UNDISPATCHED) {
+                    playedBus.playedItems.toList(emitted)
+                }
+
+            reporter.begin(session, 0)
+            reporter.onLocalPlayingChanged(true)
+            stateFlow.value = AudiobookshelfPlaybackState(isPlaying = false, currentTime = 75.0)
+            reporter.onLocalPlayingChanged(false)
+            stateFlow.value = AudiobookshelfPlaybackState(isPlaying = true, currentTime = 75.0)
+            reporter.onLocalPlayingChanged(true)
+            // Stopping at 90s in a 6-min part has < 5 min remaining, so previous window ordering
+            // falsely marked it played; PlaybackCompletion checks position < 5 min first.
+            reporter.end(globalSeconds = 90.0)
+            advanceUntilIdle()
+            collectJob.cancel()
+
+            assertFalse(itemStore.get(shortPartId)?.played == true)
+            assertEquals(0L, itemStore.get(shortPartId)?.playbackPositionTicks)
+            assertTrue(emitted.isEmpty())
+
+            coVerify(exactly = 1) {
+                playbackRepository.reportPlaybackStart(
+                    itemId = shortPartId,
+                    sessionId = any(),
+                    mediaSourceId = shortPartId.toString(),
+                    playMethod = "DirectPlay",
+                    canSeek = true,
+                    positionTicks = 60L * 10_000_000L,
+                )
+            }
+            coVerify(exactly = 1) {
+                playbackRepository.reportPlaybackProgress(
+                    itemId = shortPartId,
+                    sessionId = any(),
+                    positionTicks = 75L * 10_000_000L,
+                    isPaused = true,
+                    playMethod = "DirectPlay",
+                )
+            }
+            coVerify(exactly = 1) {
+                playbackRepository.reportPlaybackProgress(
+                    itemId = shortPartId,
+                    sessionId = any(),
+                    positionTicks = 75L * 10_000_000L,
+                    isPaused = false,
+                    playMethod = "DirectPlay",
+                )
+            }
         }
 }

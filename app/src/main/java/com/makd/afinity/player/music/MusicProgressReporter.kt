@@ -5,7 +5,9 @@ import com.makd.afinity.data.repository.playback.PlaybackRepository
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -20,14 +22,23 @@ import timber.log.Timber
 
 @Singleton
 class MusicProgressReporter
-@Inject
-constructor(
+internal constructor(
     private val playbackRepository: PlaybackRepository,
     private val podcastProgressTracker: PodcastProgressTracker,
+    private val progressInterval: Duration = 10.seconds,
+    dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    @Inject
+    constructor(
+        playbackRepository: PlaybackRepository,
+        podcastProgressTracker: PodcastProgressTracker,
+    ) : this(playbackRepository, podcastProgressTracker, 10.seconds, Dispatchers.IO)
+
+    private val scope = CoroutineScope(SupervisorJob() + dispatcher)
     private val reportOrder = Mutex()
     private val countedSessions = mutableMapOf<String, Boolean>()
+    private val podcastSessions = mutableSetOf<String>()
+    private var latestTrack: AfinityTrack? = null
     private var progressJob: Job? = null
     @Volatile private var currentTrackId: UUID? = null
     @Volatile private var currentTrack: AfinityTrack? = null
@@ -50,6 +61,13 @@ constructor(
         currentTrack = track
         val sessionId = this.playSessionId
         inOrder {
+            latestTrack = track
+            val isPodcast = track != null && podcastProgressTracker.isPodcastTrack(track)
+            if (isPodcast) {
+                podcastSessions.add(sessionId)
+                return@inOrder
+            }
+            podcastSessions.remove(sessionId)
             countedSessions[sessionId] =
                 runCatching {
                         playbackRepository.reportPlaybackStart(
@@ -73,14 +91,44 @@ constructor(
     fun startProgressUpdates(getPositionMs: () -> Long, isPaused: () -> Boolean) {
         progressJob?.cancel()
         progressJob = scope.launch {
+            var ticks = 0
             while (isActive) {
-                delay(10.seconds)
+                delay(progressInterval)
                 reportOrder.withLock {
                     val trackId = currentTrackId ?: return@withLock
                     val sessionId = playSessionId
                     val method = playMethod
-                    val positionTicks = getPositionMs() * 10_000L
+                    val posMs = getPositionMs()
+                    val positionTicks = posMs * 10_000L
                     val paused = isPaused()
+                    val track =
+                        latestTrack?.takeIf { it.id == trackId }
+                            ?: currentTrack?.takeIf { it.id == trackId }
+                    val isPodcast =
+                        sessionId in podcastSessions ||
+                            (track != null && podcastProgressTracker.isPodcastTrack(track))
+                    if (isPodcast) {
+                        podcastSessions.add(sessionId)
+                        ticks++
+                        if (track != null) {
+                            val updated =
+                                podcastProgressTracker.syncPeriodicIfDue(
+                                    track = track,
+                                    positionMs = posMs,
+                                    isPaused = paused,
+                                    tickCount = ticks,
+                                )
+                            if (
+                                updated != null &&
+                                    updated.id == track.id &&
+                                    currentTrackId == track.id
+                            ) {
+                                latestTrack = updated
+                                currentTrack = updated
+                            }
+                        }
+                        return@withLock
+                    }
                     runCatching {
                         playbackRepository.reportPlaybackProgress(
                             itemId = trackId,
@@ -103,10 +151,19 @@ constructor(
     }
 
     fun onPlaybackPaused(positionMs: Long) {
-        val track = currentTrack ?: return
+        val trackId = currentTrackId ?: return
+        val fallbackTrack = currentTrack
         inOrder {
-            val updated = podcastProgressTracker.syncProgress(track, positionMs, isEnded = false)
+            val track = latestTrack?.takeIf { it.id == trackId } ?: fallbackTrack ?: return@inOrder
+            val updated =
+                podcastProgressTracker.syncProgress(
+                    track,
+                    positionMs,
+                    isEnded = false,
+                    allowCompletion = false,
+                )
             if (updated != null && currentTrackId == track.id) {
+                latestTrack = updated
                 currentTrack = updated
             }
         }
@@ -123,12 +180,28 @@ constructor(
 
     private fun reportStop(positionMs: Long, isEnded: Boolean) {
         val trackId = currentTrackId ?: return
-        val track = currentTrack
+        val fallbackTrack = currentTrack
         currentTrackId = null
         currentTrack = null
         val sessionId = playSessionId
         inOrder {
+            val track = latestTrack?.takeIf { it.id == trackId } ?: fallbackTrack
+            latestTrack = null
             val counted = countedSessions.remove(sessionId) == true
+            val isPodcast =
+                podcastSessions.remove(sessionId) ||
+                    (track != null && podcastProgressTracker.isPodcastTrack(track))
+            if (isPodcast) {
+                if (track != null) {
+                    podcastProgressTracker.syncProgress(
+                        track,
+                        positionMs,
+                        isEnded = isEnded,
+                        allowCompletion = true,
+                    )
+                }
+                return@inOrder
+            }
             runCatching {
                 playbackRepository.reportPlaybackStop(
                     itemId = trackId,
@@ -141,9 +214,6 @@ constructor(
                 )
             }
                 .onFailure { Timber.w(it, "Failed to report playback stop for $trackId") }
-            if (track != null) {
-                podcastProgressTracker.syncProgress(track, positionMs, isEnded = isEnded)
-            }
         }
     }
 }

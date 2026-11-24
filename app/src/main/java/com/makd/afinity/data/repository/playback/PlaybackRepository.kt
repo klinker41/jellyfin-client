@@ -66,6 +66,7 @@ interface PlaybackRepository {
         playMethod: String = "DirectPlay",
         liveStreamId: String? = null,
         canSeek: Boolean = true,
+        positionTicks: Long? = null,
     ): Boolean
 
     suspend fun reportPlaybackProgress(

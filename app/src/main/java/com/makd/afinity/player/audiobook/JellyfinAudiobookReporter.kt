@@ -2,6 +2,7 @@ package com.makd.afinity.player.audiobook
 
 import com.makd.afinity.data.autodownload.PlayedItemEventBus
 import com.makd.afinity.data.models.media.UserDataPatch
+import com.makd.afinity.data.repository.playback.PlaybackCompletion
 import com.makd.afinity.data.repository.playback.PlaybackRepository
 import com.makd.afinity.data.store.ItemStore
 import com.makd.afinity.player.audiobookshelf.AudiobookshelfPlaybackManager
@@ -25,7 +26,6 @@ import timber.log.Timber
 
 private const val TICKS_PER_SECOND = 10_000_000L
 private const val TICKS_PER_MS = 10_000L
-private val AUDIOBOOK_RESUME_WINDOW_TICKS = 5 * 60 * TICKS_PER_SECOND
 private const val CAST_END_SLACK = 5.0
 
 @Singleton
@@ -89,7 +89,11 @@ constructor(
     private fun onPlayingChanged(isPlaying: Boolean) {
         val current = session ?: return
         if (isPlaying) {
-            if (!started) reportStart(current, partIndex)
+            if (!started) {
+                reportStart(current, partIndex)
+            } else {
+                reportProgress(current, partIndex, positionInPartTicks(current), false)
+            }
             startProgress()
         } else {
             stopProgress()
@@ -154,6 +158,7 @@ constructor(
     private fun reportStart(current: JellyfinAudiobookSession, index: Int) {
         val partId = current.partIds.getOrNull(index) ?: return
         val sessionId = playSessionId
+        val positionTicks = positionInPartTicks(current)
         started = true
         inOrder {
             playbackRepository.reportPlaybackStart(
@@ -162,6 +167,7 @@ constructor(
                 mediaSourceId = partId.toString(),
                 playMethod = "DirectPlay",
                 canSeek = true,
+                positionTicks = positionTicks,
             )
         }
     }
@@ -214,18 +220,16 @@ constructor(
         runtimeTicks: Long,
         ended: Boolean,
     ) {
-        val finished =
-            ended ||
-                (runtimeTicks > 0 && runtimeTicks - positionTicks < AUDIOBOOK_RESUME_WINDOW_TICKS)
+        val resolved =
+            PlaybackCompletion.audiobookCompletionResolved(positionTicks, runtimeTicks, ended)
         val patch =
-            when {
-                finished -> UserDataPatch(played = true, playbackPositionTicks = 0L)
-                positionTicks < AUDIOBOOK_RESUME_WINDOW_TICKS ->
-                    UserDataPatch(playbackPositionTicks = 0L)
-                else -> UserDataPatch(playbackPositionTicks = positionTicks)
+            if (resolved.played) {
+                UserDataPatch(played = true, playbackPositionTicks = 0L)
+            } else {
+                UserDataPatch(playbackPositionTicks = resolved.positionTicks)
             }
         itemStore.applyPatch(partId, patch)
-        if (finished) {
+        if (resolved.played) {
             playedItemEventBus.emitPlayed(partId)
         }
     }

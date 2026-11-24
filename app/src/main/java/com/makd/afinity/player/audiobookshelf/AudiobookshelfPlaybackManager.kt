@@ -65,6 +65,7 @@ class AudiobookshelfPlaybackManager @Inject constructor() {
                 coverUrl = coverUrl,
                 isPodcastPlaylist = false,
                 playlistEpisodeIds = emptyList(),
+                jellyfinPartIds = emptyList(),
                 playbackSpeed = playbackSpeed,
                 librarySpeedKey = librarySpeedKey,
             )
@@ -94,6 +95,7 @@ class AudiobookshelfPlaybackManager @Inject constructor() {
                 coverUrl = session.coverUrl,
                 isPodcastPlaylist = false,
                 playlistEpisodeIds = emptyList(),
+                jellyfinPartIds = session.partIds,
                 playerError = null,
                 playbackSpeed = playbackSpeed,
                 librarySpeedKey = librarySpeedKey,
@@ -239,6 +241,7 @@ data class AudiobookshelfPlaybackState(
     val sleepTimerChapterTarget: Int? = null,
     val isPodcastPlaylist: Boolean = false,
     val playlistEpisodeIds: List<String> = emptyList(),
+    val jellyfinPartIds: List<UUID> = emptyList(),
     val playerError: String? = null,
 ) {
     val currentChapterIndex: Int

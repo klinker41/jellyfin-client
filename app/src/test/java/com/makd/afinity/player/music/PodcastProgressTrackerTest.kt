@@ -26,6 +26,7 @@ import java.util.UUID
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
@@ -88,6 +89,26 @@ class PodcastProgressTrackerTest {
                 durationMs = 600_000L,
                 isEnded = false,
                 wasPlayed = true,
+            ),
+        )
+        assertEquals(
+            PodcastProgressOutcome(played = false, playbackPositionTicks = 5_800_000_000L),
+            resolvePodcastProgress(
+                positionMs = 580_000L,
+                durationMs = 600_000L,
+                isEnded = false,
+                wasPlayed = false,
+                allowCompletion = false,
+            ),
+        )
+        assertEquals(
+            PodcastProgressOutcome(played = true, playbackPositionTicks = 0L),
+            resolvePodcastProgress(
+                positionMs = 580_000L,
+                durationMs = 600_000L,
+                isEnded = true,
+                wasPlayed = false,
+                allowCompletion = false,
             ),
         )
     }
@@ -628,5 +649,120 @@ class PodcastProgressTrackerTest {
                 )
 
             assertFalse(failingTracker.isPodcastAlbum(podcastAlbumId))
+        }
+
+    @Test
+    fun `resolvePodcastTrack fails safely on exceptions and syncPeriodicIfDue respects cadence, pause, and position threshold`() =
+        runTest {
+            val userId = testUuid(9)
+            val podcastLibId = testUuid(90)
+            val podcastAlbumId = testUuid(91)
+            val episodeId = testUuid(92)
+            val sessionManager: SessionManager =
+                mockk(relaxed = true) {
+                    every { currentSession } returns
+                        MutableStateFlow(Session("srv-1", userId, "https://jf.example.com"))
+                }
+            val throwingMediaRepo: MediaRepository =
+                mockk(relaxed = true) { every { libraries } returns emptyFlow() }
+            val failingTracker =
+                PodcastProgressTracker(
+                    sessionManager = sessionManager,
+                    mediaRepository = throwingMediaRepo,
+                    itemStore = ItemStore(),
+                    mediaRefreshBus = MediaRefreshBus(),
+                    databaseRepository = mockk(relaxed = true),
+                    preferencesRepository =
+                        mockk(relaxed = true) { coEvery { getOfflineMode() } returns true },
+                    userDataSyncScheduler = mockk(relaxed = true),
+                    autoDownloadPreferences =
+                        mockk(relaxed = true) {
+                            coEvery { getCachedPodcastAlbumLibraries(any(), any()) } returns
+                                emptyMap()
+                            coEvery { getCachedPodcastAlbumIds(any(), any()) } returns emptySet()
+                        },
+                    playedItemEventBus = PlayedItemEventBus(),
+                )
+            val orphanTrack = testTrack(id = testUuid(93)).copy(playbackPositionTicks = 50_000L)
+            assertEquals(
+                PodcastTrackInfo.NotPodcast,
+                failingTracker.resolvePodcastTrack(orphanTrack),
+            )
+
+            val apiClient = FakeApiClient()
+            apiClient.onPost("/UserItems/{itemId}/UserData") { req ->
+                val itemId = req.pathParameters["itemId"] as UUID
+                FakeApiClient.rawJsonResponse(
+                    """{"ItemId":"$itemId","Key":"$itemId","Played":false,"PlaybackPositionTicks":450000000,"PlayCount":0,"IsFavorite":false}""",
+                )
+            }
+            val onlineSessionManager: SessionManager =
+                mockk(relaxed = true) {
+                    every { currentSession } returns
+                        MutableStateFlow(Session("srv-1", userId, "https://jf.example.com"))
+                    coEvery { getCurrentApiClient() } returns apiClient
+                }
+            val podcastLib =
+                testCollection(id = podcastLibId, name = "Podcasts", type = CollectionType.Music)
+            val mediaRepository: MediaRepository =
+                mockk(relaxed = true) {
+                    every { libraries } returns MutableStateFlow(listOf(podcastLib))
+                    coEvery {
+                        getItemsResult(
+                            parentId = podcastLibId,
+                            includeItemTypes = listOf("MUSIC_ALBUM"),
+                            limit = any(),
+                            fields = any(),
+                            recursive = true,
+                            enableImages = false,
+                            enableUserData = false,
+                        )
+                    } returns
+                        Result.success(
+                            BaseItemDtoQueryResult(
+                                items =
+                                    listOf(
+                                        BaseItemDto(
+                                            id = podcastAlbumId,
+                                            type = BaseItemKind.MUSIC_ALBUM,
+                                        ),
+                                    ),
+                                startIndex = 0,
+                                totalRecordCount = 1,
+                            ),
+                        )
+                }
+            val tracker =
+                PodcastProgressTracker(
+                    sessionManager = onlineSessionManager,
+                    mediaRepository = mediaRepository,
+                    itemStore = ItemStore(),
+                    mediaRefreshBus = MediaRefreshBus(),
+                    databaseRepository = mockk(relaxed = true),
+                    preferencesRepository =
+                        mockk(relaxed = true) { coEvery { getOfflineMode() } returns false },
+                    userDataSyncScheduler = mockk(relaxed = true),
+                    autoDownloadPreferences =
+                        mockk(relaxed = true) {
+                            coEvery { getCachedPodcastAlbumIds(any(), any()) } returns emptySet()
+                        },
+                    playedItemEventBus = PlayedItemEventBus(),
+                )
+            val episode =
+                testTrack(id = episodeId, played = false)
+                    .copy(albumId = podcastAlbumId, runtimeTicks = 600_000_000L)
+
+            // Not due on ticks 1/2, when paused, or below 10s threshold
+            assertNull(tracker.syncPeriodicIfDue(episode, 45_000L, isPaused = false, tickCount = 1))
+            assertNull(tracker.syncPeriodicIfDue(episode, 45_000L, isPaused = true, tickCount = 3))
+            assertNull(tracker.syncPeriodicIfDue(episode, 5_000L, isPaused = false, tickCount = 3))
+            assertTrue(apiClient.requests.isEmpty())
+
+            // Syncs on tick 3 when unpaused and >= 10s without marking completed in final window
+            val synced =
+                tracker.syncPeriodicIfDue(episode, 59_000L, isPaused = false, tickCount = 3)
+            assertFalse(synced!!.played)
+            assertEquals(590_000_000L, synced.playbackPositionTicks)
+            assertEquals(1, apiClient.requests.size)
         }
 }

@@ -360,6 +360,7 @@ constructor(
         playMethod: String,
         liveStreamId: String?,
         canSeek: Boolean,
+        positionTicks: Long?,
     ): Boolean {
         return withContext(Dispatchers.IO) {
             try {
@@ -377,6 +378,7 @@ constructor(
                         liveStreamId = liveStreamId,
                         playSessionId = sessionId,
                         canSeek = canSeek,
+                        positionTicks = positionTicks,
                         isPaused = false,
                         isMuted = false,
                         repeatMode = RepeatMode.REPEAT_NONE,

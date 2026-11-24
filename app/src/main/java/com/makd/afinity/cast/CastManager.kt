@@ -31,6 +31,8 @@ import com.makd.afinity.data.repository.PreferencesRepository
 import com.makd.afinity.data.repository.SecurePreferencesRepository
 import com.makd.afinity.data.repository.media.MediaRepository
 import com.makd.afinity.data.repository.playback.PlaybackRepository
+import com.makd.afinity.player.music.MusicQueueManager
+import com.makd.afinity.player.music.PodcastProgressTracker
 import com.makd.afinity.ui.components.formatRuntime
 import com.makd.afinity.ui.components.ticksToTotalMinutes
 import com.makd.afinity.ui.player.PlaylistManager
@@ -60,6 +62,8 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.jellyfin.sdk.model.api.MediaStreamType
 import org.json.JSONObject
@@ -87,6 +91,8 @@ constructor(
     private val preferencesRepository: PreferencesRepository,
     private val mediaRepository: dagger.Lazy<MediaRepository>,
     private val playlistManager: dagger.Lazy<PlaylistManager>,
+    private val podcastProgressTracker: dagger.Lazy<PodcastProgressTracker>,
+    private val musicQueueManager: dagger.Lazy<MusicQueueManager>,
 ) {
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
@@ -119,7 +125,11 @@ constructor(
     private var musicCastTrackId: UUID? = null
     private var musicCastPlaySessionId: String? = null
     private var musicCastPositionMs: Long = 0L
+    private var musicCastPositionSampled: Boolean = false
+    private var musicCastIsPodcast: Boolean = false
+    private var musicCastTrack: AfinityTrack? = null
     private var musicCastProgressJob: Job? = null
+    private val musicCastReportMutex = Mutex()
 
     suspend fun initialize(context: Context) {
         perfTraceAsync("Cast.initialize") {
@@ -947,11 +957,15 @@ constructor(
         if (trackId == musicCastTrackId) {
             if (trackId != null) {
                 musicCastPositionMs = client.approximateStreamPosition.coerceAtLeast(0L)
+                musicCastPositionSampled = true
             }
             return
         }
         stopMusicCastReport()
-        if (trackId != null) startMusicCastReport(trackId)
+        if (trackId != null) {
+            val initialPosMs = client.approximateStreamPosition.coerceAtLeast(0L)
+            startMusicCastReport(trackId, initialPosMs)
+        }
         _castState.update { it.copy(musicTrackId = trackId) }
     }
 
@@ -966,30 +980,62 @@ constructor(
         return runCatching { UUID.fromString(rawId) }.getOrNull()
     }
 
-    private fun startMusicCastReport(trackId: UUID) {
+    private fun startMusicCastReport(trackId: UUID, initialPositionMs: Long = 0L) {
         val playSessionId = UUID.randomUUID().toString()
+        val track = musicQueueManager.get().queue.value.firstOrNull { it.id == trackId }
         musicCastTrackId = trackId
         musicCastPlaySessionId = playSessionId
-        musicCastPositionMs = 0L
-        scope.launch {
-            playbackRepository.reportPlaybackStart(
-                itemId = trackId,
-                sessionId = playSessionId,
-                mediaSourceId = trackId.toString(),
-            )
-        }
+        musicCastPositionMs = initialPositionMs
+        musicCastPositionSampled = initialPositionMs > 0L
+        musicCastIsPodcast = false
+        musicCastTrack = track
         musicCastProgressJob?.cancel()
         musicCastProgressJob = scope.launch {
+            val isPodcast = track != null && podcastProgressTracker.get().isPodcastTrack(track)
+            musicCastReportMutex.withLock {
+                if (musicCastPlaySessionId != playSessionId) return@launch
+                musicCastIsPodcast = isPodcast
+                if (!isPodcast) {
+                    playbackRepository.reportPlaybackStart(
+                        itemId = trackId,
+                        sessionId = playSessionId,
+                        mediaSourceId = trackId.toString(),
+                    )
+                }
+            }
+            var ticks = 0
             while (true) {
                 delay(10.seconds)
                 val state = _castState.value
-                playbackRepository.reportPlaybackProgress(
-                    itemId = trackId,
-                    sessionId = playSessionId,
-                    positionTicks = musicCastPositionMs * 10_000,
-                    isPaused = state.isPaused,
-                    isMuted = state.isMuted,
-                )
+                musicCastReportMutex.withLock {
+                    if (musicCastPlaySessionId != playSessionId) return@launch
+                    if (isPodcast) {
+                        ticks++
+                        val currentTrack = musicCastTrack
+                        if (currentTrack != null) {
+                            val updated =
+                                podcastProgressTracker
+                                    .get()
+                                    .syncPeriodicIfDue(
+                                        track = currentTrack,
+                                        positionMs = musicCastPositionMs,
+                                        isPaused = state.isPaused,
+                                        tickCount = ticks,
+                                    )
+                            if (updated != null && musicCastTrackId == trackId) {
+                                musicCastTrack = updated
+                            }
+                        }
+                    } else {
+                        playbackRepository.reportPlaybackProgress(
+                            itemId = trackId,
+                            sessionId = playSessionId,
+                            positionTicks = musicCastPositionMs * 10_000,
+                            isPaused = state.isPaused,
+                            isMuted = state.isMuted,
+                        )
+                    }
+                }
             }
         }
     }
@@ -998,18 +1044,47 @@ constructor(
         val trackId = musicCastTrackId ?: return
         val playSessionId = musicCastPlaySessionId ?: return
         val positionMs = musicCastPositionMs
+        val positionSampled = musicCastPositionSampled
+        val wasPodcast = musicCastIsPodcast
+        val track = musicCastTrack
         musicCastProgressJob?.cancel()
         musicCastProgressJob = null
         musicCastTrackId = null
         musicCastPlaySessionId = null
         musicCastPositionMs = 0L
+        musicCastPositionSampled = false
+        musicCastIsPodcast = false
+        musicCastTrack = null
         scope.launch {
-            playbackRepository.reportPlaybackStop(
-                itemId = trackId,
-                sessionId = playSessionId,
-                positionTicks = positionMs * 10_000,
-                mediaSourceId = trackId.toString(),
-            )
+            musicCastReportMutex.withLock {
+                val isPodcast =
+                    wasPodcast ||
+                        (track != null && podcastProgressTracker.get().isPodcastTrack(track))
+                if (isPodcast) {
+                    if (
+                        track != null &&
+                            (positionSampled ||
+                                positionMs > 0L ||
+                                track.playbackPositionTicks == 0L)
+                    ) {
+                        podcastProgressTracker
+                            .get()
+                            .syncProgress(
+                                track,
+                                positionMs,
+                                isEnded = false,
+                                allowCompletion = true,
+                            )
+                    }
+                } else {
+                    playbackRepository.reportPlaybackStop(
+                        itemId = trackId,
+                        sessionId = playSessionId,
+                        positionTicks = positionMs * 10_000,
+                        mediaSourceId = trackId.toString(),
+                    )
+                }
+            }
         }
     }
 
