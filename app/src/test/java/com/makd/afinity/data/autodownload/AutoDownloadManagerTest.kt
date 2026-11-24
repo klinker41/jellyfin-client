@@ -40,10 +40,12 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.api.BaseItemDtoQueryResult
 import org.jellyfin.sdk.model.api.BaseItemKind
@@ -64,6 +66,8 @@ class AutoDownloadManagerTest {
         scope: CoroutineScope,
         canDownload: Boolean = true,
         offlineMode: Boolean = false,
+        wifiOnly: Boolean = true,
+        itemsAddedDebounceMs: Long = 50L,
     ) {
         val serverId = "srv-1"
         val userId = testUuid(1)
@@ -120,8 +124,8 @@ class AutoDownloadManagerTest {
             mockk(relaxed = true) {
                 coEvery { getOfflineMode() } returns offlineMode
                 every { getOfflineModeFlow() } returns flowOf(offlineMode)
-                coEvery { getDownloadOverWifiOnly() } returns true
-                every { getDownloadWifiOnlyFlow() } returns flowOf(true)
+                coEvery { getDownloadOverWifiOnly() } returns wifiOnly
+                every { getDownloadWifiOnlyFlow() } returns flowOf(wifiOnly)
             }
         val dataStore =
             PreferenceDataStoreFactory.create(
@@ -130,8 +134,12 @@ class AutoDownloadManagerTest {
             )
         val autoDownloadPreferences = AutoDownloadPreferences(dataStore)
         val mediaChangesFlow = MutableSharedFlow<MediaChangeEvent>()
+        val itemsAddedFlow = MutableSharedFlow<List<String>>()
         val mediaChangeManager: MediaChangeManager =
-            mockk(relaxed = true) { every { mediaChanges } returns mediaChangesFlow }
+            mockk(relaxed = true) {
+                every { mediaChanges } returns mediaChangesFlow
+                every { itemsAdded } returns itemsAddedFlow
+            }
         val playedItemEventBus = PlayedItemEventBus()
         val itemStore = ItemStore()
         val scheduler: AutoDownloadScheduler = mockk(relaxed = true)
@@ -157,6 +165,7 @@ class AutoDownloadManagerTest {
                 musicPlaybackManager = musicPlaybackManager,
                 audiobookshelfPlaybackManager = audiobookshelfPlaybackManager,
                 scope = scope,
+                itemsAddedDebounceMs = itemsAddedDebounceMs,
             )
     }
 
@@ -793,5 +802,132 @@ class AutoDownloadManagerTest {
             assertTrue(h.manager.syncEnabledLibraries())
             coVerify(exactly = 1) { h.downloadRepository.deleteDownload(bookPart1DlId) }
             coVerify(exactly = 1) { h.downloadRepository.deleteDownload(bookPart2DlId) }
+        }
+
+    private suspend fun Harness.startMonitoringAndAwaitItemsAdded() {
+        manager.initMonitoring()
+        withContext(Dispatchers.Default) {
+            withTimeout(2_000L) { itemsAddedFlow.subscriptionCount.first { it > 0 } }
+        }
+    }
+
+    @Test
+    fun `itemsAdded debounces bursts and bypasses foreground sync throttle`() = runTest {
+        val h = Harness(tempFolder.root, backgroundScope, itemsAddedDebounceMs = 50L)
+        h.autoDownloadPreferences.setLibraryEnabled(
+            h.serverId,
+            h.userId,
+            h.podcastsLibId,
+            enabled = true,
+        )
+        h.startMonitoringAndAwaitItemsAdded()
+
+        // Wait for initial session/reachability sync trigger (sets lastAutoSyncAt)
+        verify(timeout = 2_000L, exactly = 1) { h.scheduler.triggerSyncNow(true, false) }
+
+        // Emit rapid bursts of added items — should coalesce into one replace=true sync
+        h.itemsAddedFlow.emit(listOf("item-1"))
+        h.itemsAddedFlow.emit(listOf("item-2", "item-3"))
+        verify(timeout = 2_000L, exactly = 1) { h.scheduler.triggerSyncNow(true, true) }
+        withContext(Dispatchers.Default) { delay(100) }
+        verify(exactly = 1) { h.scheduler.triggerSyncNow(true, true) }
+
+        // Another event shortly after (still within 15-min throttle) triggers again
+        h.itemsAddedFlow.emit(listOf("item-4"))
+        verify(timeout = 2_000L, exactly = 2) { h.scheduler.triggerSyncNow(true, true) }
+        withContext(Dispatchers.Default) { delay(100) }
+        verify(exactly = 2) { h.scheduler.triggerSyncNow(true, true) }
+    }
+
+    @Test
+    fun `itemsAdded respects wifiOnly false preference`() = runTest {
+        val h =
+            Harness(
+                tempFolder.root,
+                backgroundScope,
+                wifiOnly = false,
+                itemsAddedDebounceMs = 50L,
+            )
+        h.autoDownloadPreferences.setLibraryEnabled(
+            h.serverId,
+            h.userId,
+            h.podcastsLibId,
+            enabled = true,
+        )
+        h.startMonitoringAndAwaitItemsAdded()
+        verify(timeout = 2_000L, exactly = 1) { h.scheduler.triggerSyncNow(false, false) }
+
+        h.itemsAddedFlow.emit(listOf("item-1"))
+        verify(timeout = 2_000L, exactly = 1) { h.scheduler.triggerSyncNow(false, true) }
+    }
+
+    @Test
+    fun `itemsAdded skips sync when disabled, offline, restricted, unauthenticated, or empty`() =
+        runTest {
+            // No libraries enabled + empty list guard
+            val disabledH = Harness(tempFolder.root, backgroundScope, itemsAddedDebounceMs = 30L)
+            disabledH.startMonitoringAndAwaitItemsAdded()
+            disabledH.itemsAddedFlow.emit(listOf("item-1"))
+            withContext(Dispatchers.Default) { delay(100) }
+            verify(exactly = 0) { disabledH.scheduler.triggerSyncNow(any(), true) }
+
+            // Empty list emission when library is enabled
+            disabledH.autoDownloadPreferences.setLibraryEnabled(
+                disabledH.serverId,
+                disabledH.userId,
+                disabledH.podcastsLibId,
+                enabled = true,
+            )
+            verify(timeout = 2_000L, exactly = 1) {
+                disabledH.scheduler.triggerSyncNow(true, false)
+            }
+            disabledH.itemsAddedFlow.emit(emptyList())
+            withContext(Dispatchers.Default) { delay(100) }
+            verify(exactly = 0) { disabledH.scheduler.triggerSyncNow(any(), true) }
+
+            // Null session
+            disabledH.sessionFlow.value = null
+            withContext(Dispatchers.Default) { delay(50) }
+            disabledH.itemsAddedFlow.emit(listOf("item-2"))
+            withContext(Dispatchers.Default) { delay(100) }
+            verify(exactly = 0) { disabledH.scheduler.triggerSyncNow(any(), true) }
+
+            // Offline mode
+            val offlineH =
+                Harness(
+                    tempFolder.root,
+                    backgroundScope,
+                    offlineMode = true,
+                    itemsAddedDebounceMs = 30L,
+                )
+            offlineH.autoDownloadPreferences.setLibraryEnabled(
+                offlineH.serverId,
+                offlineH.userId,
+                offlineH.podcastsLibId,
+                enabled = true,
+            )
+            offlineH.startMonitoringAndAwaitItemsAdded()
+            offlineH.itemsAddedFlow.emit(listOf("item-3"))
+            withContext(Dispatchers.Default) { delay(100) }
+            verify(exactly = 0) { offlineH.scheduler.triggerSyncNow(any(), true) }
+
+            // canDownload = false
+            val restrictedH =
+                Harness(
+                    tempFolder.root,
+                    backgroundScope,
+                    canDownload = false,
+                    itemsAddedDebounceMs = 30L,
+                )
+            restrictedH.autoDownloadPreferences.setLibraryEnabled(
+                restrictedH.serverId,
+                restrictedH.userId,
+                restrictedH.podcastsLibId,
+                enabled = true,
+            )
+            restrictedH.startMonitoringAndAwaitItemsAdded()
+            restrictedH.itemsAddedFlow.emit(listOf("item-4"))
+            withContext(Dispatchers.Default) { delay(100) }
+            verify(exactly = 0) { restrictedH.scheduler.triggerSyncNow(any(), true) }
         }
 }

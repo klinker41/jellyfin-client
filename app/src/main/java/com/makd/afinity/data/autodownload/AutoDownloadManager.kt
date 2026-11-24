@@ -28,12 +28,15 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -45,11 +48,10 @@ import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.api.ItemFields
 import timber.log.Timber
 
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @Singleton
 class AutoDownloadManager
-@Inject
-constructor(
+internal constructor(
     private val sessionManager: SessionManager,
     private val mediaRepository: MediaRepository,
     private val downloadRepository: DownloadRepository,
@@ -62,8 +64,41 @@ constructor(
     private val scheduler: AutoDownloadScheduler,
     private val musicPlaybackManager: MusicPlaybackManager,
     private val audiobookshelfPlaybackManager: AudiobookshelfPlaybackManager,
-    @param:ApplicationScope private val scope: CoroutineScope,
+    private val scope: CoroutineScope,
+    private val itemsAddedDebounceMs: Long,
 ) {
+    @Inject
+    constructor(
+        sessionManager: SessionManager,
+        mediaRepository: MediaRepository,
+        downloadRepository: DownloadRepository,
+        databaseRepository: DatabaseRepository,
+        preferencesRepository: PreferencesRepository,
+        autoDownloadPreferences: AutoDownloadPreferences,
+        mediaChangeManager: MediaChangeManager,
+        playedItemEventBus: PlayedItemEventBus,
+        itemStore: ItemStore,
+        scheduler: AutoDownloadScheduler,
+        musicPlaybackManager: MusicPlaybackManager,
+        audiobookshelfPlaybackManager: AudiobookshelfPlaybackManager,
+        @ApplicationScope scope: CoroutineScope,
+    ) : this(
+        sessionManager = sessionManager,
+        mediaRepository = mediaRepository,
+        downloadRepository = downloadRepository,
+        databaseRepository = databaseRepository,
+        preferencesRepository = preferencesRepository,
+        autoDownloadPreferences = autoDownloadPreferences,
+        mediaChangeManager = mediaChangeManager,
+        playedItemEventBus = playedItemEventBus,
+        itemStore = itemStore,
+        scheduler = scheduler,
+        musicPlaybackManager = musicPlaybackManager,
+        audiobookshelfPlaybackManager = audiobookshelfPlaybackManager,
+        scope = scope,
+        itemsAddedDebounceMs = WEBSOCKET_ITEMS_ADDED_DEBOUNCE_MS,
+    )
+
     private val _isSyncing = MutableStateFlow(false)
     val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
 
@@ -98,6 +133,13 @@ constructor(
                     }
                 }
             }
+        }
+
+        scope.launch(Dispatchers.IO) {
+            mediaChangeManager.itemsAdded
+                .filter { it.isNotEmpty() }
+                .debounce(itemsAddedDebounceMs)
+                .collect { onItemsAdded() }
         }
 
         scope.launch(Dispatchers.IO) {
@@ -194,6 +236,34 @@ constructor(
                     scheduler.triggerSyncNow(wifiOnly)
                 }
             }
+        }
+    }
+
+    private suspend fun onItemsAdded() {
+        try {
+            if (preferencesRepository.getOfflineMode()) {
+                Timber.d("WebSocket itemsAdded sync skipped: offline mode enabled")
+                return
+            }
+            val session = sessionManager.currentSession.value ?: return
+            if (session.canDownload == false) {
+                Timber.d("WebSocket itemsAdded sync skipped: account cannot download")
+                return
+            }
+            if (
+                autoDownloadPreferences
+                    .getEnabledLibraryIds(session.serverId, session.userId)
+                    .isEmpty()
+            ) {
+                return
+            }
+            val wifiOnly = preferencesRepository.getDownloadOverWifiOnly()
+            lastAutoSyncAt = System.currentTimeMillis()
+            scheduler.triggerSyncNow(wifiOnly, replace = true)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to trigger auto-download sync on WebSocket item addition")
         }
     }
 
@@ -676,6 +746,7 @@ constructor(
 
     private companion object {
         const val FOREGROUND_SYNC_THROTTLE_MS = 15L * 60 * 1000
+        const val WEBSOCKET_ITEMS_ADDED_DEBOUNCE_MS = 2_000L
         const val USER_DATA_BATCH_SIZE = 100
     }
 }
