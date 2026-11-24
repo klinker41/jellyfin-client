@@ -57,6 +57,7 @@ import com.makd.afinity.ui.item.components.shared.baseMediaDetailItems
 import com.makd.afinity.ui.item.components.shared.detailRowItem
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.landscapeWidth
+import com.makd.afinity.ui.theme.focusOutline
 import java.util.UUID
 
 fun LazyListScope.movieDetailItems(
@@ -251,7 +252,10 @@ private fun MediaThumbnailCard(
     Column(modifier = Modifier.width(cardWidth), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Card(
             onClick = onClick,
-            modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+                    .focusOutline(RoundedCornerShape(8.dp)),
             shape = RoundedCornerShape(8.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {

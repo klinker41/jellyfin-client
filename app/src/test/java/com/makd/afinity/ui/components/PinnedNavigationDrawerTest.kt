@@ -165,6 +165,26 @@ class PinnedNavigationDrawerTest {
     }
 
     @Test
+    fun `shouldPinNavigationDrawer returns false in television mode even on large screens`() {
+        assertFalse(
+            shouldPinNavigationDrawer(
+                navigationDrawerEnabled = true,
+                windowWidth = 960.dp,
+                windowHeight = 540.dp,
+                isTelevision = true,
+            ),
+        )
+        assertFalse(
+            shouldPinNavigationDrawer(
+                navigationDrawerEnabled = true,
+                windowWidth = 1920.dp,
+                windowHeight = 1080.dp,
+                isTelevision = true,
+            ),
+        )
+    }
+
+    @Test
     fun `computeClampedTintAlpha clamps out-of-range values`() {
         assertEquals(0f, computeClampedTintAlpha(-0.5f), 0.0001f)
         assertEquals(

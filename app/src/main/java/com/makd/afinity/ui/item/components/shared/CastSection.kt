@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -43,6 +44,7 @@ import com.makd.afinity.ui.components.CardRow
 import com.makd.afinity.ui.components.LocalDetailEdgePadding
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.portraitWidth
+import com.makd.afinity.ui.theme.focusOutline
 import java.util.UUID
 import org.jellyfin.sdk.model.api.PersonKind
 
@@ -163,7 +165,7 @@ private fun CastMemberCard(
             Modifier.width(cardWidth)
                 .then(
                     if (onPersonClick != null) {
-                        Modifier.clickable(
+                        Modifier.focusOutline(RoundedCornerShape(12.dp)).clickable(
                             indication = null,
                             interactionSource = interactionSource,
                             role = Role.Button,

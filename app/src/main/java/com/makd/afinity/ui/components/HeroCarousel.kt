@@ -49,12 +49,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -100,6 +104,7 @@ import com.makd.afinity.navigation.LocalHeroStyle
 import com.makd.afinity.navigation.LocalShowRatings
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.focusOutline
+import com.makd.afinity.ui.utils.LocalIsTelevision
 import com.makd.afinity.ui.utils.bottomOverlap
 import com.makd.afinity.util.formatOneDecimal
 import com.makd.afinity.util.perfTraceAsync
@@ -363,6 +368,22 @@ fun heroCarouselLayoutHeight(): Dp {
 }
 
 @Composable
+private fun rememberHeroPlayFocusRequester(
+    requestInitialFocus: Boolean,
+    onInitialFocusRequested: () -> Unit,
+): FocusRequester {
+    val focusRequester = remember { FocusRequester() }
+    val latestOnRequested by rememberUpdatedState(onInitialFocusRequested)
+    LaunchedEffect(requestInitialFocus) {
+        if (requestInitialFocus) {
+            runCatching { focusRequester.requestFocus() }
+            latestOnRequested()
+        }
+    }
+    return focusRequester
+}
+
+@Composable
 fun HeroCarousel(
     items: List<AfinityItem>,
     onWatchNowClick: (AfinityItem) -> Unit,
@@ -377,9 +398,14 @@ fun HeroCarousel(
     if (items.isEmpty()) return
 
     val isLandscape = isLandscapeWindow()
+    val isTelevision = LocalIsTelevision.current
     val heroStyle = LocalHeroStyle.current
     val isCard = heroStyle != HeroStyle.FULL_BLEED
     val peek = heroStyle == HeroStyle.PEEK
+
+    var hasRequestedInitialFocus by rememberSaveable { mutableStateOf(false) }
+    val shouldRequestInitialFocus = isTelevision && !hasRequestedInitialFocus
+    val consumeInitialFocus = { hasRequestedInitialFocus = true }
 
     val density = LocalDensity.current
     val screenWidthDp = windowWidthDp()
@@ -434,6 +460,8 @@ fun HeroCarousel(
                 peek = peek,
                 cardWidth = cardWidth,
                 logoSize = logoSize,
+                requestInitialFocus = shouldRequestInitialFocus,
+                onInitialFocusRequested = consumeInitialFocus,
                 onWatchNowClick = onWatchNowClick,
                 onPlayTrailerClick = onPlayTrailerClick,
                 onMoreInformationClick = onMoreInformationClick,
@@ -447,6 +475,8 @@ fun HeroCarousel(
                 screenWidthDp = screenWidthDp,
                 screenHeightDp = screenHeightDp,
                 logoHeight = logoSize.height,
+                requestInitialFocus = shouldRequestInitialFocus,
+                onInitialFocusRequested = consumeInitialFocus,
                 onWatchNowClick = onWatchNowClick,
                 onPlayTrailerClick = onPlayTrailerClick,
                 onMoreInformationClick = onMoreInformationClick,
@@ -464,6 +494,8 @@ private fun HeroFullBleed(
     screenWidthDp: Dp,
     screenHeightDp: Dp,
     logoHeight: Dp,
+    requestInitialFocus: Boolean,
+    onInitialFocusRequested: () -> Unit,
     onWatchNowClick: (AfinityItem) -> Unit,
     onPlayTrailerClick: (AfinityItem) -> Unit,
     onMoreInformationClick: (AfinityItem) -> Unit,
@@ -588,6 +620,8 @@ private fun HeroFullBleed(
                         toneTracker = toneTracker,
                         screenWidthDp = screenWidthDp,
                         logoHeight = logoHeight,
+                        requestInitialFocus = requestInitialFocus,
+                        onInitialFocusRequested = onInitialFocusRequested,
                         onWatchNowClick = onWatchNowClick,
                         onPlayTrailerClick = onPlayTrailerClick,
                         onMoreInformationClick = onMoreInformationClick,
@@ -601,6 +635,8 @@ private fun HeroFullBleed(
                         toneTracker = toneTracker,
                         screenWidthDp = screenWidthDp,
                         logoHeight = logoHeight,
+                        requestInitialFocus = requestInitialFocus,
+                        onInitialFocusRequested = onInitialFocusRequested,
                         onWatchNowClick = onWatchNowClick,
                         onPlayTrailerClick = onPlayTrailerClick,
                         onMoreInformationClick = onMoreInformationClick,
@@ -785,6 +821,8 @@ private fun HeroCardCarousel(
     peek: Boolean,
     cardWidth: Dp,
     logoSize: DpSize,
+    requestInitialFocus: Boolean,
+    onInitialFocusRequested: () -> Unit,
     onWatchNowClick: (AfinityItem) -> Unit,
     onPlayTrailerClick: (AfinityItem) -> Unit,
     onMoreInformationClick: (AfinityItem) -> Unit,
@@ -862,6 +900,8 @@ private fun HeroCardCarousel(
                                 item = item,
                                 enabled = isCurrent,
                                 logoSize = logoSize,
+                                requestInitialFocus = requestInitialFocus && isCurrent,
+                                onInitialFocusRequested = onInitialFocusRequested,
                                 modifier = contentModifier,
                                 onWatchNowClick = onWatchNowClick,
                                 onPlayTrailerClick = onPlayTrailerClick,
@@ -872,6 +912,8 @@ private fun HeroCardCarousel(
                                 item = item,
                                 enabled = isCurrent,
                                 logoSize = logoSize,
+                                requestInitialFocus = requestInitialFocus && isCurrent,
+                                onInitialFocusRequested = onInitialFocusRequested,
                                 modifier = contentModifier,
                                 onWatchNowClick = onWatchNowClick,
                                 onPlayTrailerClick = onPlayTrailerClick,
@@ -919,11 +961,18 @@ private fun BoxScope.HeroPeekContentCentered(
     item: AfinityItem,
     enabled: Boolean,
     logoSize: DpSize,
+    requestInitialFocus: Boolean,
+    onInitialFocusRequested: () -> Unit,
     modifier: Modifier,
     onWatchNowClick: (AfinityItem) -> Unit,
     onPlayTrailerClick: (AfinityItem) -> Unit,
     onMoreInformationClick: (AfinityItem) -> Unit,
 ) {
+    val playFocusRequester =
+        rememberHeroPlayFocusRequester(
+            requestInitialFocus = requestInitialFocus && enabled,
+            onInitialFocusRequested = onInitialFocusRequested,
+        )
     Column(
         modifier =
             modifier
@@ -984,6 +1033,7 @@ private fun BoxScope.HeroPeekContentCentered(
                     iconSize = HeroButtonPlayIconSize,
                     containerColor = MaterialTheme.colorScheme.primary,
                     iconTint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.focusRequester(playFocusRequester),
                 )
             }
         }
@@ -995,11 +1045,18 @@ private fun BoxScope.HeroPeekContentRich(
     item: AfinityItem,
     enabled: Boolean,
     logoSize: DpSize,
+    requestInitialFocus: Boolean,
+    onInitialFocusRequested: () -> Unit,
     modifier: Modifier,
     onWatchNowClick: (AfinityItem) -> Unit,
     onPlayTrailerClick: (AfinityItem) -> Unit,
     onMoreInformationClick: (AfinityItem) -> Unit,
 ) {
+    val playFocusRequester =
+        rememberHeroPlayFocusRequester(
+            requestInitialFocus = requestInitialFocus && enabled,
+            onInitialFocusRequested = onInitialFocusRequested,
+        )
     Column(
         modifier =
             modifier
@@ -1074,6 +1131,7 @@ private fun BoxScope.HeroPeekContentRich(
                 iconSize = 22.dp,
                 containerColor = MaterialTheme.colorScheme.primary,
                 iconTint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.focusRequester(playFocusRequester),
             )
         }
     }
@@ -1128,13 +1186,15 @@ private fun HeroRoundButton(
     iconSize: Dp,
     containerColor: Color,
     iconTint: Color,
+    modifier: Modifier = Modifier,
 ) {
     val scale = heroButtonScale(size)
     IconButton(
         onClick = onClick,
         enabled = enabled,
         modifier =
-            Modifier.size(size * scale)
+            modifier
+                .size(size * scale)
                 .focusOutline(CircleShape)
                 .background(containerColor, CircleShape),
     ) {
@@ -1192,10 +1252,17 @@ private fun BoxScope.HeroContentCentered(
     toneTracker: HeroTextRegionTracker,
     screenWidthDp: Dp,
     logoHeight: Dp,
+    requestInitialFocus: Boolean,
+    onInitialFocusRequested: () -> Unit,
     onWatchNowClick: (AfinityItem) -> Unit,
     onPlayTrailerClick: (AfinityItem) -> Unit,
     onMoreInformationClick: (AfinityItem) -> Unit,
 ) {
+    val playFocusRequester =
+        rememberHeroPlayFocusRequester(
+            requestInitialFocus = requestInitialFocus,
+            onInitialFocusRequested = onInitialFocusRequested,
+        )
     val buttonScale = heroButtonScale(HeroButtonSize)
     val (buttonContainer, buttonContent) = heroButtonColors()
     val bottomPad = if (logoHeight < 120.dp) 64.dp else 80.dp
@@ -1317,6 +1384,7 @@ private fun BoxScope.HeroContentCentered(
                 onClick = { onWatchNowClick(currentItem) },
                 modifier =
                     Modifier.size(HeroButtonSize * buttonScale)
+                        .focusRequester(playFocusRequester)
                         .focusOutline(CircleShape)
                         .background(MaterialTheme.colorScheme.primary, CircleShape),
             ) {
@@ -1348,10 +1416,17 @@ private fun HeroContentRich(
     toneTracker: HeroTextRegionTracker,
     screenWidthDp: Dp,
     logoHeight: Dp,
+    requestInitialFocus: Boolean,
+    onInitialFocusRequested: () -> Unit,
     onWatchNowClick: (AfinityItem) -> Unit,
     onPlayTrailerClick: (AfinityItem) -> Unit,
     onMoreInformationClick: (AfinityItem) -> Unit,
 ) {
+    val playFocusRequester =
+        rememberHeroPlayFocusRequester(
+            requestInitialFocus = requestInitialFocus,
+            onInitialFocusRequested = onInitialFocusRequested,
+        )
     val buttonScale = heroButtonScale(HeroRichButtonSize)
     val (buttonContainer, buttonContent) = heroButtonColors()
     val textShadow = LocalHeroTextShadow.current
@@ -1493,6 +1568,7 @@ private fun HeroContentRich(
                         onClick = { onWatchNowClick(currentItem) },
                         modifier =
                             Modifier.size(HeroRichButtonSize * buttonScale)
+                                .focusRequester(playFocusRequester)
                                 .focusOutline(CircleShape)
                                 .background(MaterialTheme.colorScheme.primary, CircleShape),
                     ) {

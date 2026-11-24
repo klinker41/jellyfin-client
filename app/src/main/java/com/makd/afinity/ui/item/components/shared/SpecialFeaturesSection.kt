@@ -36,6 +36,7 @@ import com.makd.afinity.ui.components.CardRow
 import com.makd.afinity.ui.components.LocalDetailEdgePadding
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.landscapeWidth
+import com.makd.afinity.ui.theme.focusOutline
 import org.jellyfin.sdk.model.api.ExtraType
 
 @Composable
@@ -80,7 +81,8 @@ private fun SpecialFeatureCard(feature: AfinityItem, onClick: () -> Unit, cardWi
     Column(modifier = Modifier.width(cardWidth)) {
         Card(
             onClick = onClick,
-            modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
+            modifier =
+                Modifier.fillMaxWidth().aspectRatio(16f / 9f).focusOutline(CardDefaults.shape),
             colors =
                 CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),

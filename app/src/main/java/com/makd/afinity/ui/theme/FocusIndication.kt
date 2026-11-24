@@ -32,8 +32,8 @@ import kotlinx.coroutines.launch
 @Suppress("ComposeCompositionLocalUsage") val LocalFocusRingColor = compositionLocalOf { Purple80 }
 
 private val DefaultFocusStrokeWidth = 3.dp
-private val DefaultFocusHaloExtra = 1.5.dp
-private val DefaultFocusHaloColor = Color.Black.copy(alpha = 0.45f)
+private val DefaultFocusHaloExtra = 2.dp
+private val DefaultFocusHaloColor = Color.Black.copy(alpha = 0.65f)
 
 class FocusRingIndication(
     private val delegate: IndicationNodeFactory,

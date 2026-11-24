@@ -54,6 +54,7 @@ import com.makd.afinity.ui.item.components.shared.detailItem
 import com.makd.afinity.ui.item.components.shared.detailRowItem
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.portraitWidth
+import com.makd.afinity.ui.theme.focusOutline
 import java.util.UUID
 
 fun LazyListScope.seriesDetailItems(
@@ -166,7 +167,10 @@ internal fun SeasonCard(season: AfinitySeason, onClick: () -> Unit, cardWidth: D
     Column(modifier = Modifier.width(cardWidth)) {
         Card(
             onClick = onClick,
-            modifier = Modifier.fillMaxWidth().aspectRatio(CardDimensions.ASPECT_RATIO_PORTRAIT),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .aspectRatio(CardDimensions.ASPECT_RATIO_PORTRAIT)
+                    .focusOutline(CardDefaults.shape),
             colors =
                 CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),

@@ -32,6 +32,7 @@ import com.makd.afinity.R
 import com.makd.afinity.ui.preview.FontScalePreviews
 import com.makd.afinity.ui.preview.PreviewHost
 import com.makd.afinity.ui.preview.WidthPreviews
+import com.makd.afinity.ui.theme.focusOutline
 
 class DetailMenuAction(
     val label: String,
@@ -76,7 +77,11 @@ fun DetailActionRow(
             modifier = Modifier.padding(end = 8.dp),
         ) {
             if (onShuffle != null) {
-                IconButton(onClick = onShuffle, enabled = playbackEnabled) {
+                IconButton(
+                    onClick = onShuffle,
+                    enabled = playbackEnabled,
+                    modifier = Modifier.focusOutline(CircleShape),
+                ) {
                     Icon(
                         painter = painterResource(R.drawable.ic_arrows_shuffle),
                         contentDescription = stringResource(R.string.cd_music_shuffle),
@@ -97,7 +102,7 @@ fun DetailActionRow(
                     if (playbackEnabled) MaterialTheme.colorScheme.onPrimary
                     else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
                 shape = CircleShape,
-                modifier = Modifier.size(56.dp),
+                modifier = Modifier.size(56.dp).focusOutline(CircleShape),
             ) {
                 Icon(
                     painter = painterResource(playIconRes),
@@ -117,7 +122,10 @@ fun DetailMoreMenu(
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { expanded = true }) {
+        IconButton(
+            onClick = { expanded = true },
+            modifier = Modifier.focusOutline(CircleShape),
+        ) {
             Icon(
                 painter = painterResource(R.drawable.ic_options),
                 contentDescription =

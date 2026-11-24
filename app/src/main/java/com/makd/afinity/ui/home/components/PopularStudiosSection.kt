@@ -30,6 +30,7 @@ import com.makd.afinity.ui.components.AsyncImage
 import com.makd.afinity.ui.components.CardRow
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.landscapeWidth
+import com.makd.afinity.ui.theme.focusOutline
 
 @Composable
 fun PopularStudiosSection(
@@ -76,7 +77,10 @@ fun StudioCard(studio: AfinityStudio, onClick: () -> Unit, cardWidth: Dp) {
     Column(modifier = Modifier.width(cardWidth)) {
         Card(
             onClick = onClick,
-            modifier = Modifier.fillMaxWidth().aspectRatio(CardDimensions.ASPECT_RATIO_LANDSCAPE),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .aspectRatio(CardDimensions.ASPECT_RATIO_LANDSCAPE)
+                    .focusOutline(CardDefaults.shape),
             colors =
                 CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),

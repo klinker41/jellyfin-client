@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -40,6 +41,7 @@ import com.makd.afinity.data.models.music.AfinityMusicGenre
 import com.makd.afinity.data.models.music.AfinityPlaylist
 import com.makd.afinity.ui.components.AsyncImage
 import com.makd.afinity.ui.theme.CardDimensions
+import com.makd.afinity.ui.theme.focusOutline
 
 private val GENRE_CARD_GRADIENTS =
     listOf(
@@ -90,6 +92,7 @@ fun MusicAlbumCard(
         modifier =
             modifier
                 .fillMaxWidth()
+                .focusOutline(MaterialTheme.shapes.medium)
                 .clickable(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() },
@@ -154,6 +157,7 @@ fun MusicArtistCard(
         modifier =
             modifier
                 .width(size)
+                .focusOutline(RoundedCornerShape(12.dp))
                 .clickable(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() },
@@ -197,6 +201,7 @@ fun MusicGenreCard(
         modifier =
             modifier
                 .fillMaxWidth()
+                .focusOutline(MaterialTheme.shapes.medium)
                 .clickable(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() },

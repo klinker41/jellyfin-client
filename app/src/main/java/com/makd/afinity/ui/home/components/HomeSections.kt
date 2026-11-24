@@ -70,6 +70,7 @@ import com.makd.afinity.ui.components.shouldBlurEpisode
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.landscapeWidth
 import com.makd.afinity.ui.theme.CardDimensions.portraitWidth
+import com.makd.afinity.ui.theme.focusOutline
 import com.makd.afinity.util.formatOneDecimal
 import kotlin.math.roundToInt
 
@@ -168,7 +169,10 @@ private fun ContinueReadingCard(book: AfinityBook, onClick: () -> Unit, cardWidt
     Column(modifier = Modifier.width(cardWidth)) {
         Card(
             onClick = onClick,
-            modifier = Modifier.fillMaxWidth().aspectRatio(CardDimensions.ASPECT_RATIO_PORTRAIT),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .aspectRatio(CardDimensions.ASPECT_RATIO_PORTRAIT)
+                    .focusOutline(CardDefaults.shape),
             colors =
                 CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -359,7 +363,10 @@ private fun AudiobookCard(
     Column(modifier = Modifier.width(cardWidth)) {
         Card(
             onClick = onClick,
-            modifier = Modifier.fillMaxWidth().aspectRatio(CardDimensions.ASPECT_RATIO_SQUARE),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .aspectRatio(CardDimensions.ASPECT_RATIO_SQUARE)
+                    .focusOutline(CardDefaults.shape),
             colors =
                 CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -642,7 +649,10 @@ fun UpcomingEpisodeCard(
     Column(modifier = modifier.width(cardWidth)) {
         Card(
             onClick = onClick,
-            modifier = Modifier.fillMaxWidth().aspectRatio(CardDimensions.ASPECT_RATIO_LANDSCAPE),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .aspectRatio(CardDimensions.ASPECT_RATIO_LANDSCAPE)
+                    .focusOutline(CardDefaults.shape),
             colors =
                 CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),

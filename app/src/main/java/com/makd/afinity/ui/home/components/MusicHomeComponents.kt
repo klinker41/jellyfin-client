@@ -1,6 +1,7 @@
 package com.makd.afinity.ui.home.components
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -20,7 +21,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,6 +53,7 @@ import com.makd.afinity.ui.components.windowWidthDp
 import com.makd.afinity.ui.music.components.MusicAlbumCard
 import com.makd.afinity.ui.music.components.MusicPlaylistCard
 import com.makd.afinity.ui.theme.CardDimensions
+import com.makd.afinity.ui.theme.focusOutline
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -100,7 +104,14 @@ private fun MusicCarouselSection(
                     modifier =
                         Modifier.height(itemSize.height)
                             .maskClip(MaterialTheme.shapes.extraLarge)
-                            .clickable(role = Role.Button) { onItemClick(index) },
+                            .focusOutline(MaterialTheme.shapes.extraLarge)
+                            .clickable(
+                                indication = ripple(),
+                                interactionSource = remember { MutableInteractionSource() },
+                                role = Role.Button,
+                            ) {
+                                onItemClick(index)
+                            },
                 ) {
                     AsyncImage(
                         imageUrl = imageUrl(index),
@@ -291,7 +302,7 @@ private fun MostPlayedAlbumCard(
     ) {
         Card(
             onClick = onClick,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().focusOutline(RoundedCornerShape(8.dp)),
             shape = RoundedCornerShape(8.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
@@ -453,7 +464,14 @@ fun ArtistAlbumsCarousel(
                     modifier =
                         Modifier.height(itemSize.height)
                             .maskClip(MaterialTheme.shapes.extraLarge)
-                            .clickable(role = Role.Button) { onAlbumClick(album) },
+                            .focusOutline(MaterialTheme.shapes.extraLarge)
+                            .clickable(
+                                indication = ripple(),
+                                interactionSource = remember { MutableInteractionSource() },
+                                role = Role.Button,
+                            ) {
+                                onAlbumClick(album)
+                            },
                 ) {
                     AsyncImage(
                         imageUrl = (album.images.backdrop ?: album.images.primary)?.toString(),

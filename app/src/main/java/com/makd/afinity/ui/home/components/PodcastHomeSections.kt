@@ -40,6 +40,7 @@ import com.makd.afinity.ui.components.formatTimeLeftTicks
 import com.makd.afinity.ui.components.rememberCardRowListState
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.portraitWidth
+import com.makd.afinity.ui.theme.focusOutline
 
 @Composable
 fun ContinueListeningRowSection(
@@ -218,7 +219,10 @@ private fun SquareListeningCard(
     Column(modifier = Modifier.width(cardWidth)) {
         Card(
             onClick = onClick,
-            modifier = Modifier.fillMaxWidth().aspectRatio(CardDimensions.ASPECT_RATIO_SQUARE),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .aspectRatio(CardDimensions.ASPECT_RATIO_SQUARE)
+                    .focusOutline(CardDefaults.shape),
             colors =
                 CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),

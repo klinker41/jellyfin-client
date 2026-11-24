@@ -1,6 +1,7 @@
 package com.makd.afinity.ui.home.components
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -13,7 +14,9 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
@@ -23,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makd.afinity.ui.components.AsyncImage
 import com.makd.afinity.ui.theme.CardDimensions
+import com.makd.afinity.ui.theme.focusOutline
 
 @Composable
 fun SquareMediaTile(
@@ -35,7 +39,18 @@ fun SquareMediaTile(
 ) {
     val tileWidth = CardDimensions.posterCardWidth
 
-    Column(modifier = modifier.width(tileWidth).clickable(role = Role.Button, onClick = onClick)) {
+    Column(
+        modifier =
+            modifier
+                .width(tileWidth)
+                .focusOutline(RoundedCornerShape(8.dp))
+                .clickable(
+                    indication = ripple(),
+                    interactionSource = remember { MutableInteractionSource() },
+                    role = Role.Button,
+                    onClick = onClick,
+                ),
+    ) {
         Card(
             modifier = Modifier.fillMaxWidth().aspectRatio(1f),
             shape = RoundedCornerShape(8.dp),

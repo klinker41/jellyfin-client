@@ -55,6 +55,7 @@ import com.makd.afinity.data.models.media.AfinityPhoto
 import com.makd.afinity.data.models.media.AfinityPhotoAlbum
 import com.makd.afinity.data.models.media.AfinityVideo
 import com.makd.afinity.ui.theme.CardDimensions
+import com.makd.afinity.ui.theme.focusOutline
 
 private const val MIN_TILE_RATIO = 0.5f
 private const val MAX_TILE_RATIO = 2f
@@ -151,7 +152,8 @@ fun GalleryTile(
     Column(modifier = modifier.fillMaxWidth()) {
         Card(
             onClick = onClick,
-            modifier = Modifier.fillMaxWidth().aspectRatio(ratio),
+            modifier =
+                Modifier.fillMaxWidth().aspectRatio(ratio).focusOutline(RoundedCornerShape(12.dp)),
             shape = RoundedCornerShape(12.dp),
             colors =
                 CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),

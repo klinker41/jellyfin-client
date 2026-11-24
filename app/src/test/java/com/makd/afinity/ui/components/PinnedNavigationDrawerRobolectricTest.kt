@@ -53,6 +53,7 @@ import com.makd.afinity.ui.settings.SessionSwitcherState
 import com.makd.afinity.ui.settings.SessionSwitcherViewModel
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.ThemeMode
+import com.makd.afinity.ui.utils.LocalIsTelevision
 import io.mockk.every
 import io.mockk.mockk
 import kotlin.math.ceil
@@ -460,6 +461,20 @@ class PinnedNavigationDrawerRobolectricTest {
             }
         }
         assertTrue(shouldPin)
+    }
+
+    @Test
+    @Config(qualifiers = "w960dp-h540dp")
+    fun `television mode hides pinned drawer by default`() {
+        var shouldPin = true
+        composeTestRule.setContent {
+            PreviewHost(modifier = Modifier.fillMaxSize()) {
+                CompositionLocalProvider(LocalIsTelevision provides true) {
+                    shouldPin = shouldPinNavigationDrawer(navigationDrawerEnabled = true)
+                }
+            }
+        }
+        assertFalse(shouldPin)
     }
 
     @Test

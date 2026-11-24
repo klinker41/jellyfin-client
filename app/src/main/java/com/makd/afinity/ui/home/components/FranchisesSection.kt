@@ -53,6 +53,7 @@ import com.makd.afinity.ui.components.LogoCleanupTransformation
 import com.makd.afinity.ui.components.MediaCountBadge
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.landscapeWidth
+import com.makd.afinity.ui.theme.focusOutline
 
 @Composable
 fun FranchisesSection(
@@ -105,7 +106,10 @@ private fun FranchiseCardItem(card: FranchiseCard, onClick: () -> Unit, cardWidt
     Column(modifier = Modifier.width(cardWidth)) {
         Card(
             onClick = onClick,
-            modifier = Modifier.fillMaxWidth().aspectRatio(CardDimensions.ASPECT_RATIO_LANDSCAPE),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .aspectRatio(CardDimensions.ASPECT_RATIO_LANDSCAPE)
+                    .focusOutline(CardDefaults.shape),
             colors =
                 CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),

@@ -2,6 +2,7 @@ package com.makd.afinity.ui.components
 
 import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -33,6 +34,7 @@ import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.makd.afinity.navigation.Destination
+import com.makd.afinity.ui.utils.LocalIsTelevision
 
 internal val PinnedDrawerMinWindowWidth = 600.dp
 internal val PinnedDrawerMinWindowHeight = 500.dp
@@ -53,8 +55,10 @@ internal fun shouldPinNavigationDrawer(
     navigationDrawerEnabled: Boolean,
     windowWidth: Dp,
     windowHeight: Dp,
+    isTelevision: Boolean = false,
 ): Boolean =
     navigationDrawerEnabled &&
+        !isTelevision &&
         windowWidth >= PinnedDrawerMinWindowWidth &&
         windowHeight >= PinnedDrawerMinWindowHeight
 
@@ -65,6 +69,7 @@ fun shouldPinNavigationDrawer(navigationDrawerEnabled: Boolean): Boolean =
         navigationDrawerEnabled = navigationDrawerEnabled,
         windowWidth = windowWidthDp(),
         windowHeight = windowHeightDp(),
+        isTelevision = LocalIsTelevision.current,
     )
 
 internal fun shouldHidePinnedDrawerForRoute(route: String?): Boolean =
@@ -168,6 +173,7 @@ fun AppPinnedNavigationDrawer(
                     )
                     .clip(PinnedDrawerShape)
                     .focusRestorer()
+                    .focusGroup()
                     .pointerInput(Unit) {},
         ) {
             content()

@@ -1,5 +1,6 @@
 package com.makd.afinity.ui.components
 
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -14,9 +15,17 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 
@@ -58,6 +67,20 @@ fun AfinityScreen(
             Modifier.padding(start = drawerStartInset)
         }
 
+    val contentFocusRequester = remember { FocusRequester() }
+    val topBarFocusModifier =
+        if (mode != AfinityScreenMode.Standard) {
+            Modifier.onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionDown) {
+                    runCatching { contentFocusRequester.requestFocus() }.getOrDefault(false)
+                } else {
+                    false
+                }
+            }
+        } else {
+            Modifier
+        }
+
     RequestDarkStatusBar(enabled = landscapeHero)
 
     Scaffold(
@@ -76,6 +99,8 @@ fun AfinityScreen(
                 modifier =
                     Modifier.fillMaxSize()
                         .then(contentModifier)
+                        .focusRequester(contentFocusRequester)
+                        .focusGroup()
                         .then(
                             if (topBarBlurState != null) {
                                 Modifier.topBarBlurSource(topBarBlurState)
@@ -100,6 +125,7 @@ fun AfinityScreen(
                 Box(
                     modifier =
                         Modifier.fillMaxWidth()
+                            .then(topBarFocusModifier)
                             .topBarBlurBackdrop(
                                 state = topBarBlurState,
                                 containerColor = effectiveBlurContainerColor,
@@ -108,7 +134,9 @@ fun AfinityScreen(
                     topBar(NoFill)
                 }
             } else {
-                topBar(if (fillsOnScroll) scrollOpacity else NoFill)
+                Box(modifier = Modifier.fillMaxWidth().then(topBarFocusModifier)) {
+                    topBar(if (fillsOnScroll) scrollOpacity else NoFill)
+                }
             }
         }
     }

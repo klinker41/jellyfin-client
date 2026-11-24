@@ -2,6 +2,7 @@ package com.makd.afinity.ui.home.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -19,7 +20,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,6 +55,7 @@ import com.makd.afinity.ui.components.rememberRatingMetadataScale
 import com.makd.afinity.ui.components.windowHeightDp
 import com.makd.afinity.ui.components.windowWidthDp
 import com.makd.afinity.ui.theme.CardDimensions
+import com.makd.afinity.ui.theme.focusOutline
 import com.makd.afinity.util.formatOneDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -104,7 +108,14 @@ fun SpotlightCarousel(
                     modifier =
                         Modifier.height(itemSize.height)
                             .maskClip(MaterialTheme.shapes.extraLarge)
-                            .clickable(role = Role.Button) { onItemClick(item) },
+                            .focusOutline(MaterialTheme.shapes.extraLarge)
+                            .clickable(
+                                indication = ripple(),
+                                interactionSource = remember { MutableInteractionSource() },
+                                role = Role.Button,
+                            ) {
+                                onItemClick(item)
+                            },
                 ) {
                     AsyncImage(
                         imageUrl = item.images.backdropImageUrl ?: item.images.primaryImageUrl,
@@ -235,8 +246,15 @@ fun SpotlightCarousel(
                         Box(
                             modifier =
                                 Modifier.size(40.dp)
+                                    .focusOutline(CircleShape)
                                     .background(MaterialTheme.colorScheme.primary, CircleShape)
-                                    .clickable(role = Role.Button) { onPlayClick(item) },
+                                    .clickable(
+                                        indication = ripple(bounded = false, radius = 20.dp),
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        role = Role.Button,
+                                    ) {
+                                        onPlayClick(item)
+                                    },
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(

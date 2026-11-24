@@ -46,6 +46,7 @@ import com.makd.afinity.ui.components.RankedCardFrame
 import com.makd.afinity.ui.components.rememberRatingMetadataScale
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.portraitWidth
+import com.makd.afinity.ui.theme.focusOutline
 import com.makd.afinity.util.formatOneDecimal
 
 @Composable
@@ -96,7 +97,7 @@ fun HighestRatedCard(item: AfinityItem, ranking: Int, onClick: () -> Unit, cardW
     ) {
         Card(
             onClick = onClick,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().focusOutline(CardDefaults.shape),
             colors =
                 CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),

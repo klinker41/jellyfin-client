@@ -88,6 +88,7 @@ import com.makd.afinity.ui.player.PlayerLauncher
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.landscapeWidth
 import com.makd.afinity.ui.theme.CardDimensions.portraitWidth
+import com.makd.afinity.ui.theme.focusOutline
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -492,6 +493,7 @@ internal fun FavoritePersonCard(person: AfinityPersonDetail, onClick: () -> Unit
     Column(
         modifier =
             Modifier.width(cardWidth)
+                .focusOutline(RoundedCornerShape(12.dp))
                 .clickable(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() },
@@ -566,7 +568,10 @@ internal fun FavoriteChannelCard(channel: AfinityChannel, onClick: () -> Unit, c
     Column(modifier = Modifier.width(cardWidth)) {
         Card(
             onClick = onClick,
-            modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+                    .focusOutline(MaterialTheme.shapes.medium),
             colors =
                 CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -678,6 +683,7 @@ internal fun FavoriteTrackCard(
     Column(
         modifier =
             Modifier.width(cardWidth)
+                .focusOutline(RoundedCornerShape(8.dp))
                 .clickable(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() },
