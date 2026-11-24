@@ -355,4 +355,119 @@ class MusicProgressReporterTest {
                 )
             }
         }
+
+    @Test
+    fun `onPlaybackStopped with allowCompletion false forwards flag and ignores subsequent 0L stop`() =
+        runTest {
+            val stopSynced = CompletableDeferred<Unit>()
+            val repo: PlaybackRepository = mockk(relaxed = true)
+            val episodeId = testUuid(15)
+            val episode = testTrack(id = episodeId).copy(runtimeTicks = 600_000_000L)
+            val tracker: PodcastProgressTracker =
+                mockk(relaxed = true) {
+                    coEvery { isPodcastTrack(any()) } returns true
+                    coEvery {
+                        syncProgress(
+                            episode,
+                            positionMs = 58_000L,
+                            isEnded = false,
+                            allowCompletion = false,
+                        )
+                    } coAnswers
+                        {
+                            stopSynced.complete(Unit)
+                            episode.copy(playbackPositionTicks = 580_000_000L)
+                        }
+                }
+            val reporter = MusicProgressReporter(repo, tracker).also { activeReporter = it }
+
+            reporter.onPlaybackStarted(episodeId, playSessionId = "ps-cast", track = episode)
+            reporter.onPlaybackStopped(positionMs = 58_000L, allowCompletion = false)
+            reporter.onPlaybackStopped(positionMs = 0L)
+
+            withContext(Dispatchers.Default) { withTimeout(2_000L) { stopSynced.await() } }
+
+            coVerify(exactly = 1) {
+                tracker.syncProgress(
+                    episode,
+                    positionMs = 58_000L,
+                    isEnded = false,
+                    allowCompletion = false,
+                )
+            }
+            coVerify(exactly = 0) {
+                tracker.syncProgress(
+                    any(),
+                    positionMs = 0L,
+                    isEnded = any(),
+                    allowCompletion = any(),
+                )
+            }
+        }
+
+    @Test
+    fun `paused podcast followed by swipe-dismiss stop and duplicate 0L stop never syncs 0L`() =
+        runTest {
+            val stopSynced = CompletableDeferred<Unit>()
+            val repo: PlaybackRepository = mockk(relaxed = true)
+            val episodeId = testUuid(16)
+            val episode = testTrack(id = episodeId).copy(runtimeTicks = 18_000_000_000L)
+            val pausedEpisode = episode.copy(playbackPositionTicks = 9_000_000_000L)
+            val tracker: PodcastProgressTracker =
+                mockk(relaxed = true) {
+                    coEvery { isPodcastTrack(any()) } returns true
+                    coEvery {
+                        syncProgress(
+                            episode,
+                            positionMs = 900_000L,
+                            isEnded = false,
+                            allowCompletion = false,
+                        )
+                    } returns pausedEpisode
+                    coEvery {
+                        syncProgress(
+                            pausedEpisode,
+                            positionMs = 900_000L,
+                            isEnded = false,
+                            allowCompletion = true,
+                        )
+                    } coAnswers
+                        {
+                            stopSynced.complete(Unit)
+                            pausedEpisode
+                        }
+                }
+            val reporter = MusicProgressReporter(repo, tracker).also { activeReporter = it }
+
+            reporter.onPlaybackStarted(episodeId, playSessionId = "ps-swipe", track = episode)
+            reporter.onPlaybackPaused(positionMs = 900_000L)
+            reporter.onPlaybackStopped(positionMs = 900_000L)
+            reporter.onPlaybackStopped(positionMs = 0L)
+            reporter.onPlaybackStopped(positionMs = 0L)
+
+            withContext(Dispatchers.Default) { withTimeout(2_000L) { stopSynced.await() } }
+
+            coVerify(exactly = 0) {
+                tracker.syncProgress(
+                    any(),
+                    positionMs = 0L,
+                    isEnded = any(),
+                    allowCompletion = any(),
+                )
+            }
+            coVerifyOrder {
+                tracker.syncProgress(
+                    episode,
+                    positionMs = 900_000L,
+                    isEnded = false,
+                    allowCompletion = false,
+                )
+                tracker.syncProgress(
+                    pausedEpisode,
+                    positionMs = 900_000L,
+                    isEnded = false,
+                    allowCompletion = true,
+                )
+            }
+        }
 }

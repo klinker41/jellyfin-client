@@ -173,12 +173,16 @@ internal constructor(
         reportStop(previousPositionMs, previousEnded)
     }
 
-    fun onPlaybackStopped(positionMs: Long, isEnded: Boolean = false) {
-        reportStop(positionMs, isEnded)
+    fun onPlaybackStopped(
+        positionMs: Long,
+        isEnded: Boolean = false,
+        allowCompletion: Boolean = true,
+    ) {
+        reportStop(positionMs, isEnded, allowCompletion)
         stopProgressUpdates()
     }
 
-    private fun reportStop(positionMs: Long, isEnded: Boolean) {
+    private fun reportStop(positionMs: Long, isEnded: Boolean, allowCompletion: Boolean = true) {
         val trackId = currentTrackId ?: return
         val fallbackTrack = currentTrack
         currentTrackId = null
@@ -197,7 +201,7 @@ internal constructor(
                         track,
                         positionMs,
                         isEnded = isEnded,
-                        allowCompletion = true,
+                        allowCompletion = allowCompletion,
                     )
                 }
                 return@inOrder

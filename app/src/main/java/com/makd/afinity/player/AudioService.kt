@@ -76,6 +76,7 @@ import com.makd.afinity.player.music.MusicQueueManager
 import com.makd.afinity.player.music.PodcastProgressTracker
 import com.makd.afinity.player.music.PodcastTrackInfo
 import com.makd.afinity.player.music.RadioManager
+import com.makd.afinity.player.music.outgoingMusicTransitionPositionMs
 import com.makd.afinity.widget.AudioWidgetUpdater
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.concurrent.atomic.AtomicReference
@@ -184,6 +185,16 @@ class AudioService : MediaLibraryService() {
     private var musicRearrangeJob: Job? = null
     private var skipSilenceJob: Job? = null
     private var musicSpeedJob: Job? = null
+    private var pendingMusicTransitionPositionMs: Long? = null
+
+    private fun currentMusicPositionMs(): Long {
+        val player = exoPlayer
+        return if (player != null && player.mediaItemCount > 0) {
+            player.currentPosition.coerceAtLeast(0L)
+        } else {
+            musicPlaybackManager.state.value.positionMs.coerceAtLeast(0L)
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -368,7 +379,8 @@ class AudioService : MediaLibraryService() {
             ?.audioSessionId
             ?.takeIf { it != C.AUDIO_SESSION_ID_UNSET }
             ?.let { absEqualizerManager.attachToSession(it) }
-        val posMs = exoPlayer?.currentPosition ?: 0L
+        val posMs = currentMusicPositionMs()
+        pendingMusicTransitionPositionMs = null
         musicProgressReporter.onPlaybackStopped(posMs)
         musicPlaybackManager.clearPlayer()
         musicPlaybackManager.updateTrack(null)
@@ -384,6 +396,7 @@ class AudioService : MediaLibraryService() {
         if (activeEngine == ActiveEngine.MUSIC) return
         Timber.d("AudioService: switching to Music engine")
         activeEngine = ActiveEngine.MUSIC
+        pendingMusicTransitionPositionMs = null
         exoPlayer?.setAudioAttributes(MUSIC_AUDIO_ATTRIBUTES, true)
         absEqualizerManager.releaseEqualizer()
         exoPlayer
@@ -412,19 +425,23 @@ class AudioService : MediaLibraryService() {
     private fun pauseForCast() {
         if (activeEngine != ActiveEngine.MUSIC) return
         Timber.d("AudioService: pausing music for Cast takeover")
+        val posMs = currentMusicPositionMs()
+        pendingMusicTransitionPositionMs = null
+        activeEngine = ActiveEngine.NONE
+        musicProgressReporter.onPlaybackStopped(posMs, allowCompletion = false)
         exoPlayer?.stop()
         exoPlayer?.clearMediaItems()
         musicQueueJob?.cancel()
         musicRearrangeJob?.cancel()
         musicSpeedJob?.cancel()
-        activeEngine = ActiveEngine.NONE
     }
 
     private fun tearDown() {
         Timber.d("AudioService: tear down")
         musicSpeedJob?.cancel()
+        pendingMusicTransitionPositionMs = null
         if (activeEngine == ActiveEngine.MUSIC) {
-            musicProgressReporter.onPlaybackStopped(exoPlayer?.currentPosition ?: 0L)
+            musicProgressReporter.onPlaybackStopped(currentMusicPositionMs())
         }
         endJellyfinAudiobook()
         absPlaybackManager.clearSession()
@@ -496,6 +513,13 @@ class AudioService : MediaLibraryService() {
                         updateAbsPosition(player)
                     }
                     ActiveEngine.MUSIC -> {
+                        pendingMusicTransitionPositionMs =
+                            outgoingMusicTransitionPositionMs(
+                                oldPosition = oldPosition,
+                                newPosition = newPosition,
+                                reason = reason,
+                                fallbackPositionMs = musicPlaybackManager.state.value.positionMs,
+                            )
                         musicPlaybackManager.updatePosition(
                             positionMs = player.currentPosition,
                             bufferedPositionMs = player.bufferedPosition,
@@ -594,8 +618,9 @@ class AudioService : MediaLibraryService() {
                             Player.STATE_ENDED -> {
                                 musicPlaybackManager.updatePlayingState(false)
                                 stopPositionUpdates()
+                                pendingMusicTransitionPositionMs = null
                                 musicProgressReporter.onPlaybackStopped(
-                                    exoPlayer?.currentPosition ?: 0L,
+                                    currentMusicPositionMs(),
                                     isEnded = true,
                                 )
                                 musicPlaybackManager.stop()
@@ -615,20 +640,21 @@ class AudioService : MediaLibraryService() {
                     recordNowPlayingDisplay()
                 }
                 if (activeEngine != ActiveEngine.MUSIC) return
+                val previousPositionMs =
+                    pendingMusicTransitionPositionMs ?: musicPlaybackManager.state.value.positionMs
+                pendingMusicTransitionPositionMs = null
                 if (mediaItem == null) {
                     musicSpeedJob?.cancel()
                     exoPlayer?.setPlaybackSpeed(1.0f)
                     musicPlaybackManager.updatePodcastContext(null, 1.0f)
-                    musicProgressReporter.onPlaybackStopped(
-                        musicPlaybackManager.state.value.positionMs,
-                    )
+                    musicProgressReporter.onPlaybackStopped(previousPositionMs)
                     if (musicQueueManager.queue.value.isEmpty()) {
                         musicPlaybackManager.updateTrack(null)
                     }
                     return
                 }
                 musicProgressReporter.onTrackTransition(
-                    previousPositionMs = musicPlaybackManager.state.value.positionMs,
+                    previousPositionMs = previousPositionMs,
                     previousEnded =
                         reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO ||
                             reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT,
@@ -1266,8 +1292,9 @@ class AudioService : MediaLibraryService() {
     override fun onDestroy() {
         absEqualizerManager.releaseEqualizer()
         musicEqualizerManager.releaseEqualizer()
+        pendingMusicTransitionPositionMs = null
         if (activeEngine == ActiveEngine.MUSIC) {
-            musicProgressReporter.onPlaybackStopped(exoPlayer?.currentPosition ?: 0L)
+            musicProgressReporter.onPlaybackStopped(currentMusicPositionMs())
         }
         endJellyfinAudiobook()
         absPlaybackManager.clearSession()

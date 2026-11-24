@@ -41,6 +41,7 @@ constructor(
     @ApplicationScope private val scope: CoroutineScope,
     @ApplicationContext private val context: Context,
     jellyfinWebSocketManager: JellyfinWebSocketManager,
+    private val musicProgressReporter: MusicProgressReporter,
 ) {
 
     private val _state = MutableStateFlow(MusicPlaybackState())
@@ -240,9 +241,14 @@ constructor(
     fun stop() {
         sleepTimerJob?.cancel()
         sleepTimerJob = null
-        exoPlayer?.let {
-            it.stop()
-            it.clearMediaItems()
+        val player = exoPlayer
+        if (player != null) {
+            val positionMs =
+                if (player.mediaItemCount > 0) player.currentPosition.coerceAtLeast(0L)
+                else _state.value.positionMs.coerceAtLeast(0L)
+            musicProgressReporter.onPlaybackStopped(positionMs)
+            player.stop()
+            player.clearMediaItems()
         }
         exoPlayer = null
         _state.update { MusicPlaybackState() }
