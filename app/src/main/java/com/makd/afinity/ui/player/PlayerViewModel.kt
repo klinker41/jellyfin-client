@@ -1095,16 +1095,16 @@ constructor(
         _playbackProgress.value =
             PlaybackProgress(currentPosition = position, bufferedPosition = bufferedPosition)
 
-        _uiState.value =
-            _uiState.value.copy(
+        _uiState.update { state ->
+            state.copy(
                 isPlaying = isPlaying,
                 isPaused = isPausedState,
                 isBuffering = isBuffering,
                 playWhenReady = playWhenReady,
                 duration = duration,
-                showPlayButton =
-                    if (isBuffering && playWhenReady) false else _uiState.value.showPlayButton,
+                showPlayButton = if (isBuffering && playWhenReady) false else state.showPlayButton,
             )
+        }
     }
 
     private suspend fun observeRemotePlaystateCommands() {
@@ -3825,7 +3825,7 @@ constructor(
     }
 
     private fun updateUiState(update: (PlayerUiState) -> PlayerUiState) {
-        _uiState.value = update(_uiState.value)
+        _uiState.update(update)
     }
 
     fun showControls() {
@@ -4093,7 +4093,7 @@ constructor(
     }
 
     fun onPipModeChanged(isInPictureInPictureMode: Boolean) {
-        _uiState.value = _uiState.value.copy(isInPictureInPictureMode = isInPictureInPictureMode)
+        _uiState.update { it.copy(isInPictureInPictureMode = isInPictureInPictureMode) }
 
         if (isInPictureInPictureMode) {
             hideControls()
