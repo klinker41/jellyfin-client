@@ -395,6 +395,8 @@ class AudioService : MediaLibraryService() {
     private fun switchToMusic() {
         if (activeEngine == ActiveEngine.MUSIC) return
         Timber.d("AudioService: switching to Music engine")
+        absProgressSyncer.stopSyncing()
+        endJellyfinAudiobook()
         activeEngine = ActiveEngine.MUSIC
         pendingMusicTransitionPositionMs = null
         exoPlayer?.setAudioAttributes(MUSIC_AUDIO_ATTRIBUTES, true)
@@ -403,8 +405,6 @@ class AudioService : MediaLibraryService() {
             ?.audioSessionId
             ?.takeIf { it != C.AUDIO_SESSION_ID_UNSET }
             ?.let { musicEqualizerManager.attachToSession(it) }
-        absProgressSyncer.stopSyncing()
-        endJellyfinAudiobook()
         absPlaybackManager.clearSession()
         stopPositionUpdates()
         exoPlayer?.stop()
@@ -551,6 +551,9 @@ class AudioService : MediaLibraryService() {
                     ActiveEngine.ABS -> {
                         absPlaybackManager.updatePlayingState(isPlaying)
                         recordAbsPlayback()
+                        if (!isPlaying) {
+                            exoPlayer?.takeIf { it.mediaItemCount > 0 }?.let(::updateAbsPosition)
+                        }
                         if (isJellyfinAudiobook()) {
                             if (isPlaying) startPositionUpdates() else stopPositionUpdates()
                             jellyfinAudiobookReporter.onLocalPlayingChanged(isPlaying)
@@ -1155,6 +1158,9 @@ class AudioService : MediaLibraryService() {
             absPlaybackManager.playbackState.value.source == AudiobookSource.JELLYFIN
 
     private fun endJellyfinAudiobook() {
+        if (activeEngine == ActiveEngine.ABS) {
+            exoPlayer?.takeIf { it.mediaItemCount > 0 }?.let(::updateAbsPosition)
+        }
         val state = absPlaybackManager.playbackState.value
         if (state.source == AudiobookSource.JELLYFIN && state.sessionId != null) {
             jellyfinAudiobookReporter.end(state.currentTime)

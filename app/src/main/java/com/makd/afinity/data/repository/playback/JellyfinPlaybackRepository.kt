@@ -457,6 +457,9 @@ constructor(
                         playbackOrder = PlaybackOrder.DEFAULT,
                     ),
                 )
+                if (!isMusic) {
+                    syncLocalPlaybackState(itemId, positionTicks, played = null)
+                }
                 true
             } catch (e: ApiClientException) {
                 Timber.e(e, "Failed to report playback progress for item: $itemId, saving locally")
@@ -551,7 +554,26 @@ constructor(
                         failed = false,
                     ),
                 )
-                if (!isMusic) clearPendingSync(itemId)
+                if (!isMusic) {
+                    val userId = getCurrentUserId()
+                    if (userId != null) {
+                        val resolved =
+                            resolveStopCompletion(
+                                itemId = itemId,
+                                userId = userId,
+                                positionTicks = positionTicks,
+                                runtimeTicks = runtimeTicks,
+                                isEnded = isEnded,
+                                isAudiobook = isAudiobook,
+                                isBook = isBook,
+                            )
+                        syncLocalPlaybackState(
+                            itemId = itemId,
+                            positionTicks = resolved.positionTicks,
+                            played = if (resolved.played) true else null,
+                        )
+                    }
+                }
                 true
             } catch (e: ApiClientException) {
                 Timber.e(e, "Failed to report playback stop for item: $itemId, saving locally")
@@ -648,24 +670,16 @@ constructor(
             }
 
             val resolved =
-                if (isBook) {
-                    PlaybackCompletion.Resolved(positionTicks.coerceAtLeast(0L), false)
-                } else if (isStop) {
-                    val resolvedRuntimeTicks =
-                        if (runtimeTicks > 0L) runtimeTicks else resolveRuntimeTicks(itemId, userId)
-                    if (isAudiobook) {
-                        PlaybackCompletion.audiobookCompletionResolved(
-                            positionTicks,
-                            resolvedRuntimeTicks,
-                            isEnded,
-                        )
-                    } else {
-                        PlaybackCompletion.playbackCompletionResolved(
-                            positionTicks,
-                            resolvedRuntimeTicks,
-                            isEnded,
-                        )
-                    }
+                if (isStop) {
+                    resolveStopCompletion(
+                        itemId = itemId,
+                        userId = userId,
+                        positionTicks = positionTicks,
+                        runtimeTicks = runtimeTicks,
+                        isEnded = isEnded,
+                        isAudiobook = isAudiobook,
+                        isBook = isBook,
+                    )
                 } else {
                     PlaybackCompletion.Resolved(positionTicks.coerceAtLeast(0L), false)
                 }
@@ -699,15 +713,53 @@ constructor(
         }
     }
 
-    private suspend fun clearPendingSync(itemId: UUID) {
+    private suspend fun resolveStopCompletion(
+        itemId: UUID,
+        userId: UUID,
+        positionTicks: Long,
+        runtimeTicks: Long,
+        isEnded: Boolean,
+        isAudiobook: Boolean,
+        isBook: Boolean,
+    ): PlaybackCompletion.Resolved {
+        if (isBook) return PlaybackCompletion.Resolved(positionTicks.coerceAtLeast(0L), false)
+        val resolvedRuntimeTicks =
+            if (runtimeTicks > 0L) runtimeTicks else resolveRuntimeTicks(itemId, userId)
+        return if (isAudiobook) {
+            PlaybackCompletion.audiobookCompletionResolved(
+                positionTicks,
+                resolvedRuntimeTicks,
+                isEnded,
+            )
+        } else {
+            PlaybackCompletion.playbackCompletionResolved(
+                positionTicks,
+                resolvedRuntimeTicks,
+                isEnded,
+            )
+        }
+    }
+
+    private suspend fun syncLocalPlaybackState(
+        itemId: UUID,
+        positionTicks: Long,
+        played: Boolean? = null,
+    ) {
         try {
             val userId = getCurrentUserId() ?: return
             val serverId = sessionManager.currentSession.value?.serverId ?: return
-            databaseRepository.markUserDataSynced(userId, itemId, serverId)
+            databaseRepository.updateSyncedPlaybackState(
+                userId = userId,
+                itemId = itemId,
+                serverId = serverId,
+                positionTicks = positionTicks.coerceAtLeast(0L),
+                played = played,
+                lastPlayedAt = System.currentTimeMillis(),
+            )
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Timber.w(e, "Failed to clear pending sync flag for item: $itemId")
+            Timber.w(e, "Failed to update local synced playback state for item: $itemId")
         }
     }
 

@@ -247,6 +247,15 @@ interface DatabaseRepository {
 
     suspend fun markUserDataSynced(userId: UUID, itemId: UUID, serverId: String)
 
+    suspend fun updateSyncedPlaybackState(
+        userId: UUID,
+        itemId: UUID,
+        serverId: String,
+        positionTicks: Long,
+        played: Boolean? = null,
+        lastPlayedAt: Long = System.currentTimeMillis(),
+    ): Int
+
     suspend fun getFavoriteMovies(userId: UUID): List<AfinityMovie>
 
     suspend fun getFavoriteShows(userId: UUID): List<AfinityShow>

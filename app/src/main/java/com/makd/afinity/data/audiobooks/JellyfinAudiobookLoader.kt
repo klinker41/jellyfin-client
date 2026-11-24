@@ -1,9 +1,11 @@
 package com.makd.afinity.data.audiobooks
 
+import com.makd.afinity.data.manager.SessionManager
 import com.makd.afinity.data.models.extensions.toAfinityAudiobook
 import com.makd.afinity.data.models.media.AfinityAudiobook
 import com.makd.afinity.data.models.media.asBook
 import com.makd.afinity.data.models.media.inPartOrder
+import com.makd.afinity.data.repository.DatabaseRepository
 import com.makd.afinity.data.repository.FieldSets
 import com.makd.afinity.data.repository.media.MediaRepository
 import java.util.UUID
@@ -19,6 +21,8 @@ class JellyfinAudiobookLoader
 constructor(
     private val mediaRepository: MediaRepository,
     private val downloadStore: AudiobookDownloadStore,
+    private val sessionManager: SessionManager,
+    private val databaseRepository: DatabaseRepository,
 ) {
 
     suspend fun loadParts(itemId: UUID, offline: Boolean = false): Result<List<AfinityAudiobook>?> {
@@ -28,11 +32,28 @@ constructor(
             mediaRepository.getItemResult(itemId, fields = FieldSets.AUDIOBOOK_DETAIL).map { dto ->
                 val lead =
                     dto?.takeIf { it.type == BaseItemKind.AUDIO_BOOK }?.toAfinityAudiobook(baseUrl)
-                lead?.let { partsOf(it, baseUrl) }
+                lead?.let { applyPendingLocalProgress(partsOf(it, baseUrl)) }
             }
         if (online.isSuccess) return online
         val offline = downloadStore.downloadedBookParts(itemId) ?: return online
         return Result.success(offline)
+    }
+
+    private suspend fun applyPendingLocalProgress(
+        parts: List<AfinityAudiobook>,
+    ): List<AfinityAudiobook> {
+        val userId = sessionManager.currentSession.value?.userId ?: return parts
+        return parts.map { part ->
+            val local = databaseRepository.getUserData(userId, part.id)
+            if (local != null && local.toBeSynced) {
+                part.copy(
+                    played = local.played,
+                    playbackPositionTicks = local.playbackPositionTicks,
+                )
+            } else {
+                part
+            }
+        }
     }
 
     suspend fun loadBook(itemId: UUID): Result<AfinityAudiobook?> =

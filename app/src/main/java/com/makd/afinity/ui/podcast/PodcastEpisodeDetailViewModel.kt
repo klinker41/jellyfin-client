@@ -103,6 +103,16 @@ constructor(
         return databaseRepository.getMusicTrack(itemId, session.serverId, session.userId.toString())
     }
 
+    private suspend fun applyPendingLocalProgress(track: AfinityTrack): AfinityTrack {
+        val userId = sessionManager.currentSession.value?.userId ?: return track
+        val local = databaseRepository.getUserData(userId, track.id)
+        return if (local != null && local.toBeSynced) {
+            track.copy(played = local.played, playbackPositionTicks = local.playbackPositionTicks)
+        } else {
+            track
+        }
+    }
+
     private fun load() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorRes = null) }
@@ -120,8 +130,9 @@ constructor(
             mediaRepository
                 .getItemResult(itemId, fields = PODCAST_EPISODE_DETAIL_FIELDS)
                 .onSuccess { dto ->
-                    val track =
+                    val rawTrack =
                         dto?.toAfinityTrack(mediaRepository.getBaseUrl()) ?: loadCachedTrack()
+                    val track = rawTrack?.let { applyPendingLocalProgress(it) }
                     _uiState.update {
                         if (track != null) {
                             it.copy(episode = track, isLoading = false, errorRes = null)

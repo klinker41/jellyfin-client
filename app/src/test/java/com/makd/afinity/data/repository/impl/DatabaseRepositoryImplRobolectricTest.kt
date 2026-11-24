@@ -33,6 +33,7 @@ import kotlinx.coroutines.test.runTest
 import org.jellyfin.sdk.model.api.MediaStreamType
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -266,6 +267,93 @@ class DatabaseRepositoryImplRobolectricTest {
             )
             val loadedTracks = repo.getMusicAlbumTracks(album.id, serverId, userId.toString())
             assertEquals(1, loadedTracks.size)
+
+            // updateSyncedPlaybackState clears toBeSynced, updates position, preserves played when
+            // null,
+            // and getMusicTrack overlays persisted userdata
+            repo.insertUserData(
+                AfinityUserDataDto(
+                    userId = userId,
+                    itemId = track.id,
+                    serverId = serverId,
+                    played = true,
+                    favorite = true,
+                    likes = false,
+                    playbackPositionTicks = 10_000_000L,
+                    toBeSynced = true,
+                ),
+            )
+            val updatedCount =
+                repo.updateSyncedPlaybackState(
+                    userId = userId,
+                    itemId = track.id,
+                    serverId = serverId,
+                    positionTicks = 55_000_000L,
+                    played = null,
+                    lastPlayedAt = 2_000L,
+                )
+            assertEquals(1, updatedCount)
+            assertEquals(0, repo.getAllUserDataToSync(userId, serverId).size)
+            val storedTrackUserData = repo.getUserData(userId, track.id)!!
+            assertEquals(55_000_000L, storedTrackUserData.playbackPositionTicks)
+            assertTrue(storedTrackUserData.played)
+            assertEquals(2_000L, storedTrackUserData.lastPlayedAt)
+
+            val loadedTrack = repo.getMusicTrack(track.id, serverId, userId.toString())!!
+            assertEquals(55_000_000L, loadedTrack.playbackPositionTicks)
+            assertTrue(loadedTrack.played)
+            assertTrue(loadedTrack.favorite)
+
+            val loadedAlbumTracks = repo.getMusicAlbumTracks(album.id, serverId, userId.toString())
+            assertEquals(1, loadedAlbumTracks.size)
+            assertEquals(55_000_000L, loadedAlbumTracks.first().playbackPositionTicks)
+            assertTrue(loadedAlbumTracks.first().played)
+            assertTrue(loadedAlbumTracks.first().favorite)
+
+            // Non-null played updates the stored played flag via COALESCE(:played, played)
+            assertEquals(
+                1,
+                repo.updateSyncedPlaybackState(
+                    userId = userId,
+                    itemId = track.id,
+                    serverId = serverId,
+                    positionTicks = 60_000_000L,
+                    played = false,
+                    lastPlayedAt = 2_500L,
+                ),
+            )
+            val flippedFalse = repo.getUserData(userId, track.id)!!
+            assertEquals(60_000_000L, flippedFalse.playbackPositionTicks)
+            assertFalse(flippedFalse.played)
+
+            assertEquals(
+                1,
+                repo.updateSyncedPlaybackState(
+                    userId = userId,
+                    itemId = track.id,
+                    serverId = serverId,
+                    positionTicks = 0L,
+                    played = true,
+                    lastPlayedAt = 2_600L,
+                ),
+            )
+            val flippedTrue = repo.getUserData(userId, track.id)!!
+            assertEquals(0L, flippedTrue.playbackPositionTicks)
+            assertTrue(flippedTrue.played)
+
+            // Returns 0 and inserts nothing when userdata row does not exist
+            assertEquals(
+                0,
+                repo.updateSyncedPlaybackState(
+                    userId = userId,
+                    itemId = testUuid(999),
+                    serverId = serverId,
+                    positionTicks = 1_000L,
+                    played = false,
+                    lastPlayedAt = 3_000L,
+                ),
+            )
+            assertNull(repo.getUserData(userId, testUuid(999)))
 
             repo.getMoviesFlow(userId).test {
                 val movies = awaitItem()

@@ -6,13 +6,16 @@ import com.makd.afinity.data.models.media.AfinityAudiobook
 import com.makd.afinity.data.models.media.AfinityImages
 import com.makd.afinity.data.repository.playback.PlaybackRepository
 import com.makd.afinity.data.store.ItemStore
+import com.makd.afinity.data.sync.UserDataSyncScheduler
 import com.makd.afinity.player.audiobookshelf.AudiobookshelfPlaybackManager
 import com.makd.afinity.player.audiobookshelf.AudiobookshelfPlaybackState
 import com.makd.afinity.player.audiobookshelf.JellyfinAudiobookSession
 import com.makd.afinity.testutil.TestMediaFixtures.testUuid
+import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import java.util.UUID
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -67,6 +70,52 @@ class JellyfinAudiobookReporterTest {
             val part1Id = testUuid(1)
             val part2Id = testUuid(2)
             val playbackRepository: PlaybackRepository = mockk(relaxed = true)
+            coEvery {
+                playbackRepository.reportPlaybackStart(
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                )
+            } returns true
+            coEvery {
+                playbackRepository.reportPlaybackProgress(
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                )
+            } returns true
+            coEvery {
+                playbackRepository.reportPlaybackStop(
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                )
+            } returns true
             val playbackState =
                 mockk<AudiobookshelfPlaybackState>(relaxed = true) {
                     every { isPlaying } returns true
@@ -78,6 +127,7 @@ class JellyfinAudiobookReporterTest {
             val itemStore = ItemStore()
             itemStore.put(listOf(testPart(part1Id), testPart(part2Id)))
             val playedBus = PlayedItemEventBus()
+            val syncScheduler: UserDataSyncScheduler = mockk(relaxed = true)
 
             val reporter =
                 JellyfinAudiobookReporter(
@@ -85,6 +135,7 @@ class JellyfinAudiobookReporterTest {
                     playbackManager = playbackManager,
                     itemStore = itemStore,
                     playedItemEventBus = playedBus,
+                    userDataSyncScheduler = syncScheduler,
                 )
 
             val session =
@@ -150,6 +201,52 @@ class JellyfinAudiobookReporterTest {
             val shortPartId = testUuid(10)
             val shortRuntimeTicks = 6L * 60L * 10_000_000L // 6 minutes (< 10 min)
             val playbackRepository: PlaybackRepository = mockk(relaxed = true)
+            coEvery {
+                playbackRepository.reportPlaybackStart(
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                )
+            } returns true
+            coEvery {
+                playbackRepository.reportPlaybackProgress(
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                )
+            } returns true
+            coEvery {
+                playbackRepository.reportPlaybackStop(
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                )
+            } returns true
             val stateFlow =
                 MutableStateFlow(
                     AudiobookshelfPlaybackState(isPlaying = true, currentTime = 60.0),
@@ -159,6 +256,7 @@ class JellyfinAudiobookReporterTest {
             val itemStore = ItemStore()
             itemStore.put(testPart(shortPartId, runtimeTicks = shortRuntimeTicks))
             val playedBus = PlayedItemEventBus()
+            val syncScheduler: UserDataSyncScheduler = mockk(relaxed = true)
 
             val reporter =
                 JellyfinAudiobookReporter(
@@ -166,6 +264,7 @@ class JellyfinAudiobookReporterTest {
                     playbackManager = playbackManager,
                     itemStore = itemStore,
                     playedItemEventBus = playedBus,
+                    userDataSyncScheduler = syncScheduler,
                 )
 
             val session =
@@ -232,5 +331,178 @@ class JellyfinAudiobookReporterTest {
                     playMethod = "DirectPlay",
                 )
             }
+        }
+
+    @Test
+    fun `patches itemStore on pause, schedules sync on failure, retries start, and rotates after long pause`() =
+        runTest {
+            val partId = testUuid(20)
+            val runtimeTicks = 3_600L * 10_000_000L
+            val playbackRepository: PlaybackRepository = mockk(relaxed = true)
+            val stateFlow =
+                MutableStateFlow(
+                    AudiobookshelfPlaybackState(isPlaying = true, currentTime = 600.0),
+                )
+            val playbackManager: AudiobookshelfPlaybackManager =
+                mockk(relaxed = true) { every { playbackState } returns stateFlow }
+            val itemStore = ItemStore()
+            itemStore.put(testPart(partId, runtimeTicks = runtimeTicks))
+            val playedBus = PlayedItemEventBus()
+            val syncScheduler: UserDataSyncScheduler = mockk(relaxed = true)
+            var now = 1_000L
+
+            val reporter =
+                JellyfinAudiobookReporter(
+                    playbackRepository = playbackRepository,
+                    playbackManager = playbackManager,
+                    itemStore = itemStore,
+                    playedItemEventBus = playedBus,
+                    userDataSyncScheduler = syncScheduler,
+                    nowMs = { now },
+                )
+
+            val session =
+                JellyfinAudiobookSession(
+                    sessionId = "s-retry",
+                    bookId = partId.toString(),
+                    title = "Long Book",
+                    author = null,
+                    coverUrl = null,
+                    tracks =
+                        listOf(AudioTrack(0, 0.0, 3600.0, "Part 1", "https://example/1", null)),
+                    chapters = emptyList(),
+                    partIds = listOf(partId),
+                    partRuntimeTicks = listOf(runtimeTicks),
+                    localUris = listOf(null),
+                )
+
+            // 1. Offline start & pause: reportPlaybackStart and reportPlaybackProgress return false
+            coEvery {
+                playbackRepository.reportPlaybackStart(
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                )
+            } returns false
+            coEvery {
+                playbackRepository.reportPlaybackProgress(
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                )
+            } returns false
+
+            reporter.begin(session, 0)
+            reporter.onLocalPlayingChanged(true)
+
+            stateFlow.value = AudiobookshelfPlaybackState(isPlaying = false, currentTime = 650.0)
+            reporter.onLocalPlayingChanged(false)
+
+            assertEquals(650L * 10_000_000L, itemStore.get(partId)?.playbackPositionTicks)
+            verify(exactly = 1) { syncScheduler.triggerSync() }
+
+            // 2. Network returns and user resumes after short pause -> retries reportPlaybackStart
+            coEvery {
+                playbackRepository.reportPlaybackStart(
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                )
+            } returns true
+            coEvery {
+                playbackRepository.reportPlaybackProgress(
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                )
+            } returns true
+
+            now += 60_000L
+            stateFlow.value = AudiobookshelfPlaybackState(isPlaying = true, currentTime = 650.0)
+            reporter.onLocalPlayingChanged(true)
+
+            coVerify(exactly = 2) {
+                playbackRepository.reportPlaybackStart(
+                    itemId = partId,
+                    sessionId = any(),
+                    mediaSourceId = partId.toString(),
+                    playMethod = "DirectPlay",
+                    canSeek = true,
+                    positionTicks = any(),
+                )
+            }
+
+            // 3. Long pause >= 15 min rotates sessionId and sends fresh reportPlaybackStart
+            stateFlow.value = AudiobookshelfPlaybackState(isPlaying = false, currentTime = 700.0)
+            reporter.onLocalPlayingChanged(false)
+
+            now += 15L * 60L * 1000L
+            stateFlow.value = AudiobookshelfPlaybackState(isPlaying = true, currentTime = 700.0)
+            reporter.onLocalPlayingChanged(true)
+
+            val sessionIds = mutableListOf<String>()
+            coVerify(exactly = 3) {
+                playbackRepository.reportPlaybackStart(
+                    itemId = partId,
+                    sessionId = capture(sessionIds),
+                    mediaSourceId = partId.toString(),
+                    playMethod = "DirectPlay",
+                    canSeek = true,
+                    positionTicks = any(),
+                )
+            }
+            assertEquals(sessionIds[0], sessionIds[1])
+            assertTrue(sessionIds[2] != sessionIds[1])
+
+            // 4. Offline stop triggers immediate UserDataSyncScheduler.triggerSync()
+            coEvery {
+                playbackRepository.reportPlaybackStop(
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                )
+            } returns false
+            reporter.end(globalSeconds = 720.0)
+            verify(exactly = 2) { syncScheduler.triggerSync() }
         }
 }

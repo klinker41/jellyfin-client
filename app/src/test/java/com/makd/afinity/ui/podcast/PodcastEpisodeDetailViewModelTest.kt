@@ -12,6 +12,7 @@ import com.makd.afinity.data.manager.Session
 import com.makd.afinity.data.manager.SessionManager
 import com.makd.afinity.data.models.download.DownloadInfo
 import com.makd.afinity.data.models.download.DownloadStatus
+import com.makd.afinity.data.models.user.AfinityUserDataDto
 import com.makd.afinity.data.repository.AppDataRepository
 import com.makd.afinity.data.repository.DatabaseRepository
 import com.makd.afinity.data.repository.download.DownloadRepository
@@ -147,6 +148,47 @@ class PodcastEpisodeDetailViewModelTest {
         assertEquals("Listener questions answered.", loaded.overview)
         assertEquals(created, loaded.dateCreated)
         assertEquals(500_000L, loaded.resumePositionMs())
+    }
+
+    @Test
+    fun `online load overlays unsynced local userData onto episode`() = runTest {
+        val h = Harness()
+        val epId = h.itemId
+        val dto =
+            BaseItemDto(
+                id = epId,
+                type = BaseItemKind.AUDIO,
+                name = "Stale Server Episode",
+                runTimeTicks = 36_000_000_000L,
+                userData =
+                    UserItemDataDto(
+                        playbackPositionTicks = 1_000_000_000L,
+                        playCount = 0,
+                        isFavorite = false,
+                        played = false,
+                        key = epId.toString(),
+                        itemId = epId,
+                    ),
+            )
+        coEvery { h.mediaRepository.getItemResult(epId, any()) } returns Result.success(dto)
+        coEvery { h.databaseRepository.getUserData(h.userId, epId) } returns
+            AfinityUserDataDto(
+                userId = h.userId,
+                itemId = epId,
+                serverId = h.serverId,
+                played = false,
+                favorite = false,
+                likes = false,
+                playbackPositionTicks = 9_500_000_000L,
+                toBeSynced = true,
+            )
+
+        val vm = h.createViewModel()
+        advanceUntilIdle()
+
+        val loaded = vm.uiState.value.episode!!
+        assertEquals(9_500_000_000L, loaded.playbackPositionTicks)
+        assertEquals(950_000L, loaded.resumePositionMs())
     }
 
     @Test

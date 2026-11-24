@@ -765,4 +765,136 @@ class PodcastProgressTrackerTest {
             assertEquals(590_000_000L, synced.playbackPositionTicks)
             assertEquals(1, apiClient.requests.size)
         }
+
+    @Test
+    fun `online sync clears stale pending row and caches synced progress only for downloaded tracks`() =
+        runTest {
+            val userId = testUuid(11)
+            val podcastLibId = testUuid(110)
+            val podcastAlbumId = testUuid(120)
+            val downloadedEpId = testUuid(130)
+            val streamingEpId = testUuid(131)
+
+            val apiClient = FakeApiClient()
+            apiClient.onPost("/UserItems/{itemId}/UserData") { req ->
+                val itemId = req.pathParameters["itemId"] as UUID
+                FakeApiClient.rawJsonResponse(
+                    """{"ItemId":"$itemId","Key":"$itemId","Played":false,"PlaybackPositionTicks":1200000000,"PlayCount":0,"IsFavorite":false}""",
+                )
+            }
+            val sessionManager: SessionManager =
+                mockk(relaxed = true) {
+                    every { currentSession } returns
+                        MutableStateFlow(Session("srv-1", userId, "https://jf.example.com"))
+                    coEvery { getCurrentApiClient() } returns apiClient
+                }
+            val podcastLib =
+                testCollection(id = podcastLibId, name = "Podcasts", type = CollectionType.Music)
+            val mediaRepository: MediaRepository =
+                mockk(relaxed = true) {
+                    every { libraries } returns MutableStateFlow(listOf(podcastLib))
+                    coEvery {
+                        getItemsResult(
+                            parentId = podcastLibId,
+                            includeItemTypes = listOf("MUSIC_ALBUM"),
+                            limit = any(),
+                            fields = any(),
+                            recursive = true,
+                            enableImages = false,
+                            enableUserData = false,
+                        )
+                    } returns
+                        Result.success(
+                            BaseItemDtoQueryResult(
+                                items =
+                                    listOf(
+                                        BaseItemDto(
+                                            id = podcastAlbumId,
+                                            type = BaseItemKind.MUSIC_ALBUM,
+                                        ),
+                                    ),
+                                startIndex = 0,
+                                totalRecordCount = 1,
+                            ),
+                        )
+                }
+            val databaseRepository: DatabaseRepository = mockk(relaxed = true)
+            coEvery {
+                databaseRepository.updateSyncedPlaybackState(
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                )
+            } returns 0
+            coEvery {
+                databaseRepository.getMusicTrack(downloadedEpId, "srv-1", userId.toString())
+            } returns testTrack(id = downloadedEpId)
+            coEvery {
+                databaseRepository.getMusicTrack(streamingEpId, "srv-1", userId.toString())
+            } returns null
+            coEvery { databaseRepository.getUserData(userId, downloadedEpId) } returns null
+
+            val tracker =
+                PodcastProgressTracker(
+                    sessionManager = sessionManager,
+                    mediaRepository = mediaRepository,
+                    itemStore = ItemStore(),
+                    mediaRefreshBus = MediaRefreshBus(),
+                    databaseRepository = databaseRepository,
+                    preferencesRepository =
+                        mockk(relaxed = true) { coEvery { getOfflineMode() } returns false },
+                    userDataSyncScheduler = mockk(relaxed = true),
+                    autoDownloadPreferences =
+                        mockk(relaxed = true) {
+                            coEvery { getCachedPodcastAlbumIds(any(), any()) } returns emptySet()
+                        },
+                    playedItemEventBus = PlayedItemEventBus(),
+                )
+
+            val downloaded =
+                testTrack(id = downloadedEpId, played = false)
+                    .copy(albumId = podcastAlbumId, runtimeTicks = 18_000_000_000L)
+            val streaming =
+                testTrack(id = streamingEpId, played = false)
+                    .copy(albumId = podcastAlbumId, runtimeTicks = 18_000_000_000L)
+
+            tracker.syncProgress(downloaded, positionMs = 120_000L, isEnded = false)
+            tracker.syncProgress(streaming, positionMs = 120_000L, isEnded = false)
+
+            coVerify(exactly = 1) {
+                databaseRepository.updateSyncedPlaybackState(
+                    userId = userId,
+                    itemId = downloadedEpId,
+                    serverId = "srv-1",
+                    positionTicks = 1_200_000_000L,
+                    played = false,
+                    lastPlayedAt = any(),
+                )
+            }
+            coVerify(exactly = 1) {
+                databaseRepository.updateSyncedPlaybackState(
+                    userId = userId,
+                    itemId = streamingEpId,
+                    serverId = "srv-1",
+                    positionTicks = 1_200_000_000L,
+                    played = false,
+                    lastPlayedAt = any(),
+                )
+            }
+            coVerify(exactly = 1) {
+                databaseRepository.insertUserData(
+                    match {
+                        it.itemId == downloadedEpId &&
+                            it.playbackPositionTicks == 1_200_000_000L &&
+                            !it.toBeSynced
+                    },
+                )
+            }
+            coVerify(exactly = 0) {
+                databaseRepository.insertUserData(match { it.itemId == streamingEpId })
+            }
+        }
 }

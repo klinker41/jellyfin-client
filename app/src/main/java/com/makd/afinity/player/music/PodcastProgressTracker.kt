@@ -283,7 +283,41 @@ constructor(
                     false
                 }
 
-            if (!syncedOnline) {
+            if (syncedOnline) {
+                val updatedRows =
+                    databaseRepository.updateSyncedPlaybackState(
+                        userId = session.userId,
+                        itemId = track.id,
+                        serverId = session.serverId,
+                        positionTicks = outcome.playbackPositionTicks,
+                        played = outcome.played,
+                        lastPlayedAt = System.currentTimeMillis(),
+                    )
+                if (
+                    updatedRows == 0 &&
+                        (track.localFilePath != null ||
+                            databaseRepository.getMusicTrack(
+                                track.id,
+                                session.serverId,
+                                session.userId.toString(),
+                            ) != null)
+                ) {
+                    val existing = databaseRepository.getUserData(session.userId, track.id)
+                    databaseRepository.insertUserData(
+                        AfinityUserDataDto(
+                            userId = session.userId,
+                            itemId = track.id,
+                            serverId = session.serverId,
+                            played = outcome.played,
+                            favorite = existing?.favorite ?: track.favorite,
+                            likes = existing?.likes ?: false,
+                            playbackPositionTicks = outcome.playbackPositionTicks,
+                            toBeSynced = false,
+                            lastPlayedAt = System.currentTimeMillis(),
+                        ),
+                    )
+                }
+            } else {
                 val existing = databaseRepository.getUserData(session.userId, track.id)
                 databaseRepository.insertUserData(
                     AfinityUserDataDto(

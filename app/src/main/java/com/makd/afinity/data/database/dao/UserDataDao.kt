@@ -78,6 +78,25 @@ interface UserDataDao {
     )
     suspend fun markUserDataUnsynced(userId: UUID, itemId: UUID, serverId: String)
 
+    @Query(
+        """
+        UPDATE userdata
+        SET playbackPositionTicks = :positionTicks,
+            played = COALESCE(:played, played),
+            lastPlayedAt = :lastPlayedAt,
+            toBeSynced = 0
+        WHERE userId = :userId AND itemId = :itemId AND serverId = :serverId
+    """,
+    )
+    suspend fun updateSyncedPlaybackState(
+        userId: UUID,
+        itemId: UUID,
+        serverId: String,
+        positionTicks: Long,
+        played: Boolean?,
+        lastPlayedAt: Long,
+    ): Int
+
     @Query("SELECT COUNT(*) FROM userdata WHERE userId = :userId AND serverId = :serverId")
     suspend fun getUserDataCount(userId: UUID, serverId: String): Int
 

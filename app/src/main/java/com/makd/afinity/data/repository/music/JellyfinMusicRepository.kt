@@ -439,6 +439,9 @@ constructor(
                 .map { dl ->
                     val cached =
                         databaseRepository.getMusicTrack(dl.itemId, serverId, userId.toString())
+                    val userData =
+                        if (cached == null) databaseRepository.getUserData(userId, dl.itemId)
+                        else null
                     AfinityTrack(
                         id = dl.itemId,
                         name = dl.itemName,
@@ -452,9 +455,10 @@ constructor(
                         discNumber = dl.seasonNumber,
                         productionYear = dl.releaseYear?.toIntOrNull(),
                         runtimeTicks = dl.runtimeTicks ?: 0L,
-                        playbackPositionTicks = 0L,
-                        played = false,
-                        favorite = false,
+                        playbackPositionTicks =
+                            cached?.playbackPositionTicks ?: userData?.playbackPositionTicks ?: 0L,
+                        played = cached?.played ?: userData?.played ?: false,
+                        favorite = cached?.favorite ?: userData?.favorite ?: false,
                         playCount = null,
                         normalizationGain = cached?.normalizationGain,
                         albumNormalizationGain = cached?.albumNormalizationGain,

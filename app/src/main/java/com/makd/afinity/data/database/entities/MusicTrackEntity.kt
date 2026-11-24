@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.Index
 import com.makd.afinity.data.models.media.AfinityImages
 import com.makd.afinity.data.models.music.AfinityTrack
+import com.makd.afinity.data.models.user.AfinityUserDataDto
 import java.util.UUID
 
 @Entity(
@@ -55,7 +56,7 @@ fun AfinityTrack.toMusicTrackEntity(serverId: String, userId: String) =
         albumNormalizationGain = albumNormalizationGain,
     )
 
-fun MusicTrackEntity.toAfinityTrack(): AfinityTrack {
+fun MusicTrackEntity.toAfinityTrack(userData: AfinityUserDataDto? = null): AfinityTrack {
     val resolvedImages =
         if (localImagePath != null) {
             (images ?: AfinityImages()).copy(primary = Uri.parse(localImagePath))
@@ -74,9 +75,9 @@ fun MusicTrackEntity.toAfinityTrack(): AfinityTrack {
         discNumber = discNumber,
         productionYear = productionYear,
         runtimeTicks = runtimeTicks,
-        playbackPositionTicks = 0L,
-        played = false,
-        favorite = false,
+        playbackPositionTicks = userData?.playbackPositionTicks ?: 0L,
+        played = userData?.played ?: false,
+        favorite = userData?.favorite ?: false,
         playCount = null,
         normalizationGain = normalizationGain,
         albumNormalizationGain = albumNormalizationGain,

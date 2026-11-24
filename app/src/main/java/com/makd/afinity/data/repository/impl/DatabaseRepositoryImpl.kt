@@ -35,6 +35,7 @@ import com.makd.afinity.data.database.entities.ItemMetadataCacheEntity
 import com.makd.afinity.data.database.entities.LastFmArtistCacheEntity
 import com.makd.afinity.data.database.entities.LastFmPopularCacheEntity
 import com.makd.afinity.data.database.entities.MusicLyricsEntity
+import com.makd.afinity.data.database.entities.MusicTrackEntity
 import com.makd.afinity.data.database.entities.OfflinePlayEntity
 import com.makd.afinity.data.database.entities.WikidataAwardsCacheEntity
 import com.makd.afinity.data.database.entities.toAfinityAlbum
@@ -723,6 +724,24 @@ constructor(
         userDataDao.markUserDataSynced(userId, itemId, serverId)
     }
 
+    override suspend fun updateSyncedPlaybackState(
+        userId: UUID,
+        itemId: UUID,
+        serverId: String,
+        positionTicks: Long,
+        played: Boolean?,
+        lastPlayedAt: Long,
+    ): Int {
+        return userDataDao.updateSyncedPlaybackState(
+            userId = userId,
+            itemId = itemId,
+            serverId = serverId,
+            positionTicks = positionTicks,
+            played = played,
+            lastPlayedAt = lastPlayedAt,
+        )
+    }
+
     override suspend fun getFavoriteMovies(userId: UUID): List<AfinityMovie> {
         return serverDatabaseDao.getFavoriteMovies(userId).map {
             it.toAfinityMovie(serverDatabaseDao, userId)
@@ -1312,7 +1331,30 @@ constructor(
     }
 
     override suspend fun getMusicTrack(id: UUID, serverId: String, userId: String): AfinityTrack? {
-        return musicTrackDao.getById(id.toString(), serverId, userId)?.toAfinityTrack()
+        val entity = musicTrackDao.getById(id.toString(), serverId, userId) ?: return null
+        val userData = runCatching {
+            UUID.fromString(userId)
+        }
+            .getOrNull()
+            ?.let { uid -> userDataDao.getUserData(uid, id, serverId) }
+        return entity.toAfinityTrack(userData)
+    }
+
+    private suspend fun overlayTrackUserData(
+        entities: List<MusicTrackEntity>,
+        serverId: String,
+        userId: String,
+    ): List<AfinityTrack> {
+        if (entities.isEmpty()) return emptyList()
+        val userUuid =
+            runCatching { UUID.fromString(userId) }.getOrNull()
+                ?: return entities.map { it.toAfinityTrack() }
+        val userDataByItemId =
+            userDataDao.getAllUserData(userUuid, serverId).associateBy { it.itemId }
+        return entities.map { entity ->
+            val itemUuid = runCatching { UUID.fromString(entity.id) }.getOrNull()
+            entity.toAfinityTrack(itemUuid?.let(userDataByItemId::get))
+        }
     }
 
     override suspend fun getMusicAlbumTracks(
@@ -1320,14 +1362,16 @@ constructor(
         serverId: String,
         userId: String,
     ): List<AfinityTrack> {
-        return musicTrackDao.getByAlbum(albumId.toString(), serverId, userId).map {
-            it.toAfinityTrack()
-        }
+        return overlayTrackUserData(
+            musicTrackDao.getByAlbum(albumId.toString(), serverId, userId),
+            serverId,
+            userId,
+        )
     }
 
     override fun getAllMusicTracksFlow(serverId: String, userId: String): Flow<List<AfinityTrack>> {
         return musicTrackDao.getAllFlow(serverId, userId).map { list ->
-            list.map { it.toAfinityTrack() }
+            overlayTrackUserData(list, serverId, userId)
         }
     }
 

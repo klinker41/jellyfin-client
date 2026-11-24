@@ -349,22 +349,73 @@ class JellyfinPlaybackRepositoryTest {
             val progBody = h.apiClient.requests.last().requestBody as PlaybackProgressInfo
             assertEquals(60_000_000L, progBody.positionTicks)
             assertTrue(progBody.isPaused)
+            coVerify(exactly = 1) {
+                h.databaseRepository.updateSyncedPlaybackState(
+                    userId = h.userId,
+                    itemId = itemId,
+                    serverId = h.serverId,
+                    positionTicks = 60_000_000L,
+                    played = null,
+                    lastPlayedAt = any(),
+                )
+            }
 
+            // Non-completed stop keeps position and preserves played status (played = null)
+            val resumeId = testUuid(33)
             assertTrue(
                 h.repository.reportPlaybackStop(
-                    itemId = itemId,
+                    itemId = resumeId,
                     sessionId = "sess-1",
-                    positionTicks = 90_000_000L,
+                    positionTicks = 900_000_000L,
                     mediaSourceId = "src-1",
-                    runtimeTicks = 100_000_000L,
+                    runtimeTicks = 10_000_000_000L,
                 ),
             )
             val stopBody = h.apiClient.requests.last().requestBody as PlaybackStopInfo
-            assertEquals(90_000_000L, stopBody.positionTicks)
-            coVerify { h.databaseRepository.markUserDataSynced(h.userId, itemId, h.serverId) }
+            assertEquals(900_000_000L, stopBody.positionTicks)
+            coVerify(exactly = 1) {
+                h.databaseRepository.updateSyncedPlaybackState(
+                    userId = h.userId,
+                    itemId = resumeId,
+                    serverId = h.serverId,
+                    positionTicks = 900_000_000L,
+                    played = null,
+                    lastPlayedAt = any(),
+                )
+            }
 
-            // Music stop does NOT clear pending sync on video user data
+            // Completed online stop sets played = true and position = 0 locally
+            val completedId = testUuid(32)
+            assertTrue(
+                h.repository.reportPlaybackStop(
+                    itemId = completedId,
+                    sessionId = "sess-1",
+                    positionTicks = 9_500_000_000L,
+                    mediaSourceId = "src-1",
+                    runtimeTicks = 10_000_000_000L,
+                ),
+            )
+            coVerify(exactly = 1) {
+                h.databaseRepository.updateSyncedPlaybackState(
+                    userId = h.userId,
+                    itemId = completedId,
+                    serverId = h.serverId,
+                    positionTicks = 0L,
+                    played = true,
+                    lastPlayedAt = any(),
+                )
+            }
+
+            // Music progress and stop do NOT touch userdata sync state
             val trackId = testUuid(31)
+            assertTrue(
+                h.repository.reportPlaybackProgress(
+                    itemId = trackId,
+                    sessionId = "sess-m",
+                    positionTicks = 4_000_000L,
+                    isMusic = true,
+                ),
+            )
             assertTrue(
                 h.repository.reportPlaybackStop(
                     itemId = trackId,
@@ -374,7 +425,16 @@ class JellyfinPlaybackRepositoryTest {
                     isMusic = true,
                 ),
             )
-            coVerify(exactly = 0) { h.databaseRepository.markUserDataSynced(any(), trackId, any()) }
+            coVerify(exactly = 0) {
+                h.databaseRepository.updateSyncedPlaybackState(
+                    any(),
+                    trackId,
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                )
+            }
 
             // Offline / API failure saves progress locally with toBeSynced = true
             val existingUserData =
