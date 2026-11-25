@@ -5,7 +5,10 @@ import com.makd.afinity.data.models.common.CollectionType
 import com.makd.afinity.data.models.media.AfinityAudiobook
 import com.makd.afinity.data.models.media.AfinityCollection
 import com.makd.afinity.data.models.music.AfinityTrack
+import com.makd.afinity.data.models.user.AfinityUserDataDto
+import java.time.Instant
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.UUID
 import org.jellyfin.sdk.model.api.ItemFields
 
@@ -89,3 +92,28 @@ fun mergeContinueListening(
         )
         .take(limit)
 }
+
+private fun Long.toLocalDateTime(): LocalDateTime =
+    Instant.ofEpochMilli(this).atZone(ZoneId.systemDefault()).toLocalDateTime()
+
+fun AfinityTrack.withPendingUserData(pending: AfinityUserDataDto?): AfinityTrack =
+    if (pending == null || !pending.toBeSynced) {
+        this
+    } else {
+        copy(
+            played = pending.played,
+            playbackPositionTicks = pending.playbackPositionTicks,
+            lastPlayedDate = pending.lastPlayedAt?.toLocalDateTime() ?: lastPlayedDate,
+        )
+    }
+
+fun AfinityAudiobook.withPendingUserData(pending: AfinityUserDataDto?): AfinityAudiobook =
+    if (pending == null || !pending.toBeSynced) {
+        this
+    } else {
+        copy(
+            played = pending.played,
+            playbackPositionTicks = pending.playbackPositionTicks,
+            lastPlayedDate = pending.lastPlayedAt?.toLocalDateTime() ?: lastPlayedDate,
+        )
+    }

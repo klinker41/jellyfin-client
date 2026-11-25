@@ -11,6 +11,7 @@ import com.makd.afinity.data.models.media.AfinityEpisode
 import com.makd.afinity.data.models.media.AfinityMovie
 import com.makd.afinity.data.models.media.AfinityVideo
 import com.makd.afinity.data.models.omdb.OmdbApiResult
+import com.makd.afinity.data.models.user.AfinityUserDataDto
 import com.makd.afinity.data.network.MdbListApiService
 import com.makd.afinity.data.network.OmdbApiService
 import com.makd.afinity.data.repository.DatabaseRepository
@@ -513,6 +514,136 @@ class JellyfinMediaRepositoryRobolectricTest {
 
                 repo.updateContinueListeningPodcast(updatedTrack.copy(played = true))
                 assertEquals(1, repo.continueListeningPodcasts.first().size)
+            } finally {
+                h.dispose()
+            }
+        }
+
+    @Test
+    fun `invalidateContinueListeningCache overlays pending local progress and includes offline-started podcasts`() =
+        runTest(timeout = 30.seconds) {
+            val h = Harness()
+            try {
+                val repo = h.createRepository()
+                val bookId = testUuid(80)
+                val podcastId = testUuid(81)
+                val finishedPodcastId = testUuid(82)
+                val offlinePodcastId = testUuid(83)
+                val albumId = testUuid(84)
+
+                h.apiClient.onGet("/Items") { req ->
+                    val types = req.queryParameters["includeItemTypes"]?.toString().orEmpty()
+                    val filters = req.queryParameters["filters"]?.toString().orEmpty()
+                    val itemsJson =
+                        when {
+                            "AudioBook" in types && "IsResumable" in filters ->
+                                """[{
+                                    "Id":"$bookId",
+                                    "Name":"The Way of Kings",
+                                    "Type":"AudioBook",
+                                    "IsFolder":false,
+                                    "RunTimeTicks":1042122000000,
+                                    "ImageTags":{"Primary":"book-tag"},
+                                    "UserData":{"Key":"$bookId","ItemId":"$bookId","PlaybackPositionTicks":400000000,"PlayCount":0,"IsFavorite":false,"Played":false,"LastPlayedDate":"2026-11-23T14:12:56Z"}
+                                }]"""
+                            "AudioBook" !in types && "Audio" in types && "IsResumable" in filters ->
+                                """[
+                                    {
+                                        "Id":"$podcastId",
+                                        "Name":"Walk Episode",
+                                        "Type":"Audio",
+                                        "IsFolder":false,
+                                        "AlbumId":"$albumId",
+                                        "Album":"Pod Show",
+                                        "RunTimeTicks":30244800000,
+                                        "UserData":{"Key":"$podcastId","ItemId":"$podcastId","PlaybackPositionTicks":400000000,"PlayCount":0,"IsFavorite":false,"Played":false,"LastPlayedDate":"2026-11-23T14:10:00Z"}
+                                    },
+                                    {
+                                        "Id":"$finishedPodcastId",
+                                        "Name":"Finished Offline Episode",
+                                        "Type":"Audio",
+                                        "IsFolder":false,
+                                        "AlbumId":"$albumId",
+                                        "Album":"Pod Show",
+                                        "RunTimeTicks":30244800000,
+                                        "UserData":{"Key":"$finishedPodcastId","ItemId":"$finishedPodcastId","PlaybackPositionTicks":500000000,"PlayCount":0,"IsFavorite":false,"Played":false,"LastPlayedDate":"2026-11-23T14:05:00Z"}
+                                    }
+                                ]"""
+                            else -> "[]"
+                        }
+                    FakeApiClient.rawJsonResponse(
+                        """{"Items":$itemsJson,"TotalRecordCount":2,"StartIndex":0}""",
+                    )
+                }
+
+                val pendingBook =
+                    AfinityUserDataDto(
+                        userId = h.userId,
+                        itemId = bookId,
+                        serverId = h.serverId,
+                        played = false,
+                        favorite = false,
+                        likes = false,
+                        playbackPositionTicks = 9_000_000_000L,
+                        toBeSynced = true,
+                        lastPlayedAt = 1_795_500_000_000L,
+                    )
+                val pendingPod =
+                    AfinityUserDataDto(
+                        userId = h.userId,
+                        itemId = podcastId,
+                        serverId = h.serverId,
+                        played = false,
+                        favorite = false,
+                        likes = false,
+                        playbackPositionTicks = 10_800_000_000L,
+                        toBeSynced = true,
+                        lastPlayedAt = 1_795_500_100_000L,
+                    )
+                val pendingFinishedPod =
+                    AfinityUserDataDto(
+                        userId = h.userId,
+                        itemId = finishedPodcastId,
+                        serverId = h.serverId,
+                        played = true,
+                        favorite = false,
+                        likes = false,
+                        playbackPositionTicks = 0L,
+                        toBeSynced = true,
+                        lastPlayedAt = 1_795_500_200_000L,
+                    )
+                val pendingOfflinePod =
+                    AfinityUserDataDto(
+                        userId = h.userId,
+                        itemId = offlinePodcastId,
+                        serverId = h.serverId,
+                        played = false,
+                        favorite = false,
+                        likes = false,
+                        playbackPositionTicks = 3_600_000_000L,
+                        toBeSynced = true,
+                        lastPlayedAt = 1_795_500_300_000L,
+                    )
+                coEvery { h.databaseRepository.getAllUserDataToSync(h.userId, h.serverId) } returns
+                    listOf(pendingBook, pendingPod, pendingFinishedPod, pendingOfflinePod)
+                coEvery {
+                    h.databaseRepository.getMusicTrack(
+                        offlinePodcastId,
+                        h.serverId,
+                        h.userId.toString(),
+                    )
+                } returns testTrack(id = offlinePodcastId, name = "Offline Started Pod")
+
+                repo.invalidateContinueListeningCache()
+
+                val books = repo.continueListening.first()
+                assertEquals(1, books.size)
+                assertEquals(9_000_000_000L, books.single().playbackPositionTicks)
+
+                val podcasts = repo.continueListeningPodcasts.first()
+                assertEquals(listOf(offlinePodcastId, podcastId), podcasts.map { it.id })
+                assertEquals(3_600_000_000L, podcasts[0].playbackPositionTicks)
+                assertEquals(10_800_000_000L, podcasts[1].playbackPositionTicks)
             } finally {
                 h.dispose()
             }

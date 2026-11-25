@@ -665,6 +665,12 @@ constructor(
         return userDataDao.getUserData(userId, itemId, serverId)
     }
 
+    override suspend fun getUserData(
+        userId: UUID,
+        itemId: UUID,
+        serverId: String,
+    ): AfinityUserDataDto? = userDataDao.getUserData(userId, itemId, serverId)
+
     override suspend fun getUserDataOrCreateNew(itemId: UUID, userId: UUID): AfinityUserDataDto {
         val serverId = sessionManager.currentSession.value?.serverId ?: ""
         return serverDatabaseDao.getUserDataOrCreateNew(itemId, userId, serverId)
@@ -723,6 +729,23 @@ constructor(
     override suspend fun markUserDataSynced(userId: UUID, itemId: UUID, serverId: String) {
         userDataDao.markUserDataSynced(userId, itemId, serverId)
     }
+
+    override suspend fun markUserDataSyncedIfUnchanged(
+        userId: UUID,
+        itemId: UUID,
+        serverId: String,
+        positionTicks: Long,
+        played: Boolean,
+        lastPlayedAt: Long?,
+    ): Int =
+        userDataDao.markUserDataSyncedIfUnchanged(
+            userId = userId,
+            itemId = itemId,
+            serverId = serverId,
+            positionTicks = positionTicks,
+            played = played,
+            lastPlayedAt = lastPlayedAt,
+        )
 
     override suspend fun updateSyncedPlaybackState(
         userId: UUID,

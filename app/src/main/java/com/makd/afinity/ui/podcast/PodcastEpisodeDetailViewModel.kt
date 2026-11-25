@@ -118,6 +118,7 @@ constructor(
             _uiState.update { it.copy(isLoading = true, errorRes = null) }
             if (offlineModeManager.isCurrentlyOffline()) {
                 val cached = loadCachedTrack()
+                if (cached != null) itemStore.put(cached)
                 _uiState.update {
                     if (cached != null) {
                         it.copy(episode = cached, isLoading = false, errorRes = null)
@@ -133,6 +134,7 @@ constructor(
                     val rawTrack =
                         dto?.toAfinityTrack(mediaRepository.getBaseUrl()) ?: loadCachedTrack()
                     val track = rawTrack?.let { applyPendingLocalProgress(it) }
+                    if (track != null) itemStore.put(track)
                     _uiState.update {
                         if (track != null) {
                             it.copy(episode = track, isLoading = false, errorRes = null)
@@ -147,6 +149,7 @@ constructor(
                         Timber.e(e, "Failed to load podcast episode $itemId")
                     }
                     val cached = loadCachedTrack()
+                    if (cached != null) itemStore.put(cached)
                     _uiState.update {
                         if (cached != null) {
                             it.copy(episode = cached, isLoading = false, errorRes = null)

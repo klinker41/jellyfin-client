@@ -227,6 +227,8 @@ interface DatabaseRepository {
 
     suspend fun getUserData(userId: UUID, itemId: UUID): AfinityUserDataDto?
 
+    suspend fun getUserData(userId: UUID, itemId: UUID, serverId: String): AfinityUserDataDto?
+
     suspend fun getUserDataOrCreateNew(itemId: UUID, userId: UUID): AfinityUserDataDto
 
     suspend fun getAllUserDataToSync(userId: UUID): List<AfinityUserDataDto>
@@ -246,6 +248,15 @@ interface DatabaseRepository {
     suspend fun markUserDataSynced(userId: UUID, itemId: UUID)
 
     suspend fun markUserDataSynced(userId: UUID, itemId: UUID, serverId: String)
+
+    suspend fun markUserDataSyncedIfUnchanged(
+        userId: UUID,
+        itemId: UUID,
+        serverId: String,
+        positionTicks: Long,
+        played: Boolean,
+        lastPlayedAt: Long?,
+    ): Int
 
     suspend fun updateSyncedPlaybackState(
         userId: UUID,

@@ -74,6 +74,28 @@ interface UserDataDao {
     suspend fun markUserDataSynced(userId: UUID, itemId: UUID, serverId: String)
 
     @Query(
+        """
+        UPDATE userdata
+        SET toBeSynced = 0
+        WHERE userId = :userId
+          AND itemId = :itemId
+          AND serverId = :serverId
+          AND toBeSynced = 1
+          AND playbackPositionTicks = :positionTicks
+          AND played = :played
+          AND lastPlayedAt IS :lastPlayedAt
+    """,
+    )
+    suspend fun markUserDataSyncedIfUnchanged(
+        userId: UUID,
+        itemId: UUID,
+        serverId: String,
+        positionTicks: Long,
+        played: Boolean,
+        lastPlayedAt: Long?,
+    ): Int
+
+    @Query(
         "UPDATE userdata SET toBeSynced = 1 WHERE userId = :userId AND itemId = :itemId AND serverId = :serverId",
     )
     suspend fun markUserDataUnsynced(userId: UUID, itemId: UUID, serverId: String)

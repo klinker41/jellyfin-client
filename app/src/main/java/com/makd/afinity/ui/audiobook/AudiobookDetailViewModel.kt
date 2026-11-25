@@ -180,6 +180,7 @@ constructor(
                         }
                         return@onSuccess
                     }
+                    itemStore.put(parts)
                     _uiState.update {
                         it.copy(
                             parts = parts,

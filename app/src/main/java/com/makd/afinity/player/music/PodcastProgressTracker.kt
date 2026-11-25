@@ -335,6 +335,13 @@ constructor(
                 userDataSyncScheduler.triggerSync()
             }
 
+            val updatedTrack =
+                track.copy(
+                    played = outcome.played,
+                    playbackPositionTicks = outcome.playbackPositionTicks,
+                    lastPlayedDate = LocalDateTime.now(),
+                )
+            itemStore.putIfAbsent(listOf(updatedTrack))
             itemStore.applyPatch(
                 track.id,
                 UserDataPatch(
@@ -342,12 +349,6 @@ constructor(
                     playbackPositionTicks = outcome.playbackPositionTicks,
                 ),
             )
-            val updatedTrack =
-                track.copy(
-                    played = outcome.played,
-                    playbackPositionTicks = outcome.playbackPositionTicks,
-                    lastPlayedDate = LocalDateTime.now(),
-                )
             mediaRepository.updateContinueListeningPodcast(updatedTrack)
             if (outcome.played != track.played) {
                 mediaRefreshBus.emit(RefreshTrigger.USER_DATA_CHANGED)

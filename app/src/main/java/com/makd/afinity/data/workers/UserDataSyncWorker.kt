@@ -5,12 +5,16 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import com.makd.afinity.data.manager.MediaRefreshBus
+import com.makd.afinity.data.manager.RefreshTrigger
 import com.makd.afinity.data.manager.SessionManager
+import com.makd.afinity.data.models.media.UserDataPatch
 import com.makd.afinity.data.models.user.AfinityUserDataDto
 import com.makd.afinity.data.network.userDataUtc
 import com.makd.afinity.data.repository.DatabaseRepository
 import com.makd.afinity.data.repository.PreferencesRepository
 import com.makd.afinity.data.repository.SecurePreferencesRepository
+import com.makd.afinity.data.store.ItemStore
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.time.Instant
@@ -35,6 +39,8 @@ constructor(
     private val databaseRepository: DatabaseRepository,
     private val securePreferencesRepository: SecurePreferencesRepository,
     private val preferencesRepository: PreferencesRepository,
+    private val itemStore: ItemStore,
+    private val mediaRefreshBus: MediaRefreshBus,
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result =
@@ -57,6 +63,7 @@ constructor(
                 var totalSuccess = 0
                 var totalFailure = 0
                 var retryNeeded = false
+                var syncedCurrentSession = false
 
                 accounts
                     .distinctBy { it.serverId to it.userId }
@@ -113,28 +120,48 @@ constructor(
                         var accountStopped = false
 
                         for (userData in pending) {
+                            val current =
+                                databaseRepository.getUserData(
+                                    account.userId,
+                                    userData.itemId,
+                                    account.serverId,
+                                )
+                            if (current == null || !current.toBeSynced) continue
                             when (
                                 uploadUserData(
                                     apiClient = apiClient,
                                     userDataApi = userDataApi,
                                     userId = account.userId,
-                                    userData = userData,
+                                    userData = current,
                                 )
                             ) {
                                 UploadResult.SYNCED -> {
-                                    databaseRepository.markUserDataSynced(
-                                        account.userId,
-                                        userData.itemId,
-                                        account.serverId,
-                                    )
+                                    when (
+                                        clearSyncedSnapshot(
+                                            userId = account.userId,
+                                            serverId = account.serverId,
+                                            uploaded = current,
+                                            updateStore = true,
+                                        )
+                                    ) {
+                                        ClearOutcome.CLEARED_AND_PATCHED ->
+                                            syncedCurrentSession = true
+                                        ClearOutcome.NEWER_PENDING -> retryNeeded = true
+                                        ClearOutcome.ALREADY_CLEARED_OR_NOT_ACTIVE -> Unit
+                                    }
                                     totalSuccess++
                                 }
                                 UploadResult.DISCARD -> {
-                                    databaseRepository.markUserDataSynced(
-                                        account.userId,
-                                        userData.itemId,
-                                        account.serverId,
-                                    )
+                                    if (
+                                        clearSyncedSnapshot(
+                                            userId = account.userId,
+                                            serverId = account.serverId,
+                                            uploaded = current,
+                                            updateStore = false,
+                                        ) == ClearOutcome.NEWER_PENDING
+                                    ) {
+                                        retryNeeded = true
+                                    }
                                     totalFailure++
                                 }
                                 UploadResult.UNAUTHORIZED -> {
@@ -168,6 +195,9 @@ constructor(
                             when (result) {
                                 UploadResult.SYNCED -> {
                                     databaseRepository.deleteOfflinePlay(play.id)
+                                    if (isActiveSession(account.serverId, account.userId)) {
+                                        syncedCurrentSession = true
+                                    }
                                     totalSuccess++
                                 }
                                 UploadResult.DISCARD -> {
@@ -189,6 +219,10 @@ constructor(
                             }
                         }
                     }
+
+                if (syncedCurrentSession) {
+                    mediaRefreshBus.emit(RefreshTrigger.USER_DATA_CHANGED)
+                }
 
                 Timber.i(
                     "Global user data sync completed. Success: $totalSuccess, Failures: $totalFailure, retryNeeded: $retryNeeded",
@@ -275,6 +309,53 @@ constructor(
             Timber.w(e, "Failed to sync item $itemId")
             UploadResult.RETRY
         }
+    }
+
+    private suspend fun clearSyncedSnapshot(
+        userId: UUID,
+        serverId: String,
+        uploaded: AfinityUserDataDto,
+        updateStore: Boolean,
+    ): ClearOutcome {
+        val clearedRows =
+            databaseRepository.markUserDataSyncedIfUnchanged(
+                userId = userId,
+                itemId = uploaded.itemId,
+                serverId = serverId,
+                positionTicks = uploaded.playbackPositionTicks,
+                played = uploaded.played,
+                lastPlayedAt = uploaded.lastPlayedAt,
+            )
+        if (clearedRows > 0) {
+            if (updateStore && isActiveSession(serverId, userId)) {
+                itemStore.applyPatch(
+                    uploaded.itemId,
+                    UserDataPatch(
+                        played = uploaded.played,
+                        playbackPositionTicks = uploaded.playbackPositionTicks,
+                    ),
+                )
+                return ClearOutcome.CLEARED_AND_PATCHED
+            }
+            return ClearOutcome.ALREADY_CLEARED_OR_NOT_ACTIVE
+        }
+        val latest = databaseRepository.getUserData(userId, uploaded.itemId, serverId)
+        return if (latest != null && latest.toBeSynced) {
+            ClearOutcome.NEWER_PENDING
+        } else {
+            ClearOutcome.ALREADY_CLEARED_OR_NOT_ACTIVE
+        }
+    }
+
+    private fun isActiveSession(serverId: String, userId: UUID): Boolean =
+        sessionManager.currentSession.value?.let {
+            it.serverId == serverId && it.userId == userId
+        } == true
+
+    private enum class ClearOutcome {
+        CLEARED_AND_PATCHED,
+        ALREADY_CLEARED_OR_NOT_ACTIVE,
+        NEWER_PENDING,
     }
 
     private fun Long.toDateTime(): DateTime =

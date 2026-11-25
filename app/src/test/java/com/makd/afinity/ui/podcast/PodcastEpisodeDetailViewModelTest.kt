@@ -12,6 +12,7 @@ import com.makd.afinity.data.manager.Session
 import com.makd.afinity.data.manager.SessionManager
 import com.makd.afinity.data.models.download.DownloadInfo
 import com.makd.afinity.data.models.download.DownloadStatus
+import com.makd.afinity.data.models.music.AfinityTrack
 import com.makd.afinity.data.models.user.AfinityUserDataDto
 import com.makd.afinity.data.repository.AppDataRepository
 import com.makd.afinity.data.repository.DatabaseRepository
@@ -189,6 +190,122 @@ class PodcastEpisodeDetailViewModelTest {
         val loaded = vm.uiState.value.episode!!
         assertEquals(9_500_000_000L, loaded.playbackPositionTicks)
         assertEquals(950_000L, loaded.resumePositionMs())
+    }
+
+    @Test
+    fun `pre-seeded stale ItemStore entry does not clobber pending local or fresh online progress`() =
+        runTest {
+            val h = Harness()
+            val epId = h.itemId
+            val stalePositionTicks = 400_000_000L // 40s
+            val pendingPositionTicks = 10_800_000_000L // 18m
+            h.itemStore.put(
+                testTrack(
+                    id = epId,
+                    name = "Walk Episode",
+                    playbackPositionTicks = stalePositionTicks,
+                ),
+            )
+            val staleServerDto =
+                BaseItemDto(
+                    id = epId,
+                    type = BaseItemKind.AUDIO,
+                    name = "Walk Episode",
+                    runTimeTicks = 36_000_000_000L,
+                    userData =
+                        UserItemDataDto(
+                            playbackPositionTicks = stalePositionTicks,
+                            playCount = 0,
+                            isFavorite = false,
+                            played = false,
+                            key = epId.toString(),
+                            itemId = epId,
+                        ),
+                )
+            coEvery { h.mediaRepository.getItemResult(epId, any()) } returns
+                Result.success(staleServerDto)
+            coEvery { h.databaseRepository.getUserData(h.userId, epId) } returns
+                AfinityUserDataDto(
+                    userId = h.userId,
+                    itemId = epId,
+                    serverId = h.serverId,
+                    played = false,
+                    favorite = false,
+                    likes = false,
+                    playbackPositionTicks = pendingPositionTicks,
+                    toBeSynced = true,
+                )
+
+            val vm = h.createViewModel()
+            advanceUntilIdle()
+
+            assertEquals(pendingPositionTicks, vm.uiState.value.episode?.playbackPositionTicks)
+            assertEquals(1_080_000L, vm.uiState.value.episode?.resumePositionMs())
+            assertEquals(
+                pendingPositionTicks,
+                h.itemStore.getAs<AfinityTrack>(epId)?.playbackPositionTicks,
+            )
+
+            // Post-sync: server now has the 18m position and local toBeSynced was cleared
+            val freshServerDto =
+                staleServerDto.copy(
+                    userData =
+                        staleServerDto.userData!!.copy(
+                            playbackPositionTicks = pendingPositionTicks,
+                        ),
+                )
+            h.itemStore.put(
+                testTrack(
+                    id = epId,
+                    name = "Walk Episode",
+                    playbackPositionTicks = stalePositionTicks,
+                ),
+            )
+            coEvery { h.mediaRepository.getItemResult(epId, any()) } returns
+                Result.success(freshServerDto)
+            coEvery { h.databaseRepository.getUserData(h.userId, epId) } returns
+                AfinityUserDataDto(
+                    userId = h.userId,
+                    itemId = epId,
+                    serverId = h.serverId,
+                    played = false,
+                    favorite = false,
+                    likes = false,
+                    playbackPositionTicks = pendingPositionTicks,
+                    toBeSynced = false,
+                )
+
+            vm.retry()
+            advanceUntilIdle()
+
+            assertEquals(pendingPositionTicks, vm.uiState.value.episode?.playbackPositionTicks)
+            assertEquals(
+                pendingPositionTicks,
+                h.itemStore.getAs<AfinityTrack>(epId)?.playbackPositionTicks,
+            )
+        }
+
+    @Test
+    fun `pre-seeded stale ItemStore entry does not clobber offline cached progress`() = runTest {
+        val h = Harness()
+        val epId = h.itemId
+        h.isOfflineFlow.value = true
+        h.itemStore.put(
+            testTrack(id = epId, name = "Offline Pod", playbackPositionTicks = 400_000_000L),
+        )
+        coEvery {
+            h.databaseRepository.getMusicTrack(epId, h.serverId, h.userId.toString())
+        } returns
+            testTrack(id = epId, name = "Offline Pod", playbackPositionTicks = 10_800_000_000L)
+
+        val vm = h.createViewModel()
+        advanceUntilIdle()
+
+        assertEquals(10_800_000_000L, vm.uiState.value.episode?.playbackPositionTicks)
+        assertEquals(
+            10_800_000_000L,
+            h.itemStore.getAs<AfinityTrack>(epId)?.playbackPositionTicks,
+        )
     }
 
     @Test

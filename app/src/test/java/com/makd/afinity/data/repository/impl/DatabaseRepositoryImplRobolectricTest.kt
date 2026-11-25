@@ -355,6 +355,45 @@ class DatabaseRepositoryImplRobolectricTest {
             )
             assertNull(repo.getUserData(userId, testUuid(999)))
 
+            // Atomic markUserDataSyncedIfUnchanged only clears matching snapshot
+            repo.insertUserData(
+                AfinityUserDataDto(
+                    userId = userId,
+                    itemId = track.id,
+                    serverId = serverId,
+                    played = false,
+                    favorite = true,
+                    likes = false,
+                    playbackPositionTicks = 70_000_000L,
+                    toBeSynced = true,
+                    lastPlayedAt = 4_000L,
+                ),
+            )
+            assertEquals(
+                0,
+                repo.markUserDataSyncedIfUnchanged(
+                    userId = userId,
+                    itemId = track.id,
+                    serverId = serverId,
+                    positionTicks = 65_000_000L,
+                    played = false,
+                    lastPlayedAt = 4_000L,
+                ),
+            )
+            assertTrue(repo.getUserData(userId, track.id, serverId)!!.toBeSynced)
+            assertEquals(
+                1,
+                repo.markUserDataSyncedIfUnchanged(
+                    userId = userId,
+                    itemId = track.id,
+                    serverId = serverId,
+                    positionTicks = 70_000_000L,
+                    played = false,
+                    lastPlayedAt = 4_000L,
+                ),
+            )
+            assertFalse(repo.getUserData(userId, track.id, serverId)!!.toBeSynced)
+
             repo.getMoviesFlow(userId).test {
                 val movies = awaitItem()
                 assertEquals(1, movies.size)

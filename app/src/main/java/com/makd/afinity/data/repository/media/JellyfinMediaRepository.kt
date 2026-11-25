@@ -54,6 +54,7 @@ import com.makd.afinity.data.models.media.withPatchedImages
 import com.makd.afinity.data.models.music.AfinityPlaylistContents
 import com.makd.afinity.data.models.music.AfinityTrack
 import com.makd.afinity.data.models.omdb.OmdbApiResult
+import com.makd.afinity.data.models.user.AfinityUserDataDto
 import com.makd.afinity.data.network.MdbListApiService
 import com.makd.afinity.data.network.OmdbApiService
 import com.makd.afinity.data.paging.BookLibraryPagingSource
@@ -61,6 +62,7 @@ import com.makd.afinity.data.paging.JellyfinItemsPagingSource
 import com.makd.afinity.data.paging.RandomOrder
 import com.makd.afinity.data.podcasts.CONTINUE_LISTENING_LIMIT
 import com.makd.afinity.data.podcasts.PODCAST_EPISODE_FIELDS
+import com.makd.afinity.data.podcasts.withPendingUserData
 import com.makd.afinity.data.repository.DatabaseRepository
 import com.makd.afinity.data.repository.FieldSets
 import com.makd.afinity.data.repository.JellyfinApiInvoker
@@ -271,6 +273,7 @@ constructor(
     override suspend fun invalidateContinueListeningCache() {
         withContext(Dispatchers.IO) {
             try {
+                val session = sessionManager.currentSession.value ?: return@withContext
                 val sessionKeyAtStart = currentSessionKey() ?: return@withContext
                 sessionManager.getCurrentApiClient() ?: return@withContext
                 getCurrentUserId() ?: return@withContext
@@ -327,10 +330,17 @@ constructor(
                             resumedAudioDeferred.await(),
                         )
                     }
+                val pendingByItemId =
+                    databaseRepository
+                        .getAllUserDataToSync(session.userId, session.serverId)
+                        .associateBy { it.itemId }
                 val candidates =
                     (resumed + recentlyFinished)
                         .filter { it.type == BaseItemKind.AUDIO_BOOK }
-                        .map { it.toAfinityAudiobook(baseUrl) }
+                        .map {
+                            it.toAfinityAudiobook(baseUrl)
+                                .withPendingUserData(pendingByItemId[it.id])
+                        }
                         .distinctBy { it.id }
                 val books = coroutineScope {
                     candidates
@@ -342,7 +352,7 @@ constructor(
                         .map { (key, parts) ->
                             async {
                                 if (key is UUID) parts.asBook()
-                                else bookAround(parts.first(), parts, baseUrl)
+                                else bookAround(parts.first(), parts, baseUrl, pendingByItemId)
                             }
                         }
                         .awaitAll()
@@ -351,10 +361,29 @@ constructor(
                     .filter { !it.played && it.playbackPositionTicks > 0 }
                     .sortedByDescending { it.lastPlayedDate }
                     .take(CONTINUE_LISTENING_LIMIT)
-                val podcasts =
+                val fetchedPodcasts =
                     resumedAudio
                         .filter { it.type == BaseItemKind.AUDIO }
-                        .map { it.toAfinityTrack(baseUrl) }
+                        .map {
+                            it.toAfinityTrack(baseUrl).withPendingUserData(pendingByItemId[it.id])
+                        }
+                val fetchedIds = fetchedPodcasts.mapTo(HashSet()) { it.id }
+                val offlineStartedPodcasts =
+                    pendingByItemId.values
+                        .filter {
+                            !it.played && it.playbackPositionTicks > 0L && it.itemId !in fetchedIds
+                        }
+                        .mapNotNull { pending ->
+                            databaseRepository
+                                .getMusicTrack(
+                                    pending.itemId,
+                                    session.serverId,
+                                    session.userId.toString(),
+                                )
+                                ?.withPendingUserData(pending)
+                        }
+                val podcasts =
+                    (fetchedPodcasts + offlineStartedPodcasts)
                         .distinctBy { it.id }
                         .filter { !it.played && it.playbackPositionTicks > 0 }
                         .sortedByDescending { it.lastPlayedDate }
@@ -387,6 +416,7 @@ constructor(
         part: AfinityAudiobook,
         known: List<AfinityAudiobook>,
         baseUrl: String,
+        pendingByItemId: Map<UUID, AfinityUserDataDto>,
     ): AfinityAudiobook? {
         val album = part.album?.trim()?.lowercase()
         val siblings =
@@ -399,7 +429,7 @@ constructor(
                 .getOrNull()
                 ?.items
                 ?.filter { it.type == BaseItemKind.AUDIO_BOOK }
-                ?.map { it.toAfinityAudiobook(baseUrl) }
+                ?.map { it.toAfinityAudiobook(baseUrl).withPendingUserData(pendingByItemId[it.id]) }
                 ?.filter { it.album?.trim()?.lowercase() == album }
                 ?.takeIf { it.isNotEmpty() } ?: known
         return siblings.asBook()

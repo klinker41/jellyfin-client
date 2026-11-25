@@ -7,6 +7,7 @@ import com.makd.afinity.data.manager.RefreshTrigger
 import com.makd.afinity.data.manager.Session
 import com.makd.afinity.data.manager.SessionManager
 import com.makd.afinity.data.models.common.CollectionType
+import com.makd.afinity.data.models.music.AfinityTrack
 import com.makd.afinity.data.models.user.AfinityUserDataDto
 import com.makd.afinity.data.repository.DatabaseRepository
 import com.makd.afinity.data.repository.PreferencesRepository
@@ -897,4 +898,80 @@ class PodcastProgressTrackerTest {
                 databaseRepository.insertUserData(match { it.itemId == streamingEpId })
             }
         }
+
+    @Test
+    fun `syncProgress populates ItemStore even when episode was not previously cached`() = runTest {
+        val userId = testUuid(1)
+        val podcastLibId = testUuid(10)
+        val podcastAlbumId = testUuid(20)
+        val epId = testUuid(32)
+        val apiClient = FakeApiClient()
+        apiClient.onPost("/UserItems/{itemId}/UserData") { req ->
+            val itemId = req.pathParameters["itemId"] as UUID
+            FakeApiClient.rawJsonResponse(
+                """{"ItemId":"$itemId","Key":"$itemId","Played":false,"PlaybackPositionTicks":1200000000,"PlayCount":0,"IsFavorite":false}""",
+            )
+        }
+        val sessionManager: SessionManager =
+            mockk(relaxed = true) {
+                every { currentSession } returns
+                    MutableStateFlow(Session("srv-1", userId, "https://jf.example.com"))
+                coEvery { getCurrentApiClient() } returns apiClient
+            }
+        val podcastLib =
+            testCollection(id = podcastLibId, name = "Podcasts", type = CollectionType.Music)
+        val mediaRepository: MediaRepository =
+            mockk(relaxed = true) {
+                every { libraries } returns MutableStateFlow(listOf(podcastLib))
+                coEvery {
+                    getItemsResult(
+                        parentId = podcastLibId,
+                        includeItemTypes = listOf("MUSIC_ALBUM"),
+                        limit = any(),
+                        fields = any(),
+                        recursive = true,
+                        enableImages = false,
+                        enableUserData = false,
+                    )
+                } returns
+                    Result.success(
+                        BaseItemDtoQueryResult(
+                            items =
+                                listOf(
+                                    BaseItemDto(
+                                        id = podcastAlbumId,
+                                        type = BaseItemKind.MUSIC_ALBUM,
+                                    ),
+                                ),
+                            startIndex = 0,
+                            totalRecordCount = 1,
+                        ),
+                    )
+            }
+        val itemStore = ItemStore()
+        val tracker =
+            PodcastProgressTracker(
+                sessionManager = sessionManager,
+                mediaRepository = mediaRepository,
+                itemStore = itemStore,
+                mediaRefreshBus = MediaRefreshBus(),
+                databaseRepository = mockk(relaxed = true),
+                preferencesRepository =
+                    mockk(relaxed = true) { coEvery { getOfflineMode() } returns false },
+                userDataSyncScheduler = mockk(relaxed = true),
+                autoDownloadPreferences =
+                    mockk(relaxed = true) {
+                        coEvery { getCachedPodcastAlbumIds(any(), any()) } returns emptySet()
+                    },
+                playedItemEventBus = PlayedItemEventBus(),
+            )
+
+        val track =
+            testTrack(id = epId, played = false)
+                .copy(albumId = podcastAlbumId, runtimeTicks = 18_000_000_000L)
+        tracker.syncProgress(track, positionMs = 120_000L, isEnded = false)
+
+        val stored = itemStore.getAs<AfinityTrack>(epId)
+        assertEquals(1_200_000_000L, stored?.playbackPositionTicks)
+    }
 }
