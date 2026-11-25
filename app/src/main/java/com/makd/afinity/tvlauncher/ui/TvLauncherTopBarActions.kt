@@ -88,7 +88,7 @@ fun TvLauncherTopBarActionsContent(
             onClick = onOpenSystemSettings,
             modifier =
                 Modifier.size(36.dp)
-                    .focusProperties { canFocus = buttonsFocusable }
+                    .focusProperties { if (!buttonsFocusable) canFocus = false }
                     .focusOutline(CircleShape),
         ) {
             Box(

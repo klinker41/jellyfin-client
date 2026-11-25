@@ -146,7 +146,7 @@ fun AfinityTopAppBar(
                     modifier =
                         Modifier.padding(start = TopBarEdgeInset)
                             .size(36.dp)
-                            .focusProperties { canFocus = buttonsFocusable }
+                            .focusProperties { if (!buttonsFocusable) canFocus = false }
                             .focusOutline(CircleShape),
                 ) {
                     Box(
@@ -178,7 +178,7 @@ fun AfinityTopAppBar(
                 Row(
                     modifier =
                         Modifier.height(36.dp)
-                            .focusProperties { canFocus = buttonsFocusable }
+                            .focusProperties { if (!buttonsFocusable) canFocus = false }
                             .focusOutline(RoundedCornerShape(24.dp))
                             .clip(RoundedCornerShape(24.dp))
                             .background(Color.Black.copy(alpha = 0.3f))
@@ -243,7 +243,7 @@ fun AfinityTopAppBar(
                             enabled = !isFetchingRandom,
                             modifier =
                                 Modifier.size(36.dp)
-                                    .focusProperties { canFocus = buttonsFocusable }
+                                    .focusProperties { if (!buttonsFocusable) canFocus = false }
                                     .focusOutline(CircleShape),
                         ) {
                             Icon(
@@ -267,7 +267,7 @@ fun AfinityTopAppBar(
                             onClick = onSearchClick,
                             modifier =
                                 Modifier.size(36.dp)
-                                    .focusProperties { canFocus = buttonsFocusable }
+                                    .focusProperties { if (!buttonsFocusable) canFocus = false }
                                     .focusOutline(CircleShape),
                         ) {
                             Icon(
@@ -286,7 +286,7 @@ fun AfinityTopAppBar(
                 Box(
                     modifier =
                         Modifier.size(40.dp)
-                            .focusProperties { canFocus = buttonsFocusable }
+                            .focusProperties { if (!buttonsFocusable) canFocus = false }
                             .focusOutline(CircleShape)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
@@ -380,7 +380,7 @@ fun AfinityBackButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
             modifier =
                 modifier
                     .then(if (isTelevision) Modifier.size(40.dp) else Modifier)
-                    .focusProperties { canFocus = buttonsFocusable }
+                    .focusProperties { if (!buttonsFocusable) canFocus = false }
                     .focusOutline(CircleShape),
         ) {
             Icon(

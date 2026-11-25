@@ -21,22 +21,27 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.inset
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DelegatableNode
 import androidx.compose.ui.node.DelegatingNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.TraversableNode
+import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.findNearestAncestor
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.invalidatePlacement
 import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.makd.afinity.ui.utils.LocalIsTelevision
 import kotlin.math.abs
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -149,11 +154,15 @@ class FocusScaleIndication(
     }
 }
 
+private fun CompositionLocalConsumerModifierNode.shouldShowFocusHighlight(): Boolean =
+    currentValueOf(LocalIsTelevision) ||
+        currentValueOf(LocalInputModeManager).inputMode != InputMode.Touch
+
 private class FocusScaleIndicationNode(
     delegateNode: DelegatableNode,
     private val interactionSource: InteractionSource,
     private val focusedScale: Float,
-) : DelegatingNode(), DrawModifierNode {
+) : DelegatingNode(), CompositionLocalConsumerModifierNode, DrawModifierNode {
 
     private var isFocused = false
     private var focusProgress: Animatable<Float, AnimationVector1D> = Animatable(0f)
@@ -203,7 +212,7 @@ private class FocusScaleIndicationNode(
 
     override fun ContentDrawScope.draw() {
         val progress = focusProgress.value.coerceIn(0f, 1f)
-        if (progress <= 0f || hasActiveFocusScaleAncestor()) {
+        if (progress <= 0f || hasActiveFocusScaleAncestor() || !shouldShowFocusHighlight()) {
             drawContent()
             return
         }
@@ -314,7 +323,13 @@ private class FocusScaleNode(
     var strokeWidth: Dp,
     var color: Color,
     var focusedScale: Float,
-) : Modifier.Node(), FocusEventModifierNode, LayoutModifierNode, DrawModifierNode, TraversableNode {
+) :
+    Modifier.Node(),
+    CompositionLocalConsumerModifierNode,
+    FocusEventModifierNode,
+    LayoutModifierNode,
+    DrawModifierNode,
+    TraversableNode {
 
     override val traverseKey: Any = FocusScaleTraverseKey
 
@@ -356,16 +371,17 @@ private class FocusScaleNode(
         constraints: Constraints,
     ): MeasureResult {
         val placeable = measurable.measure(constraints)
+        val liftZIndex = isFocused && shouldShowFocusHighlight()
         // Lift the focused node in z-order without scaling the layout layer so LayoutCoordinates
         // remain invariant across focus transitions and never trigger BringIntoView scroll bounce.
         return layout(placeable.width, placeable.height) {
-            placeable.place(x = 0, y = 0, zIndex = if (isFocused) 1f else 0f)
+            placeable.place(x = 0, y = 0, zIndex = if (liftZIndex) 1f else 0f)
         }
     }
 
     override fun ContentDrawScope.draw() {
         val progress = focusProgress.value.coerceIn(0f, 1f)
-        if (progress <= 0f) {
+        if (progress <= 0f || !shouldShowFocusHighlight()) {
             drawContent()
             return
         }
