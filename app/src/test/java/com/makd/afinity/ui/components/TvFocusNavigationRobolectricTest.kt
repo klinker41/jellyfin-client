@@ -6,6 +6,7 @@ import android.graphics.Canvas
 import android.view.View
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.gestures.BringIntoViewSpec
 import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.foundation.layout.Arrangement
@@ -29,14 +30,18 @@ import androidx.compose.material3.WideNavigationRailState
 import androidx.compose.material3.rememberWideNavigationRailState
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
@@ -73,16 +78,24 @@ import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.makd.afinity.R
+import com.makd.afinity.data.manager.Connectivity
+import com.makd.afinity.data.manager.OfflineModeManager
 import com.makd.afinity.data.models.HomeRow
 import com.makd.afinity.data.models.common.HeroStyle
 import com.makd.afinity.data.models.media.AfinityImages
 import com.makd.afinity.data.models.server.ConnectionType
+import com.makd.afinity.data.repository.PreferencesRepository
+import com.makd.afinity.data.repository.server.ServerRepository
 import com.makd.afinity.navigation.LocalHeroStyle
+import com.makd.afinity.tvlauncher.ui.TvLauncherTopBarActionsContent
+import com.makd.afinity.ui.home.HERO_CAROUSEL_ROW_KEY
 import com.makd.afinity.ui.home.HomeTvFocusTarget
 import com.makd.afinity.ui.home.HomeTvHeroFocusScrollEffect
 import com.makd.afinity.ui.home.HomeTvInitialFocusEffect
+import com.makd.afinity.ui.home.HomeTvReturnFocusEffect
 import com.makd.afinity.ui.home.HomeTvRowBox
 import com.makd.afinity.ui.home.rememberHomeTvFocusState
+import com.makd.afinity.ui.home.rememberHomeTvTopBarFocusState
 import com.makd.afinity.ui.home.resolveInitialTvFocusTarget
 import com.makd.afinity.ui.home.tvHeroPinBringIntoViewToTop
 import com.makd.afinity.ui.item.components.shared.PlaybackSelectionButton
@@ -95,6 +108,7 @@ import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.ThemeMode
 import com.makd.afinity.ui.theme.focusOutline
 import com.makd.afinity.ui.utils.LocalIsTelevision
+import com.makd.afinity.ui.utils.LocalTopBarButtonsFocusable
 import io.mockk.every
 import io.mockk.mockk
 import kotlin.math.roundToInt
@@ -1487,6 +1501,682 @@ class TvFocusNavigationRobolectricTest {
             "Expected zero vertical scroll bounce during horizontal focus movement, saw $observedVerticalPositions",
             observedVerticalPositions.all { it == baselinePosition },
         )
+    }
+
+    @Test
+    @Config(qualifiers = "w960dp-h540dp")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `focused TV top app bar buttons draw highlight beyond all four edges without clipping`() {
+        val context = ApplicationProvider.getApplicationContext<Application>()
+        val menuDesc = context.getString(R.string.cd_open_navigation_menu)
+        val diceDesc = context.getString(R.string.cd_random_item)
+        val searchDesc = context.getString(R.string.cd_search_icon)
+        val profileDesc = context.getString(R.string.cd_profile_icon)
+        val settingsDesc = context.getString(R.string.tv_launcher_cd_system_settings)
+        val backDesc = context.getString(R.string.cd_back)
+
+        val offlineModeManager: OfflineModeManager = mockk {
+            every { connectionType } returns MutableStateFlow(ConnectionType.LOCAL)
+            every { connectivity } returns MutableStateFlow(Connectivity.Online)
+        }
+        val topAppBarViewModel =
+            AfinityTopAppBarViewModel(
+                offlineModeManager = offlineModeManager,
+                serverRepository = mockk<ServerRepository>(relaxed = true),
+                preferencesRepository = mockk<PreferencesRepository>(relaxed = true),
+            )
+
+        lateinit var hostView: View
+        lateinit var inputModeManager: InputModeManager
+        var outsideInsetPx = 0f
+
+        composeTestRule.setContent {
+            PreviewHost(modifier = Modifier.fillMaxSize(), themeMode = ThemeMode.DARK) {
+                hostView = LocalView.current
+                inputModeManager = LocalInputModeManager.current
+                outsideInsetPx = with(LocalDensity.current) { 1.dp.toPx() }
+
+                CompositionLocalProvider(LocalIsTelevision provides true) {
+                    Column(
+                        modifier = Modifier.fillMaxSize().background(Color.Black),
+                        verticalArrangement = Arrangement.spacedBy(24.dp),
+                    ) {
+                        AfinityTopAppBar(
+                            title = {},
+                            onMenuClick = {},
+                            onSearchClick = {},
+                            onRandomClick = {},
+                            profile =
+                                AppBarProfile(
+                                    onClick = {},
+                                    name = null,
+                                    imageUrl = null,
+                                ),
+                            viewModel = topAppBarViewModel,
+                            actions = {
+                                TvLauncherTopBarActionsContent(
+                                    isNetworkAvailable = true,
+                                    formattedTime = "9:41",
+                                    onOpenSystemSettings = {},
+                                )
+                            },
+                        )
+
+                        AfinityTopBar(
+                            title = {},
+                            navigationIcon = { AfinityBackButton(onClick = {}) },
+                        )
+                    }
+                }
+            }
+        }
+
+        fun samplePixel(x: Float, y: Float): Int {
+            composeTestRule.waitForIdle()
+            var pixel = 0
+            composeTestRule.runOnIdle {
+                val bitmap =
+                    Bitmap.createBitmap(
+                        hostView.width.coerceAtLeast(1),
+                        hostView.height.coerceAtLeast(1),
+                        Bitmap.Config.ARGB_8888,
+                    )
+                try {
+                    hostView.draw(Canvas(bitmap))
+                    pixel =
+                        bitmap.getPixel(
+                            x.roundToInt().coerceIn(0, bitmap.width - 1),
+                            y.roundToInt().coerceIn(0, bitmap.height - 1),
+                        )
+                } finally {
+                    bitmap.recycle()
+                }
+            }
+            return pixel
+        }
+
+        val targets =
+            listOf(
+                "menu" to composeTestRule.onNodeWithContentDescription(menuDesc),
+                "dice" to composeTestRule.onNodeWithContentDescription(diceDesc),
+                "search" to composeTestRule.onNodeWithContentDescription(searchDesc),
+                "profile" to composeTestRule.onNodeWithContentDescription(profileDesc),
+                "system_settings" to composeTestRule.onNodeWithContentDescription(settingsDesc),
+                "back" to composeTestRule.onNodeWithContentDescription(backDesc),
+            )
+
+        composeTestRule.waitForIdle()
+        val baselineByLabel = targets.associate { (label, node) ->
+            val bounds = node.fetchSemanticsNode().boundsInRoot
+            val samplePoints =
+                listOf(
+                    "top" to (bounds.center.x to (bounds.top - outsideInsetPx)),
+                    "bottom" to (bounds.center.x to (bounds.bottom + outsideInsetPx - 1f)),
+                    "left" to ((bounds.left - outsideInsetPx) to bounds.center.y),
+                    "right" to ((bounds.right + outsideInsetPx - 1f) to bounds.center.y),
+                )
+            val unfocusedPixels = samplePoints.associate { (edge, pt) ->
+                edge to samplePixel(pt.first, pt.second)
+            }
+            label to (samplePoints to unfocusedPixels)
+        }
+
+        composeTestRule.runOnIdle { inputModeManager.requestInputMode(InputMode.Keyboard) }
+
+        for ((label, node) in targets) {
+            val (samplePoints, unfocusedPixels) = baselineByLabel.getValue(label)
+            node.performSemanticsAction(SemanticsActions.RequestFocus)
+            composeTestRule.mainClock.advanceTimeBy(500)
+            node.assertIsFocused()
+
+            for ((edge, pt) in samplePoints) {
+                val focusedPixel = samplePixel(pt.first, pt.second)
+                val unfocusedPixel = unfocusedPixels.getValue(edge)
+                assertTrue(
+                    "Expected $label $edge edge outside bounds to brighten when focused (was 0x${Integer.toHexString(unfocusedPixel)}, became 0x${Integer.toHexString(focusedPixel)})",
+                    android.graphics.Color.luminance(focusedPixel) >
+                        android.graphics.Color.luminance(unfocusedPixel) + 0.2f,
+                )
+            }
+        }
+    }
+
+    @Test
+    @Config(qualifiers = "w960dp-h540dp")
+    fun `TV home top bar is only reachable from hero carousel and blocks upward jump from lower rows`() {
+        val context = ApplicationProvider.getApplicationContext<Application>()
+        val watchNowDesc = context.getString(R.string.hero_btn_watch_now)
+        val playTrailerDesc = context.getString(R.string.hero_btn_play_trailer)
+        val moreInfoDesc = context.getString(R.string.hero_btn_more_info)
+        val row1Items = List(6) { index -> PreviewData.movie(name = "Row1Movie$index") }
+        val row2Items = List(6) { index -> PreviewData.movie(name = "Row2Movie$index") }
+
+        composeTestRule.setContent {
+            PreviewHost(modifier = Modifier.fillMaxSize(), themeMode = ThemeMode.DARK) {
+                val inputModeManager = LocalInputModeManager.current
+                LaunchedEffect(Unit) { inputModeManager.requestInputMode(InputMode.Keyboard) }
+
+                CompositionLocalProvider(
+                    LocalIsTelevision provides true,
+                    LocalHeroStyle provides HeroStyle.FULL_BLEED,
+                ) {
+                    val lazyListState = rememberLazyListState()
+                    val topBarFocusState = rememberHomeTvTopBarFocusState()
+                    SideEffect {
+                        topBarFocusState.syncListState(
+                            isShowingHomeList = true,
+                            topmostRowKey = HERO_CAROUSEL_ROW_KEY,
+                            isListLoading = false,
+                        )
+                    }
+                    val tvFocus =
+                        rememberHomeTvFocusState(
+                            target =
+                                HomeTvFocusTarget(rowKey = "latest_movies_combined", itemIndex = 1),
+                            topBarFocusState = topBarFocusState,
+                        )
+                    var isHeroFocused by remember { mutableStateOf(false) }
+
+                    HomeTvInitialFocusEffect(lazyListState = lazyListState, tvFocus = tvFocus)
+                    HomeTvHeroFocusScrollEffect(
+                        isHeroFocused = isHeroFocused,
+                        lazyListState = lazyListState,
+                    )
+
+                    AfinityScreen(
+                        mode = AfinityScreenMode.Immersive,
+                        topBar = {
+                            CompositionLocalProvider(
+                                LocalTopBarButtonsFocusable provides
+                                    topBarFocusState.canFocusTopBar,
+                            ) {
+                                AfinityTopBar(
+                                    title = {},
+                                    modifier =
+                                        Modifier.onFocusChanged {
+                                            topBarFocusState.onTopBarFocusChanged(it.hasFocus)
+                                        },
+                                    navigationIcon = {
+                                        val canFocus = LocalTopBarButtonsFocusable.current
+                                        IconButton(
+                                            onClick = {},
+                                            modifier =
+                                                Modifier.testTag("top_menu_btn")
+                                                    .focusProperties { this.canFocus = canFocus }
+                                                    .focusOutline(CircleShape),
+                                        ) {
+                                            Text("Menu")
+                                        }
+                                    },
+                                    actions = {
+                                        val canFocus = LocalTopBarButtonsFocusable.current
+                                        IconButton(
+                                            onClick = {},
+                                            modifier =
+                                                Modifier.testTag("top_search_btn")
+                                                    .focusProperties { this.canFocus = canFocus }
+                                                    .focusOutline(CircleShape),
+                                        ) {
+                                            Text("Search")
+                                        }
+                                        IconButton(
+                                            onClick = {},
+                                            modifier =
+                                                Modifier.testTag("top_profile_btn")
+                                                    .focusProperties { this.canFocus = canFocus }
+                                                    .focusOutline(CircleShape),
+                                        ) {
+                                            Text("Profile")
+                                        }
+                                    },
+                                )
+                            }
+                        },
+                    ) {
+                        LazyColumn(
+                            state = lazyListState,
+                            modifier =
+                                Modifier.fillMaxSize()
+                                    .focusRequester(tvFocus.listFocusRequester)
+                                    .focusGroup(),
+                        ) {
+                            item(key = HERO_CAROUSEL_ROW_KEY) {
+                                HeroCarousel(
+                                    items = PreviewData.posterRow.take(2),
+                                    onWatchNowClick = {},
+                                    onPlayTrailerClick = {},
+                                    onMoreInformationClick = {},
+                                    modifier =
+                                        Modifier.tvHeroPinBringIntoViewToTop().onFocusChanged {
+                                            isHeroFocused = it.hasFocus
+                                            if (it.hasFocus) {
+                                                tvFocus.onRowFocused(HERO_CAROUSEL_ROW_KEY)
+                                            } else {
+                                                tvFocus.onRowUnfocused(HERO_CAROUSEL_ROW_KEY)
+                                            }
+                                        },
+                                )
+                            }
+                            item(key = "latest_movies_combined") {
+                                HomeTvRowBox(
+                                    rowKey = "latest_movies_combined",
+                                    tvFocus = tvFocus,
+                                ) {
+                                    CardRow(modifier = Modifier.fillMaxWidth().height(240.dp)) {
+                                        items(row1Items, key = { it.id }) { item ->
+                                            MediaItemCard(
+                                                item = item,
+                                                onClick = {},
+                                                cardWidth = 140.dp,
+                                                modifier = Modifier.testTag("r1_${item.name}"),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            item(key = "latest_tv_combined") {
+                                HomeTvRowBox(rowKey = "latest_tv_combined", tvFocus = tvFocus) {
+                                    CardRow(modifier = Modifier.fillMaxWidth().height(240.dp)) {
+                                        items(row2Items, key = { it.id }) { item ->
+                                            MediaItemCard(
+                                                item = item,
+                                                onClick = {},
+                                                cardWidth = 140.dp,
+                                                modifier = Modifier.testTag("r2_${item.name}"),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        fun r1Card(index: Int) =
+            composeTestRule.onNode(
+                hasAnyAncestor(hasTestTag("r1_Row1Movie$index")) and hasClickAction(),
+            )
+
+        fun r2Card(index: Int) =
+            composeTestRule.onNode(
+                hasAnyAncestor(hasTestTag("r2_Row2Movie$index")) and hasClickAction(),
+            )
+
+        composeTestRule.waitForIdle()
+        r1Card(0).assertIsFocused()
+
+        // Navigate right across row 1 (under the top bar action buttons) and press Up:
+        // focus must move to HeroCarousel, never straight into the top bar.
+        for (i in 0..3) {
+            r1Card(i).performKeyInput { pressKey(Key.DirectionRight) }
+            composeTestRule.waitForIdle()
+        }
+        r1Card(4).assertIsFocused()
+        r1Card(4).performKeyInput { pressKey(Key.DirectionUp) }
+        composeTestRule.waitForIdle()
+
+        val heroFocusedNode =
+            composeTestRule.onNode(
+                (hasContentDescription(watchNowDesc) or
+                    hasContentDescription(moreInfoDesc) or
+                    hasContentDescription(playTrailerDesc)) and isFocused(),
+            )
+        heroFocusedNode.assertExists()
+        composeTestRule.onNodeWithTag("top_menu_btn").assertIsNotFocused()
+        composeTestRule.onNodeWithTag("top_search_btn").assertIsNotFocused()
+        composeTestRule.onNodeWithTag("top_profile_btn").assertIsNotFocused()
+
+        // Pressing Up from HeroCarousel (topmost row) now enters the top bar.
+        heroFocusedNode.performKeyInput { pressKey(Key.DirectionUp) }
+        composeTestRule.waitForIdle()
+        composeTestRule
+            .onNode(
+                (hasTestTag("top_menu_btn") or
+                    hasTestTag("top_search_btn") or
+                    hasTestTag("top_profile_btn")) and isFocused(),
+            )
+            .assertExists()
+
+        // Pressing Down from top bar returns into home content, and moving down to row 2
+        // keeps upward navigation within content rows.
+        composeTestRule
+            .onNode(
+                (hasTestTag("top_menu_btn") or
+                    hasTestTag("top_search_btn") or
+                    hasTestTag("top_profile_btn")) and isFocused(),
+            )
+            .performKeyInput { pressKey(Key.DirectionDown) }
+        composeTestRule.waitForIdle()
+
+        r1Card(0).performSemanticsAction(SemanticsActions.RequestFocus)
+        r1Card(0).assertIsFocused()
+        r1Card(0).performKeyInput { pressKey(Key.DirectionDown) }
+        composeTestRule.waitForIdle()
+        r2Card(0).assertIsFocused()
+
+        r2Card(0).performKeyInput { pressKey(Key.DirectionUp) }
+        composeTestRule.waitForIdle()
+        r1Card(0).assertIsFocused()
+        composeTestRule.onNodeWithTag("top_menu_btn").assertIsNotFocused()
+    }
+
+    @Test
+    @Config(qualifiers = "w960dp-h540dp")
+    fun `TV home top bar without hero is only reachable from topmost content row`() {
+        val row0Items = List(4) { index -> PreviewData.movie(name = "NoHero0_$index") }
+        val row1Items = List(4) { index -> PreviewData.movie(name = "NoHero1_$index") }
+
+        composeTestRule.setContent {
+            PreviewHost(modifier = Modifier.fillMaxSize(), themeMode = ThemeMode.DARK) {
+                val inputModeManager = LocalInputModeManager.current
+                LaunchedEffect(Unit) { inputModeManager.requestInputMode(InputMode.Keyboard) }
+
+                CompositionLocalProvider(LocalIsTelevision provides true) {
+                    val lazyListState = rememberLazyListState()
+                    val topBarFocusState = rememberHomeTvTopBarFocusState()
+                    SideEffect {
+                        topBarFocusState.syncListState(
+                            isShowingHomeList = true,
+                            topmostRowKey = "row_0",
+                            isListLoading = false,
+                        )
+                    }
+                    val tvFocus =
+                        rememberHomeTvFocusState(
+                            target = HomeTvFocusTarget(rowKey = "row_0", itemIndex = 0),
+                            topBarFocusState = topBarFocusState,
+                        )
+
+                    AfinityScreen(
+                        mode = AfinityScreenMode.Immersive,
+                        topBar = {
+                            CompositionLocalProvider(
+                                LocalTopBarButtonsFocusable provides
+                                    topBarFocusState.canFocusTopBar,
+                            ) {
+                                AfinityTopBar(
+                                    title = {},
+                                    modifier =
+                                        Modifier.onFocusChanged {
+                                            topBarFocusState.onTopBarFocusChanged(it.hasFocus)
+                                        },
+                                    navigationIcon = {
+                                        val canFocus = LocalTopBarButtonsFocusable.current
+                                        IconButton(
+                                            onClick = {},
+                                            modifier =
+                                                Modifier.testTag("nohero_menu_btn")
+                                                    .focusProperties { this.canFocus = canFocus }
+                                                    .focusOutline(CircleShape),
+                                        ) {
+                                            Text("Menu")
+                                        }
+                                    },
+                                )
+                            }
+                        },
+                    ) {
+                        LazyColumn(
+                            state = lazyListState,
+                            modifier =
+                                Modifier.fillMaxSize()
+                                    .focusRequester(tvFocus.listFocusRequester)
+                                    .focusGroup(),
+                        ) {
+                            item(key = "row_0") {
+                                HomeTvRowBox(
+                                    rowKey = "row_0",
+                                    tvFocus = tvFocus,
+                                    modifier = Modifier.padding(top = 80.dp),
+                                ) {
+                                    CardRow(modifier = Modifier.fillMaxWidth().height(220.dp)) {
+                                        items(row0Items, key = { it.id }) { item ->
+                                            MediaItemCard(
+                                                item = item,
+                                                onClick = {},
+                                                cardWidth = 140.dp,
+                                                modifier = Modifier.testTag("nh0_${item.name}"),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            item(key = "row_1") {
+                                HomeTvRowBox(rowKey = "row_1", tvFocus = tvFocus) {
+                                    CardRow(modifier = Modifier.fillMaxWidth().height(220.dp)) {
+                                        items(row1Items, key = { it.id }) { item ->
+                                            MediaItemCard(
+                                                item = item,
+                                                onClick = {},
+                                                cardWidth = 140.dp,
+                                                modifier = Modifier.testTag("nh1_${item.name}"),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        fun card(row: Int, index: Int) =
+            composeTestRule.onNode(
+                hasAnyAncestor(hasTestTag("nh${row}_NoHero${row}_$index")) and hasClickAction(),
+            )
+
+        composeTestRule.waitForIdle()
+        card(0, 0).assertIsFocused()
+
+        // Move down to row 1, then press Up: must return to row 0 (not top bar).
+        card(0, 0).performKeyInput { pressKey(Key.DirectionDown) }
+        composeTestRule.waitForIdle()
+        card(1, 0).assertIsFocused()
+
+        card(1, 0).performKeyInput { pressKey(Key.DirectionUp) }
+        composeTestRule.waitForIdle()
+        card(0, 0).assertIsFocused()
+        composeTestRule.onNodeWithTag("nohero_menu_btn").assertIsNotFocused()
+
+        // From row 0 (topmost row), pressing Up enters top bar.
+        card(0, 0).performKeyInput { pressKey(Key.DirectionUp) }
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("nohero_menu_btn").assertIsFocused()
+    }
+
+    @Test
+    @Config(qualifiers = "w960dp-h540dp")
+    fun `returning to TV home screen restores focus to home list instead of top app bar`() {
+        val row0Items = List(3) { index -> PreviewData.movie(name = "Ret0_$index") }
+        val row1Items = List(3) { index -> PreviewData.movie(name = "Ret1_$index") }
+        var showDetail by mutableStateOf(false)
+
+        composeTestRule.setContent {
+            PreviewHost(modifier = Modifier.fillMaxSize(), themeMode = ThemeMode.DARK) {
+                val inputModeManager = LocalInputModeManager.current
+                LaunchedEffect(Unit) { inputModeManager.requestInputMode(InputMode.Keyboard) }
+                val saveableStateHolder = rememberSaveableStateHolder()
+
+                CompositionLocalProvider(LocalIsTelevision provides true) {
+                    if (showDetail) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            IconButton(
+                                onClick = { showDetail = false },
+                                modifier = Modifier.testTag("detail_back_btn"),
+                            ) {
+                                Text("Back")
+                            }
+                        }
+                    } else {
+                        saveableStateHolder.SaveableStateProvider("home") {
+                            val lazyListState = rememberLazyListState()
+                            val topBarFocusState = rememberHomeTvTopBarFocusState()
+                            SideEffect {
+                                topBarFocusState.syncListState(
+                                    isShowingHomeList = true,
+                                    topmostRowKey = "ret_hero",
+                                    isListLoading = false,
+                                )
+                            }
+                            val tvFocus =
+                                rememberHomeTvFocusState(
+                                    target = HomeTvFocusTarget(rowKey = "row_0", itemIndex = 1),
+                                    topBarFocusState = topBarFocusState,
+                                )
+
+                            HomeTvInitialFocusEffect(
+                                lazyListState = lazyListState,
+                                tvFocus = tvFocus,
+                            )
+                            HomeTvReturnFocusEffect(tvFocus = tvFocus)
+
+                            AfinityScreen(
+                                mode = AfinityScreenMode.Immersive,
+                                topBar = {
+                                    CompositionLocalProvider(
+                                        LocalTopBarButtonsFocusable provides
+                                            topBarFocusState.canFocusTopBar,
+                                    ) {
+                                        AfinityTopBar(
+                                            title = {},
+                                            modifier =
+                                                Modifier.onFocusChanged {
+                                                    topBarFocusState.onTopBarFocusChanged(
+                                                        it.hasFocus,
+                                                    )
+                                                },
+                                            navigationIcon = {
+                                                val canFocus = LocalTopBarButtonsFocusable.current
+                                                IconButton(
+                                                    onClick = {},
+                                                    modifier =
+                                                        Modifier.testTag("ret_menu_btn")
+                                                            .focusProperties {
+                                                                this.canFocus = canFocus
+                                                            }
+                                                            .focusOutline(CircleShape),
+                                                ) {
+                                                    Text("Menu")
+                                                }
+                                            },
+                                        )
+                                    }
+                                },
+                            ) {
+                                LazyColumn(
+                                    state = lazyListState,
+                                    modifier =
+                                        Modifier.fillMaxSize()
+                                            .focusRequester(tvFocus.listFocusRequester)
+                                            .focusGroup(),
+                                ) {
+                                    item(key = "ret_hero") {
+                                        Box(
+                                            modifier =
+                                                Modifier.fillMaxWidth()
+                                                    .height(180.dp)
+                                                    .padding(top = 80.dp, start = 24.dp),
+                                        ) {
+                                            IconButton(
+                                                onClick = {},
+                                                modifier =
+                                                    Modifier.testTag("ret_hero_btn")
+                                                        .onFocusChanged {
+                                                            if (it.hasFocus) {
+                                                                tvFocus.onRowFocused("ret_hero")
+                                                            } else {
+                                                                tvFocus.onRowUnfocused("ret_hero")
+                                                            }
+                                                        }
+                                                        .focusOutline(CircleShape),
+                                            ) {
+                                                Text("Hero")
+                                            }
+                                        }
+                                    }
+                                    item(key = "row_0") {
+                                        HomeTvRowBox(
+                                            rowKey = "row_0",
+                                            tvFocus = tvFocus,
+                                        ) {
+                                            CardRow(
+                                                modifier = Modifier.fillMaxWidth().height(220.dp),
+                                            ) {
+                                                items(row0Items, key = { it.id }) { item ->
+                                                    MediaItemCard(
+                                                        item = item,
+                                                        onClick = {},
+                                                        cardWidth = 140.dp,
+                                                        modifier =
+                                                            Modifier.testTag("ret0_${item.name}"),
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                    item(key = "row_1") {
+                                        HomeTvRowBox(rowKey = "row_1", tvFocus = tvFocus) {
+                                            CardRow(
+                                                modifier = Modifier.fillMaxWidth().height(220.dp),
+                                            ) {
+                                                items(row1Items, key = { it.id }) { item ->
+                                                    MediaItemCard(
+                                                        item = item,
+                                                        onClick = {},
+                                                        cardWidth = 140.dp,
+                                                        modifier =
+                                                            Modifier.testTag("ret1_${item.name}"),
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        fun card(row: Int, index: Int) =
+            composeTestRule.onNode(
+                hasAnyAncestor(hasTestTag("ret${row}_Ret${row}_$index")) and hasClickAction(),
+            )
+
+        composeTestRule.waitForIdle()
+        card(0, 0).assertIsFocused()
+
+        // Returning while on the initial target row (isTarget && isReturnTarget) must restore
+        // focus to row 0 instead of falling back to hero or top bar.
+        showDetail = true
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("detail_back_btn").assertExists()
+
+        showDetail = false
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("ret_menu_btn").assertIsNotFocused()
+        composeTestRule.onNodeWithTag("ret_hero_btn").assertIsNotFocused()
+        card(0, 0).assertIsFocused()
+
+        // Move focus down to row 1, then navigate to a detail route and return.
+        card(0, 0).performKeyInput { pressKey(Key.DirectionDown) }
+        composeTestRule.waitForIdle()
+        card(1, 0).assertIsFocused()
+
+        showDetail = true
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("detail_back_btn").assertExists()
+
+        showDetail = false
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithTag("ret_menu_btn").assertIsNotFocused()
+        composeTestRule.onNodeWithTag("ret_hero_btn").assertIsNotFocused()
+        card(1, 0).assertIsFocused()
     }
 }
 

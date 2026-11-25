@@ -3,6 +3,7 @@ package com.makd.afinity.ui.utils
 import androidx.compose.foundation.focusGroup
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -22,6 +23,9 @@ val LocalCardRowInitialFocusRequester = staticCompositionLocalOf<FocusRequester?
 
 @Suppress("ComposeCompositionLocalUsage")
 val LocalCardRowFocusFirstOnEnter = staticCompositionLocalOf { false }
+
+@Suppress("ComposeCompositionLocalUsage")
+val LocalTopBarButtonsFocusable = compositionLocalOf { true }
 
 fun Modifier.tvFocusFirstOnEnter(
     firstItemFocusRequester: FocusRequester,

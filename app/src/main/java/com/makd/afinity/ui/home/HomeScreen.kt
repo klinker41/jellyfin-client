@@ -9,6 +9,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -36,17 +37,21 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.computedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -131,6 +136,7 @@ import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.landscapeWidth
 import com.makd.afinity.ui.theme.CardDimensions.portraitWidth
 import com.makd.afinity.ui.utils.LocalIsTelevision
+import com.makd.afinity.ui.utils.LocalTopBarButtonsFocusable
 import com.makd.afinity.ui.utils.rememberTopBarScrollProgress
 import com.makd.afinity.ui.utils.topBarScrollKey
 import com.makd.afinity.util.ReportHomeDrawn
@@ -188,8 +194,9 @@ fun HomeScreen(
 
     val lazyListState = rememberLazyListState()
     val scrollToTopScope = rememberCoroutineScope()
-    LaunchedEffect(homeScrollToTopTrigger) {
-        if (homeScrollToTopTrigger > 0L) {
+    val topBarFocusState = rememberHomeTvTopBarFocusState()
+    LaunchedEffect(homeScrollToTopTrigger, topBarFocusState.isTelevision) {
+        if (homeScrollToTopTrigger > 0L && !topBarFocusState.isTelevision) {
             lazyListState.animateScrollToItem(0)
         }
     }
@@ -276,57 +283,63 @@ fun HomeScreen(
 
     AfinityScreen(
         topBar = { backgroundOpacity ->
-            AfinityTopAppBar(
-                title = {
-                    if (onMenuClick == null && widthSizeClass == WindowWidthSizeClass.Compact) {
-                        Box(
-                            modifier =
-                                Modifier.size(36.dp)
-                                    .background(Color.Black.copy(alpha = 0.3f), CircleShape)
-                                    .clip(CircleShape),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Image(
-                                painter = painterResource(id = ic_launcher_monochrome),
-                                contentDescription = stringResource(R.string.cd_app_logo),
-                                modifier = Modifier.size(52.dp).fillMaxSize(),
-                                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary),
-                                contentScale = ContentScale.Fit,
+            CompositionLocalProvider(
+                LocalTopBarButtonsFocusable provides topBarFocusState.canFocusTopBar,
+            ) {
+                AfinityTopAppBar(
+                    title = {
+                        if (onMenuClick == null && widthSizeClass == WindowWidthSizeClass.Compact) {
+                            Box(
+                                modifier =
+                                    Modifier.size(36.dp)
+                                        .background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                                        .clip(CircleShape),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Image(
+                                    painter = painterResource(id = ic_launcher_monochrome),
+                                    contentDescription = stringResource(R.string.cd_app_logo),
+                                    modifier = Modifier.size(52.dp).fillMaxSize(),
+                                    colorFilter =
+                                        ColorFilter.tint(MaterialTheme.colorScheme.primary),
+                                    contentScale = ContentScale.Fit,
+                                )
+                            }
+                        }
+                    },
+                    modifier =
+                        Modifier.topBarBlurBackdrop(
+                                topBarBlurState,
+                                containerColor = MaterialTheme.colorScheme.background,
                             )
+                            .onFocusChanged { topBarFocusState.onTopBarFocusChanged(it.hasFocus) },
+                    onMenuClick = onMenuClick,
+                    onSearchClick = onSearchClick,
+                    onRandomClick = {
+                        scrollToTopScope.launch {
+                            val item = viewModel.getRandomUnwatchedItem()
+                            if (item != null) {
+                                onItemClick(item)
+                            } else {
+                                snackbarHostState.showSnackbar(randomNoneMessage)
+                            }
                         }
-                    }
-                },
-                modifier =
-                    Modifier.topBarBlurBackdrop(
-                        topBarBlurState,
-                        containerColor = MaterialTheme.colorScheme.background,
-                    ),
-                onMenuClick = onMenuClick,
-                onSearchClick = onSearchClick,
-                onRandomClick = {
-                    scrollToTopScope.launch {
-                        val item = viewModel.getRandomUnwatchedItem()
-                        if (item != null) {
-                            onItemClick(item)
-                        } else {
-                            snackbarHostState.showSnackbar(randomNoneMessage)
+                    },
+                    profile =
+                        AppBarProfile(
+                            onClick = onProfileClick,
+                            name = mainUiState.userName,
+                            imageUrl = mainUiState.userProfileImageUrl,
+                        ),
+                    backgroundOpacity = backgroundOpacity,
+                    actions = {
+                        if (isTvLauncherUiActive) {
+                            TvLauncherTopBarActions()
                         }
-                    }
-                },
-                profile =
-                    AppBarProfile(
-                        onClick = onProfileClick,
-                        name = mainUiState.userName,
-                        imageUrl = mainUiState.userProfileImageUrl,
-                    ),
-                backgroundOpacity = backgroundOpacity,
-                actions = {
-                    if (isTvLauncherUiActive) {
-                        TvLauncherTopBarActions()
-                    }
-                },
-                isFetchingRandom = isFetchingRandom,
-            )
+                    },
+                    isFetchingRandom = isFetchingRandom,
+                )
+            }
         },
         modifier = modifier,
         mode = AfinityScreenMode.Immersive,
@@ -347,6 +360,13 @@ fun HomeScreen(
                 uiState.downloadedMusicTracks.isEmpty()
 
         uiState.error?.let { error ->
+            SideEffect {
+                topBarFocusState.syncListState(
+                    isShowingHomeList = false,
+                    topmostRowKey = null,
+                    isListLoading = false,
+                )
+            }
             if (isTvLauncherUiActive) {
                 TvLauncherFallbackPanel(
                     title = stringResource(R.string.home_error_title),
@@ -366,12 +386,26 @@ fun HomeScreen(
         }
             ?: run {
                 if (uiState.isOffline && !uiState.offlineContentLoaded) {
+                    SideEffect {
+                        topBarFocusState.syncListState(
+                            isShowingHomeList = false,
+                            topmostRowKey = null,
+                            isListLoading = false,
+                        )
+                    }
                     FullScreenLoading(
                         modifier = Modifier.background(MaterialTheme.colorScheme.background),
                     )
                     return@run
                 }
                 if (offlineAndEmpty) {
+                    SideEffect {
+                        topBarFocusState.syncListState(
+                            isShowingHomeList = false,
+                            topmostRowKey = null,
+                            isListLoading = false,
+                        )
+                    }
                     val noRoute = uiState.offlineReason == UnreachableReason.NO_ROUTE
                     val emptyTitle =
                         stringResource(
@@ -511,8 +545,10 @@ fun HomeScreen(
                             }
                         }
 
-                    val tvFocusTarget =
-                        rememberHomeTvFocusTarget(
+                    val focusPlan =
+                        rememberHomeTvFocusPlan(
+                            showCarousel = showCarousel,
+                            heroPending = heroPending,
                             uiState = uiState,
                             isTvLauncherUiActive = isTvLauncherUiActive,
                             showLibrariesSection = showLibrariesSection,
@@ -530,18 +566,47 @@ fun HomeScreen(
                             nextUpMerged = nextUpMerged,
                             latestLibraryRowKeys = latestLibraryRowKeys,
                         )
-                    val tvFocus = rememberHomeTvFocusState(tvFocusTarget)
+                    SideEffect {
+                        topBarFocusState.syncListState(
+                            isShowingHomeList = true,
+                            topmostRowKey = focusPlan.topmostRowKey,
+                            isListLoading = focusPlan.isListLoading,
+                        )
+                    }
+                    val tvFocus =
+                        rememberHomeTvFocusState(
+                            target = focusPlan.target,
+                            topBarFocusState = topBarFocusState,
+                        )
                     var isHeroFocused by remember { mutableStateOf(false) }
 
                     HomeTvInitialFocusEffect(lazyListState = lazyListState, tvFocus = tvFocus)
+                    HomeTvReturnFocusEffect(tvFocus = tvFocus)
                     HomeTvHeroFocusScrollEffect(
                         isHeroFocused = isHeroFocused,
                         lazyListState = lazyListState,
                     )
+                    val latestTvFocus by rememberUpdatedState(tvFocus)
+                    LaunchedEffect(homeScrollToTopTrigger, tvFocus.isTelevision) {
+                        if (homeScrollToTopTrigger > 0L && latestTvFocus.isTelevision) {
+                            lazyListState.animateScrollToItem(0)
+                            latestTvFocus.focusHomeListTop()
+                        }
+                    }
 
                     LazyColumn(
                         state = lazyListState,
-                        modifier = Modifier.fillMaxSize().topBarBlurSource(topBarBlurState),
+                        modifier =
+                            Modifier.fillMaxSize()
+                                .topBarBlurSource(topBarBlurState)
+                                .then(
+                                    if (tvFocus.isTelevision) {
+                                        Modifier.focusRequester(tvFocus.listFocusRequester)
+                                            .focusGroup()
+                                    } else {
+                                        Modifier
+                                    },
+                                ),
                         contentPadding =
                             PaddingValues(
                                 top =
@@ -570,7 +635,18 @@ fun HomeScreen(
                                                     Modifier
                                                 },
                                             )
-                                            .onFocusChanged { isHeroFocused = it.hasFocus },
+                                            .onFocusChanged {
+                                                isHeroFocused = it.hasFocus
+                                                if (tvFocus.isTelevision) {
+                                                    if (it.hasFocus) {
+                                                        tvFocus.onRowFocused(HERO_CAROUSEL_ROW_KEY)
+                                                    } else {
+                                                        tvFocus.onRowUnfocused(
+                                                            HERO_CAROUSEL_ROW_KEY,
+                                                        )
+                                                    }
+                                                }
+                                            },
                                 )
                             } else if (heroPending) {
                                 Spacer(modifier = Modifier.fillMaxWidth().height(heroHeight))

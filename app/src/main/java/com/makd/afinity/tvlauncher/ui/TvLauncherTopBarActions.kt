@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -38,6 +39,7 @@ import com.makd.afinity.tvlauncher.TvLauncherManager
 import com.makd.afinity.tvlauncher.TvLauncherViewModel
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.focusOutline
+import com.makd.afinity.ui.utils.LocalTopBarButtonsFocusable
 import java.util.Date
 import kotlinx.coroutines.delay
 
@@ -76,6 +78,7 @@ fun TvLauncherTopBarActionsContent(
     onOpenSystemSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val buttonsFocusable = LocalTopBarButtonsFocusable.current
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
@@ -83,7 +86,10 @@ fun TvLauncherTopBarActionsContent(
     ) {
         IconButton(
             onClick = onOpenSystemSettings,
-            modifier = Modifier.size(36.dp).focusOutline(CircleShape),
+            modifier =
+                Modifier.size(36.dp)
+                    .focusProperties { canFocus = buttonsFocusable }
+                    .focusOutline(CircleShape),
         ) {
             Box(
                 modifier =

@@ -2,7 +2,9 @@ package com.makd.afinity.ui.home
 
 import com.makd.afinity.data.models.HomeRow
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HomeTvFocusTest {
@@ -231,6 +233,260 @@ class HomeTvFocusTest {
             resolve(
                 isOffline = true,
                 downloadedRowKeys = listOf("downloaded_movies", "downloaded_shows"),
+            ),
+        )
+    }
+
+    @Test
+    fun `resolveTopmostTvFocusRowKey prioritizes hero then tv launcher then first visible content row`() {
+        assertEquals(
+            HERO_CAROUSEL_ROW_KEY,
+            resolveTopmostTvFocusRowKey(
+                showCarousel = true,
+                isOffline = false,
+                hiddenRows = HomeRow.defaultHidden,
+                combineLibrarySections = true,
+                showTvLauncherApps = true,
+                showLibrariesSection = true,
+                showContinueWatchingSlot = true,
+                hasContinueWatchingItems = true,
+                showContinueReadingSlot = false,
+                hasContinueReadingItems = false,
+                showContinueListeningSlot = false,
+                hasContinueListeningItems = false,
+                offlineNextUpNonEmpty = false,
+                offlineContinueReadingNonEmpty = false,
+                offlineContinueListeningNonEmpty = false,
+                downloadedRowKeys = emptyList(),
+                showNextUpSlot = true,
+                hasNextUpItems = true,
+                latestMoviesNonEmpty = true,
+                latestTvNonEmpty = true,
+                latestLibraryRowKeys = emptyList(),
+                fallbackOnlineRows = emptyList(),
+            ),
+        )
+
+        assertEquals(
+            "tv_launcher_apps",
+            resolveTopmostTvFocusRowKey(
+                showCarousel = false,
+                isOffline = false,
+                hiddenRows = HomeRow.defaultHidden,
+                combineLibrarySections = true,
+                showTvLauncherApps = true,
+                showLibrariesSection = true,
+                showContinueWatchingSlot = true,
+                hasContinueWatchingItems = true,
+                showContinueReadingSlot = false,
+                hasContinueReadingItems = false,
+                showContinueListeningSlot = false,
+                hasContinueListeningItems = false,
+                offlineNextUpNonEmpty = false,
+                offlineContinueReadingNonEmpty = false,
+                offlineContinueListeningNonEmpty = false,
+                downloadedRowKeys = emptyList(),
+                showNextUpSlot = false,
+                hasNextUpItems = false,
+                latestMoviesNonEmpty = false,
+                latestTvNonEmpty = false,
+                latestLibraryRowKeys = emptyList(),
+                fallbackOnlineRows = emptyList(),
+            ),
+        )
+
+        assertEquals(
+            "continue_watching",
+            resolveTopmostTvFocusRowKey(
+                showCarousel = false,
+                isOffline = false,
+                hiddenRows = HomeRow.defaultHidden,
+                combineLibrarySections = true,
+                showTvLauncherApps = false,
+                showLibrariesSection = false,
+                showContinueWatchingSlot = true,
+                hasContinueWatchingItems = true,
+                showContinueReadingSlot = false,
+                hasContinueReadingItems = false,
+                showContinueListeningSlot = false,
+                hasContinueListeningItems = false,
+                offlineNextUpNonEmpty = false,
+                offlineContinueReadingNonEmpty = false,
+                offlineContinueListeningNonEmpty = false,
+                downloadedRowKeys = emptyList(),
+                showNextUpSlot = true,
+                hasNextUpItems = true,
+                latestMoviesNonEmpty = true,
+                latestTvNonEmpty = true,
+                latestLibraryRowKeys = emptyList(),
+                fallbackOnlineRows = emptyList(),
+            ),
+        )
+
+        assertEquals(
+            "downloaded_shows",
+            resolveTopmostTvFocusRowKey(
+                showCarousel = false,
+                isOffline = true,
+                hiddenRows = HomeRow.defaultHidden,
+                combineLibrarySections = true,
+                showTvLauncherApps = false,
+                showLibrariesSection = false,
+                showContinueWatchingSlot = false,
+                hasContinueWatchingItems = false,
+                showContinueReadingSlot = false,
+                hasContinueReadingItems = false,
+                showContinueListeningSlot = false,
+                hasContinueListeningItems = false,
+                offlineNextUpNonEmpty = false,
+                offlineContinueReadingNonEmpty = false,
+                offlineContinueListeningNonEmpty = false,
+                downloadedRowKeys = listOf("downloaded_shows"),
+                showNextUpSlot = false,
+                hasNextUpItems = false,
+                latestMoviesNonEmpty = false,
+                latestTvNonEmpty = false,
+                latestLibraryRowKeys = emptyList(),
+                fallbackOnlineRows = emptyList(),
+            ),
+        )
+
+        assertEquals(
+            "spotlight_1",
+            resolveTopmostTvFocusRowKey(
+                showCarousel = false,
+                isOffline = false,
+                hiddenRows = HomeRow.defaultHidden,
+                combineLibrarySections = true,
+                showTvLauncherApps = false,
+                showLibrariesSection = false,
+                showContinueWatchingSlot = false,
+                hasContinueWatchingItems = false,
+                showContinueReadingSlot = false,
+                hasContinueReadingItems = false,
+                showContinueListeningSlot = false,
+                hasContinueListeningItems = false,
+                offlineNextUpNonEmpty = false,
+                offlineContinueReadingNonEmpty = false,
+                offlineContinueListeningNonEmpty = false,
+                downloadedRowKeys = emptyList(),
+                showNextUpSlot = false,
+                hasNextUpItems = false,
+                latestMoviesNonEmpty = false,
+                latestTvNonEmpty = false,
+                latestLibraryRowKeys = emptyList(),
+                fallbackOnlineRows = listOf("pending_1" to false, "spotlight_1" to true),
+            ),
+        )
+
+        assertNull(
+            resolveTopmostTvFocusRowKey(
+                showCarousel = false,
+                isOffline = false,
+                hiddenRows = HomeRow.defaultHidden,
+                combineLibrarySections = true,
+                showTvLauncherApps = false,
+                showLibrariesSection = false,
+                showContinueWatchingSlot = false,
+                hasContinueWatchingItems = false,
+                showContinueReadingSlot = false,
+                hasContinueReadingItems = false,
+                showContinueListeningSlot = false,
+                hasContinueListeningItems = false,
+                offlineNextUpNonEmpty = false,
+                offlineContinueReadingNonEmpty = false,
+                offlineContinueListeningNonEmpty = false,
+                downloadedRowKeys = emptyList(),
+                showNextUpSlot = false,
+                hasNextUpItems = false,
+                latestMoviesNonEmpty = false,
+                latestTvNonEmpty = false,
+                latestLibraryRowKeys = emptyList(),
+                fallbackOnlineRows = emptyList(),
+            ),
+        )
+    }
+
+    @Test
+    fun `shouldAllowHomeTopBarFocus gates top bar focus to topmost row on TV`() {
+        assertTrue(
+            shouldAllowHomeTopBarFocus(
+                isTelevision = false,
+                isShowingHomeList = true,
+                isTopBarFocused = false,
+                focusedRowKey = "latest_movies_combined",
+                topmostRowKey = HERO_CAROUSEL_ROW_KEY,
+                isListLoading = false,
+            ),
+        )
+        assertTrue(
+            shouldAllowHomeTopBarFocus(
+                isTelevision = true,
+                isShowingHomeList = false,
+                isTopBarFocused = false,
+                focusedRowKey = null,
+                topmostRowKey = null,
+                isListLoading = true,
+            ),
+        )
+        assertFalse(
+            shouldAllowHomeTopBarFocus(
+                isTelevision = true,
+                isShowingHomeList = true,
+                isTopBarFocused = false,
+                focusedRowKey = null,
+                topmostRowKey = null,
+                isListLoading = true,
+            ),
+        )
+        assertTrue(
+            shouldAllowHomeTopBarFocus(
+                isTelevision = true,
+                isShowingHomeList = true,
+                isTopBarFocused = false,
+                focusedRowKey = null,
+                topmostRowKey = null,
+                isListLoading = false,
+            ),
+        )
+        assertFalse(
+            shouldAllowHomeTopBarFocus(
+                isTelevision = true,
+                isShowingHomeList = true,
+                isTopBarFocused = false,
+                focusedRowKey = "continue_watching",
+                topmostRowKey = HERO_CAROUSEL_ROW_KEY,
+                isListLoading = false,
+            ),
+        )
+        assertFalse(
+            shouldAllowHomeTopBarFocus(
+                isTelevision = true,
+                isShowingHomeList = true,
+                isTopBarFocused = false,
+                focusedRowKey = null,
+                topmostRowKey = HERO_CAROUSEL_ROW_KEY,
+                isListLoading = false,
+            ),
+        )
+        assertTrue(
+            shouldAllowHomeTopBarFocus(
+                isTelevision = true,
+                isShowingHomeList = true,
+                isTopBarFocused = false,
+                focusedRowKey = HERO_CAROUSEL_ROW_KEY,
+                topmostRowKey = HERO_CAROUSEL_ROW_KEY,
+                isListLoading = false,
+            ),
+        )
+        assertTrue(
+            shouldAllowHomeTopBarFocus(
+                isTelevision = true,
+                isShowingHomeList = true,
+                isTopBarFocused = true,
+                focusedRowKey = null,
+                topmostRowKey = HERO_CAROUSEL_ROW_KEY,
+                isListLoading = false,
             ),
         )
     }

@@ -20,18 +20,22 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
@@ -57,6 +61,8 @@ import com.makd.afinity.data.repository.PreferencesRepository
 import com.makd.afinity.data.repository.server.ServerRepository
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.focusOutline
+import com.makd.afinity.ui.utils.LocalIsTelevision
+import com.makd.afinity.ui.utils.LocalTopBarButtonsFocusable
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -127,6 +133,7 @@ fun AfinityTopAppBar(
     val connectivity by viewModel.connectivity.collectAsStateWithLifecycle()
     val isForcedOffline = connectivity == Connectivity.ForcedOffline
     val isRetrying by viewModel.isRetrying.collectAsStateWithLifecycle()
+    val buttonsFocusable = LocalTopBarButtonsFocusable.current
 
     AfinityTopBar(
         title = title,
@@ -139,6 +146,7 @@ fun AfinityTopAppBar(
                     modifier =
                         Modifier.padding(start = TopBarEdgeInset)
                             .size(36.dp)
+                            .focusProperties { canFocus = buttonsFocusable }
                             .focusOutline(CircleShape),
                 ) {
                     Box(
@@ -170,6 +178,7 @@ fun AfinityTopAppBar(
                 Row(
                     modifier =
                         Modifier.height(36.dp)
+                            .focusProperties { canFocus = buttonsFocusable }
                             .focusOutline(RoundedCornerShape(24.dp))
                             .clip(RoundedCornerShape(24.dp))
                             .background(Color.Black.copy(alpha = 0.3f))
@@ -225,15 +234,17 @@ fun AfinityTopAppBar(
                 Row(
                     modifier =
                         Modifier.height(36.dp)
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(Color.Black.copy(alpha = 0.3f)),
+                            .background(Color.Black.copy(alpha = 0.3f), RoundedCornerShape(24.dp)),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (onRandomClick != null && connectionType != ConnectionType.OFFLINE) {
                         IconButton(
                             onClick = onRandomClick,
                             enabled = !isFetchingRandom,
-                            modifier = Modifier.size(36.dp).focusOutline(CircleShape),
+                            modifier =
+                                Modifier.size(36.dp)
+                                    .focusProperties { canFocus = buttonsFocusable }
+                                    .focusOutline(CircleShape),
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_dice5),
@@ -254,7 +265,10 @@ fun AfinityTopAppBar(
                     if (onSearchClick != null) {
                         IconButton(
                             onClick = onSearchClick,
-                            modifier = Modifier.size(36.dp).focusOutline(CircleShape),
+                            modifier =
+                                Modifier.size(36.dp)
+                                    .focusProperties { canFocus = buttonsFocusable }
+                                    .focusOutline(CircleShape),
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_search),
@@ -271,23 +285,25 @@ fun AfinityTopAppBar(
             if (profile != null) {
                 Box(
                     modifier =
-                        Modifier.size(40.dp).graphicsLayer {
-                            compositingStrategy = CompositingStrategy.Offscreen
-                        },
+                        Modifier.size(40.dp)
+                            .focusProperties { canFocus = buttonsFocusable }
+                            .focusOutline(CircleShape)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = ripple(bounded = false, radius = 20.dp),
+                                role = Role.Button,
+                                onClick = profile.onClick,
+                            )
+                            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
                 ) {
-                    IconButton(
-                        onClick = profile.onClick,
-                        modifier = Modifier.size(40.dp).focusOutline(CircleShape),
-                    ) {
-                        UserAvatar(
-                            imageUrl = profile.imageUrl,
-                            name = profile.name,
-                            size = 40.dp,
-                            containerColor = Color.Black.copy(alpha = 0.3f),
-                            contentColor = Color.White,
-                            contentDescription = stringResource(R.string.cd_profile_icon),
-                        )
-                    }
+                    UserAvatar(
+                        imageUrl = profile.imageUrl,
+                        name = profile.name,
+                        size = 40.dp,
+                        containerColor = Color.Black.copy(alpha = 0.3f),
+                        contentColor = Color.White,
+                        contentDescription = stringResource(R.string.cd_profile_icon),
+                    )
 
                     ConnectionIndicatorBadge(
                         connectionType = connectionType,
@@ -328,24 +344,50 @@ fun AfinityTopBar(
         } else {
             baseInsets
         }
-    TopAppBar(
-        title = title,
-        navigationIcon = navigationIcon,
-        actions = actions,
-        expandedHeight = afinityTopAppBarHeight(),
-        windowInsets = effectiveInsets,
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-        modifier = modifier.drawBehind { drawRect(fillColor.copy(alpha = backgroundOpacity())) },
-    )
+    val minInteractiveSize =
+        if (LocalIsTelevision.current) {
+            Dp.Unspecified
+        } else {
+            LocalMinimumInteractiveComponentSize.current
+        }
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides minInteractiveSize) {
+        TopAppBar(
+            title = title,
+            navigationIcon = navigationIcon,
+            actions = actions,
+            expandedHeight = afinityTopAppBarHeight(),
+            windowInsets = effectiveInsets,
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+            modifier =
+                modifier.drawBehind { drawRect(fillColor.copy(alpha = backgroundOpacity())) },
+        )
+    }
 }
 
 @Composable
 fun AfinityBackButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    IconButton(onClick = onClick, modifier = modifier.focusOutline(CircleShape)) {
-        Icon(
-            painter = painterResource(id = R.drawable.ic_chevron_left),
-            contentDescription = stringResource(R.string.cd_back),
-        )
+    val buttonsFocusable = LocalTopBarButtonsFocusable.current
+    val isTelevision = LocalIsTelevision.current
+    val minInteractiveSize =
+        if (isTelevision) {
+            Dp.Unspecified
+        } else {
+            LocalMinimumInteractiveComponentSize.current
+        }
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides minInteractiveSize) {
+        IconButton(
+            onClick = onClick,
+            modifier =
+                modifier
+                    .then(if (isTelevision) Modifier.size(40.dp) else Modifier)
+                    .focusProperties { canFocus = buttonsFocusable }
+                    .focusOutline(CircleShape),
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_chevron_left),
+                contentDescription = stringResource(R.string.cd_back),
+            )
+        }
     }
 }
 
@@ -365,7 +407,13 @@ fun AfinityTopAppBarTitle(
     )
 }
 
-fun afinityTopAppBarHeight(): Dp = 48.dp
+private val DefaultTopAppBarHeight = 48.dp
+private val TvTopAppBarHeight = 60.dp
+
+@Composable
+@ReadOnlyComposable
+fun afinityTopAppBarHeight(): Dp =
+    if (LocalIsTelevision.current) TvTopAppBarHeight else DefaultTopAppBarHeight
 
 @Composable
 private fun afinityTopAppBarTitleStyle(): TextStyle =
