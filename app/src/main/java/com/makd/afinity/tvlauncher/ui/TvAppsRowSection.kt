@@ -2,23 +2,28 @@ package com.makd.afinity.tvlauncher.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -46,10 +51,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.makd.afinity.R
@@ -60,6 +67,7 @@ import com.makd.afinity.tvlauncher.TvLauncherManager
 import com.makd.afinity.tvlauncher.TvLauncherViewModel
 import com.makd.afinity.ui.components.CardRow
 import com.makd.afinity.ui.components.afinityDialogProperties
+import com.makd.afinity.ui.components.windowHeightDp
 import com.makd.afinity.ui.home.components.HomeSectionHeader
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.focusOutline
@@ -75,10 +83,19 @@ fun TvAppsRowSection(
     val apps by viewModel.apps.collectAsStateWithLifecycle()
     if (apps.isEmpty()) return
 
+    val pinnedApps by viewModel.pinnedApps.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    var showAllAppsDialog by remember { mutableStateOf(false) }
+
+    if (showAllAppsDialog) {
+        TvLauncherAppsDialog(onDismiss = { showAllAppsDialog = false })
+    }
+
     TvAppsRowContent(
-        apps = apps,
+        apps = pinnedApps,
         onAppClick = { app -> viewModel.launchApp(context, app) },
+        onAllAppsClick = { showAllAppsDialog = true },
+        onUnpinClick = { app -> viewModel.setAppPinned(app.packageName, pinned = false) },
         onAppInfoClick = { app -> TvLauncherManager.openAppInfo(context, app.packageName) },
         onUninstallClick = { app -> TvLauncherManager.uninstallApp(context, app.packageName) },
         modifier = modifier,
@@ -89,6 +106,8 @@ fun TvAppsRowSection(
 fun TvAppsRowContent(
     apps: List<TvInstalledApp>,
     onAppClick: (TvInstalledApp) -> Unit,
+    onAllAppsClick: () -> Unit,
+    onUnpinClick: (TvInstalledApp) -> Unit,
     onAppInfoClick: (TvInstalledApp) -> Unit,
     onUninstallClick: (TvInstalledApp) -> Unit,
     modifier: Modifier = Modifier,
@@ -98,9 +117,14 @@ fun TvAppsRowContent(
     selectedAppForMenu?.let { app ->
         TvAppActionsDialog(
             app = app,
+            isPinned = true,
             onOpen = {
                 selectedAppForMenu = null
                 onAppClick(app)
+            },
+            onTogglePin = {
+                selectedAppForMenu = null
+                onUnpinClick(app)
             },
             onAppInfo = {
                 selectedAppForMenu = null
@@ -139,9 +163,14 @@ fun TvAppsRowContent(
                 TvAppTile(
                     app = app,
                     cardWidth = TvAppTileWidth,
+                    isPinned = false,
                     onClick = { onAppClick(app) },
                     onLongClick = { selectedAppForMenu = app },
                 )
+            }
+
+            item(key = "tv_all_apps_button", contentType = "tv_all_apps_tile") {
+                TvAllAppsTile(cardWidth = TvAppTileWidth, onClick = onAllAppsClick)
             }
         }
     }
@@ -154,53 +183,185 @@ fun TvLauncherAppsDialog(
     viewModel: TvLauncherViewModel = hiltViewModel(),
 ) {
     val apps by viewModel.apps.collectAsStateWithLifecycle()
+    val pinnedPackageNames by viewModel.pinnedPackageNames.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    AlertDialog(
-        properties = afinityDialogProperties(),
-        onDismissRequest = onDismiss,
+    TvLauncherAppsDialogContent(
+        apps = apps,
+        pinnedPackageNames = pinnedPackageNames,
+        onAppClick = { app ->
+            onDismiss()
+            viewModel.launchApp(context, app)
+        },
+        onTogglePin = { app, pinned -> viewModel.setAppPinned(app.packageName, pinned) },
+        onAppInfoClick = { app -> TvLauncherManager.openAppInfo(context, app.packageName) },
+        onUninstallClick = { app -> TvLauncherManager.uninstallApp(context, app.packageName) },
+        onDismiss = onDismiss,
         modifier = modifier,
-        title = { Text(stringResource(R.string.tv_launcher_apps_dialog_title)) },
-        text = {
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 152.dp),
-                contentPadding = PaddingValues(vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth().height(340.dp),
-            ) {
-                items(
-                    items = apps,
-                    key = { app -> "dialog_tv_app_${app.packageName}" },
-                ) { app ->
-                    TvAppTile(
-                        app = app,
-                        cardWidth = 152.dp,
-                        onClick = {
-                            onDismiss()
-                            viewModel.launchApp(context, app)
-                        },
-                        onLongClick = {
-                            onDismiss()
-                            TvLauncherManager.openAppInfo(context, app.packageName)
-                        },
-                    )
+    )
+}
+
+@Composable
+fun TvLauncherAppsDialogContent(
+    apps: List<TvInstalledApp>,
+    pinnedPackageNames: Set<String>,
+    onAppClick: (TvInstalledApp) -> Unit,
+    onTogglePin: (TvInstalledApp, Boolean) -> Unit,
+    onAppInfoClick: (TvInstalledApp) -> Unit,
+    onUninstallClick: (TvInstalledApp) -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var selectedAppForMenu by remember { mutableStateOf<TvInstalledApp?>(null) }
+
+    selectedAppForMenu?.let { app ->
+        val isPinned = app.packageName in pinnedPackageNames
+        TvAppActionsDialog(
+            app = app,
+            isPinned = isPinned,
+            onOpen = {
+                selectedAppForMenu = null
+                onAppClick(app)
+            },
+            onTogglePin = {
+                selectedAppForMenu = null
+                onTogglePin(app, !isPinned)
+            },
+            onAppInfo = {
+                selectedAppForMenu = null
+                onDismiss()
+                onAppInfoClick(app)
+            },
+            onUninstall = {
+                selectedAppForMenu = null
+                onDismiss()
+                onUninstallClick(app)
+            },
+            onDismiss = { selectedAppForMenu = null },
+        )
+    }
+
+    val maxDialogHeight = windowHeightDp() * 0.85f
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = afinityDialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(
+            modifier =
+                modifier
+                    .padding(16.dp)
+                    .widthIn(max = 840.dp)
+                    .fillMaxWidth()
+                    .heightIn(max = maxDialogHeight),
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surfaceContainer,
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
+                Text(
+                    text = stringResource(R.string.tv_launcher_apps_dialog_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = stringResource(R.string.tv_launcher_apps_dialog_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 152.dp),
+                    contentPadding = PaddingValues(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
+                ) {
+                    items(
+                        items = apps,
+                        key = { app -> "dialog_tv_app_${app.packageName}" },
+                    ) { app ->
+                        TvAppTile(
+                            app = app,
+                            cardWidth = null,
+                            isPinned = app.packageName in pinnedPackageNames,
+                            onClick = { onAppClick(app) },
+                            onLongClick = { selectedAppForMenu = app },
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
-        },
-    )
+        }
+    }
+}
+
+@Composable
+private fun TvAllAppsTile(
+    cardWidth: Dp,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val label = stringResource(R.string.tv_launcher_all_apps_tile)
+    Column(modifier = modifier.width(cardWidth)) {
+        Surface(
+            shape = CardDefaults.shape,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            modifier =
+                Modifier.fillMaxWidth()
+                    .aspectRatio(CardDimensions.ASPECT_RATIO_LANDSCAPE)
+                    .focusOutline(CardDefaults.shape)
+                    .clip(CardDefaults.shape)
+                    .clickable(
+                        role = Role.Button,
+                        onClickLabel = label,
+                        onClick = onClick,
+                    ),
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_layout_grid),
+                    contentDescription = label,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(36.dp),
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(CardDimensions.CardTextSpacing))
+
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
 }
 
 @Composable
 private fun TvAppTile(
     app: TvInstalledApp,
-    cardWidth: Dp,
+    cardWidth: Dp?,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isPinned: Boolean = false,
 ) {
     val context = LocalContext.current
     val cached = remember(app.packageName) { TvAppArtworkCache.getCached(app.packageName) }
@@ -211,7 +372,9 @@ private fun TvAppTile(
             }
         }
 
-    Column(modifier = modifier.width(cardWidth)) {
+    Column(
+        modifier = if (cardWidth != null) modifier.width(cardWidth) else modifier.fillMaxWidth(),
+    ) {
         Surface(
             shape = CardDefaults.shape,
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -263,6 +426,30 @@ private fun TvAppTile(
                         )
                     }
                 }
+
+                if (isPinned) {
+                    Box(
+                        modifier =
+                            Modifier.align(Alignment.TopEnd)
+                                .padding(6.dp)
+                                .size(24.dp)
+                                .background(
+                                    color =
+                                        MaterialTheme.colorScheme.primaryContainer.copy(
+                                            alpha = 0.92f,
+                                        ),
+                                    shape = CircleShape,
+                                ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_pin),
+                            contentDescription = stringResource(R.string.tv_launcher_cd_pinned_app),
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
+                }
             }
         }
 
@@ -281,7 +468,9 @@ private fun TvAppTile(
 @Composable
 private fun TvAppActionsDialog(
     app: TvInstalledApp,
+    isPinned: Boolean,
     onOpen: () -> Unit,
+    onTogglePin: () -> Unit,
     onAppInfo: () -> Unit,
     onUninstall: () -> Unit,
     onDismiss: () -> Unit,
@@ -312,6 +501,17 @@ private fun TvAppActionsDialog(
                             ),
                 ) {
                     Text(stringResource(R.string.tv_launcher_app_action_open))
+                }
+                TextButton(
+                    onClick = onTogglePin,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        stringResource(
+                            if (isPinned) R.string.tv_launcher_app_action_unpin
+                            else R.string.tv_launcher_app_action_pin,
+                        ),
+                    )
                 }
                 TextButton(
                     onClick = onAppInfo,

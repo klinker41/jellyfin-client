@@ -18,6 +18,8 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.longClick
@@ -28,6 +30,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performKeyPress
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
@@ -37,6 +40,7 @@ import com.makd.afinity.data.models.server.ConnectionType
 import com.makd.afinity.data.models.server.Server
 import com.makd.afinity.navigation.Destination
 import com.makd.afinity.tvlauncher.ui.TvAppsRowContent
+import com.makd.afinity.tvlauncher.ui.TvLauncherAppsDialogContent
 import com.makd.afinity.tvlauncher.ui.TvLauncherFallbackPanel
 import com.makd.afinity.tvlauncher.ui.TvLauncherLoginBarContent
 import com.makd.afinity.tvlauncher.ui.TvLauncherSettingsContent
@@ -47,6 +51,7 @@ import com.makd.afinity.ui.preview.PreviewHost
 import com.makd.afinity.ui.settings.SessionSwitcherState
 import com.makd.afinity.ui.utils.LocalIsTelevision
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -205,8 +210,10 @@ class TvLauncherUiRobolectricTest {
     }
 
     @Test
-    fun `TvAppsRowContent launches on click and shows actions dialog on long click`() {
+    fun `TvAppsRowContent launches on click, opens all apps, and unpins on long click`() {
         var launchedApp: TvInstalledApp? = null
+        var allAppsClicked = false
+        var unpinnedApp: TvInstalledApp? = null
         var infoApp: TvInstalledApp? = null
         var uninstalledApp: TvInstalledApp? = null
         val userApp =
@@ -232,6 +239,8 @@ class TvLauncherUiRobolectricTest {
                     TvAppsRowContent(
                         apps = listOf(userApp, systemApp),
                         onAppClick = { launchedApp = it },
+                        onAllAppsClick = { allAppsClicked = true },
+                        onUnpinClick = { unpinnedApp = it },
                         onAppInfoClick = { infoApp = it },
                         onUninstallClick = { uninstalledApp = it },
                     )
@@ -246,10 +255,21 @@ class TvLauncherUiRobolectricTest {
         composeRule.onNodeWithContentDescription("User App").performClick()
         assertEquals(userApp, launchedApp)
 
-        // Long click non-system app -> Open, App info, Uninstall all shown
+        val allAppsLabel = context.getString(R.string.tv_launcher_all_apps_tile)
+        composeRule
+            .onNode(hasScrollAction())
+            .performScrollToNode(hasContentDescription(allAppsLabel))
+        composeRule.onNodeWithContentDescription(allAppsLabel).performClick()
+        assertTrue(allAppsClicked)
+
+        // Long click non-system app -> Open, Unpin, App info, Uninstall all shown
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasContentDescription("User App"))
         composeRule.onNodeWithContentDescription("User App").performTouchInput { longClick() }
         composeRule
             .onNodeWithText(context.getString(R.string.tv_launcher_app_action_open))
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithText(context.getString(R.string.tv_launcher_app_action_unpin))
             .assertIsDisplayed()
         composeRule
             .onNodeWithText(context.getString(R.string.tv_launcher_app_action_uninstall))
@@ -257,7 +277,17 @@ class TvLauncherUiRobolectricTest {
             .performClick()
         assertEquals(userApp, uninstalledApp)
 
+        // Long click pinned app -> Unpin fires callback
+        composeRule.onNodeWithContentDescription("User App").performTouchInput { longClick() }
+        composeRule
+            .onNodeWithText(context.getString(R.string.tv_launcher_app_action_unpin))
+            .performClick()
+        assertEquals(userApp, unpinnedApp)
+
         // Long click system app -> Uninstall omitted, App info fires callback
+        composeRule
+            .onNode(hasScrollAction())
+            .performScrollToNode(hasContentDescription("System App"))
         composeRule.onNodeWithContentDescription("System App").performTouchInput { longClick() }
         composeRule
             .onAllNodesWithText(context.getString(R.string.tv_launcher_app_action_uninstall))
@@ -280,6 +310,7 @@ class TvLauncherUiRobolectricTest {
             )
 
         val openText = context.getString(R.string.tv_launcher_app_action_open)
+        val unpinText = context.getString(R.string.tv_launcher_app_action_unpin)
         val infoText = context.getString(R.string.tv_launcher_app_action_info)
 
         // Simulate held DPAD_CENTER repeat events + release arriving in the dialog window
@@ -303,12 +334,22 @@ class TvLauncherUiRobolectricTest {
             )
         assertNull(launchedApp)
 
-        // Navigate down to "App info" and activate with a fresh press
+        // Navigate down from "Open" -> "Unpin from Home" -> "App info" and activate with a fresh
+        // press
         composeRule
             .onNodeWithText(openText)
             .performKeyPress(
                 keyEvent(AndroidKeyEvent.ACTION_DOWN, AndroidKeyEvent.KEYCODE_DPAD_DOWN),
             )
+        composeRule.onNodeWithText(unpinText).apply {
+            performKeyPress(
+                keyEvent(AndroidKeyEvent.ACTION_UP, AndroidKeyEvent.KEYCODE_DPAD_DOWN),
+            )
+            assertIsFocused()
+            performKeyPress(
+                keyEvent(AndroidKeyEvent.ACTION_DOWN, AndroidKeyEvent.KEYCODE_DPAD_DOWN),
+            )
+        }
         composeRule.onNodeWithText(infoText).apply {
             performKeyPress(
                 keyEvent(AndroidKeyEvent.ACTION_UP, AndroidKeyEvent.KEYCODE_DPAD_DOWN),
@@ -385,6 +426,8 @@ class TvLauncherUiRobolectricTest {
                     TvAppsRowContent(
                         apps = listOf(userApp),
                         onAppClick = onAppClick,
+                        onAllAppsClick = {},
+                        onUnpinClick = {},
                         onAppInfoClick = onAppInfoClick,
                         onUninstallClick = {},
                     )
@@ -415,6 +458,151 @@ class TvLauncherUiRobolectricTest {
 
     private fun keyEvent(action: Int, keyCode: Int, repeatCount: Int = 0): KeyEvent =
         KeyEvent(AndroidKeyEvent(0L, 0L, action, keyCode, repeatCount))
+
+    @Test
+    fun `TvAppsRowContent shows All apps button when no apps are pinned`() {
+        var allAppsClicked = false
+
+        composeRule.setContent {
+            PreviewHost {
+                CompositionLocalProvider(LocalPinnedDrawerStartInset provides 0.dp) {
+                    TvAppsRowContent(
+                        apps = emptyList(),
+                        onAppClick = {},
+                        onAllAppsClick = { allAppsClicked = true },
+                        onUnpinClick = {},
+                        onAppInfoClick = {},
+                        onUninstallClick = {},
+                    )
+                }
+            }
+        }
+
+        composeRule
+            .onNodeWithText(context.getString(R.string.tv_launcher_home_apps_title))
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithText(context.getString(R.string.tv_launcher_all_apps_tile))
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithContentDescription(context.getString(R.string.tv_launcher_all_apps_tile))
+            .performClick()
+        assertTrue(allAppsClicked)
+    }
+
+    @Test
+    fun `TvLauncherAppsDialogContent shows pin state, pins on long click, and handles actions`() {
+        var launchedApp: TvInstalledApp? = null
+        var toggledPin: Pair<TvInstalledApp, Boolean>? = null
+        var infoApp: TvInstalledApp? = null
+        var uninstalledApp: TvInstalledApp? = null
+        var dismissed = false
+        val pinnedApp =
+            TvInstalledApp(
+                packageName = "com.example.pinned",
+                activityName = "MainActivity",
+                label = "Pinned App",
+                isLeanback = true,
+                isSystemApp = false,
+            )
+        val unpinnedSystemApp =
+            TvInstalledApp(
+                packageName = "com.example.unpinned",
+                activityName = "MainActivity",
+                label = "Unpinned App",
+                isLeanback = true,
+                isSystemApp = true,
+            )
+
+        composeRule.setContent {
+            PreviewHost {
+                TvLauncherAppsDialogContent(
+                    apps = listOf(pinnedApp, unpinnedSystemApp),
+                    pinnedPackageNames = setOf(pinnedApp.packageName),
+                    onAppClick = { launchedApp = it },
+                    onTogglePin = { app, pinned -> toggledPin = app to pinned },
+                    onAppInfoClick = { infoApp = it },
+                    onUninstallClick = { uninstalledApp = it },
+                    onDismiss = { dismissed = true },
+                )
+            }
+        }
+
+        composeRule
+            .onNodeWithText(context.getString(R.string.tv_launcher_apps_dialog_title))
+            .assertIsDisplayed()
+        composeRule.onAllNodesWithText(pinnedApp.label).assertCountEquals(1)
+        composeRule
+            .onNodeWithContentDescription(context.getString(R.string.tv_launcher_cd_pinned_app))
+            .assertIsDisplayed()
+
+        // Long click unpinned system app -> Pin to Home keeps dialog open, Uninstall omitted
+        composeRule
+            .onNode(hasScrollAction())
+            .performScrollToNode(hasContentDescription(unpinnedSystemApp.label))
+        composeRule.onNodeWithContentDescription(unpinnedSystemApp.label).performTouchInput {
+            longClick()
+        }
+        composeRule
+            .onAllNodesWithText(context.getString(R.string.tv_launcher_app_action_uninstall))
+            .assertCountEquals(0)
+        composeRule
+            .onNodeWithText(context.getString(R.string.tv_launcher_app_action_pin))
+            .assertIsDisplayed()
+            .performClick()
+        assertEquals(unpinnedSystemApp to true, toggledPin)
+        assertFalse(dismissed)
+        composeRule
+            .onNodeWithText(context.getString(R.string.tv_launcher_apps_dialog_title))
+            .assertIsDisplayed()
+
+        // Long click pinned app -> Unpin from Home
+        composeRule
+            .onNode(hasScrollAction())
+            .performScrollToNode(hasContentDescription(pinnedApp.label))
+        composeRule.onNodeWithContentDescription(pinnedApp.label).performTouchInput { longClick() }
+        composeRule
+            .onNodeWithText(context.getString(R.string.tv_launcher_app_action_unpin))
+            .assertIsDisplayed()
+            .performClick()
+        assertEquals(pinnedApp to false, toggledPin)
+        assertFalse(dismissed)
+
+        // Long click non-system app -> Uninstall triggers callback and dismisses
+        composeRule.onNodeWithContentDescription(pinnedApp.label).performTouchInput { longClick() }
+        composeRule
+            .onNodeWithText(context.getString(R.string.tv_launcher_app_action_uninstall))
+            .assertIsDisplayed()
+            .performClick()
+        assertEquals(pinnedApp, uninstalledApp)
+        assertTrue(dismissed)
+
+        // Long click -> App info triggers callback and dismisses
+        dismissed = false
+        composeRule
+            .onNode(hasScrollAction())
+            .performScrollToNode(hasContentDescription(unpinnedSystemApp.label))
+        composeRule.onNodeWithContentDescription(unpinnedSystemApp.label).performTouchInput {
+            longClick()
+        }
+        composeRule
+            .onNodeWithText(context.getString(R.string.tv_launcher_app_action_info))
+            .performClick()
+        assertEquals(unpinnedSystemApp, infoApp)
+        assertTrue(dismissed)
+
+        // Click app -> launches app
+        composeRule
+            .onNode(hasScrollAction())
+            .performScrollToNode(hasContentDescription(pinnedApp.label))
+        composeRule.onNodeWithContentDescription(pinnedApp.label).performClick()
+        assertEquals(pinnedApp, launchedApp)
+
+        // Close button -> dismisses
+        dismissed = false
+        composeRule.onNodeWithText(context.getString(R.string.action_close)).performClick()
+        assertTrue(dismissed)
+    }
 
     @Test
     fun `TvLauncherTopBarActionsContent displays clock, network state, and settings button`() {

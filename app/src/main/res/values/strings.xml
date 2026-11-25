@@ -4014,10 +4014,15 @@
     <string name="tv_launcher_check_again">Check again</string>
     <string name="tv_launcher_home_apps_title">Apps</string>
     <string name="tv_launcher_all_apps_button">Apps</string>
+    <string name="tv_launcher_all_apps_tile">All apps</string>
     <string name="tv_launcher_apps_dialog_title">Installed apps</string>
+    <string name="tv_launcher_apps_dialog_hint">Long-press an app to pin it to Home or manage it.</string>
     <string name="tv_launcher_app_action_open">Open</string>
+    <string name="tv_launcher_app_action_pin">Pin to Home</string>
+    <string name="tv_launcher_app_action_unpin">Unpin from Home</string>
     <string name="tv_launcher_app_action_info">App info</string>
     <string name="tv_launcher_app_action_uninstall">Uninstall</string>
+    <string name="tv_launcher_cd_pinned_app">Pinned to Home</string>
     <string name="tv_launcher_cd_system_settings">Open Android Settings</string>
     <string name="tv_launcher_cd_network_connected">Network connected</string>
     <string name="tv_launcher_cd_network_disconnected">Network disconnected</string>
