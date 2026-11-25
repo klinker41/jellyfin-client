@@ -301,34 +301,53 @@ class PlayerActivity : AppCompatActivity() {
         }
         val state = viewModel.uiState.value
         // viewModel.player is unset until isPlayerReady; while casting, the cast controller owns
-        // playback, the controls lock must block keyboard input like it blocks gestures, and an
-        // open in-window panel needs the keys for its own focus navigation.
+        // playback.
         if (
             !state.isPlayerReady ||
                 state.currentItem == null ||
-                viewModel.isOverlayPanelOpen ||
                 state.isCasting ||
-                viewModel.castManager.castState.value.isConnected ||
-                state.isControlsLocked
+                viewModel.castManager.castState.value.isConnected
         ) {
             return super.dispatchKeyEvent(event)
         }
         val canSeek = !state.isLiveChannel && !state.isPlayingIntro
         val playlist = viewModel.playlistState.value
-        val mediaAction =
-            PlayerRemoteKeyHandler.resolveMediaKey(
-                keyCode = event.keyCode,
-                isPlaying = state.isPlaying,
-                playWhenReady = state.playWhenReady,
-                isEnded = viewModel.player.playbackState == Player.STATE_ENDED,
-                canSeek = canSeek,
-                seekBackMs = state.seekBackStep.millis,
-                seekForwardMs = state.seekForwardStep.millis,
-                hasNext = playlist.hasNext,
-                hasPrevious = playlist.hasPrevious,
-            )
-        if (mediaAction != null) {
-            return handleRemoteAction(event, mediaAction)
+        if (state.isControlsLocked) {
+            val lockedAction =
+                PlayerRemoteKeyHandler.resolveLockedControlsKey(
+                    keyCode = event.keyCode,
+                    showControls = state.showControls,
+                ) ?: return super.dispatchKeyEvent(event)
+            if (lockedAction is PlayerRemoteAction.KeepControlsAlive) {
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    viewModel.keepControlsVisible()
+                }
+                return super.dispatchKeyEvent(event)
+            }
+            return handleRemoteAction(event, lockedAction)
+        }
+        if (
+            !viewModel.isOverlayPanelOpen ||
+                PlayerRemoteKeyHandler.isPlayPauseMediaKey(event.keyCode)
+        ) {
+            val mediaAction =
+                PlayerRemoteKeyHandler.resolveMediaKey(
+                    keyCode = event.keyCode,
+                    isPlaying = state.isPlaying,
+                    playWhenReady = state.playWhenReady,
+                    isEnded = viewModel.player.playbackState == Player.STATE_ENDED,
+                    canSeek = canSeek,
+                    seekBackMs = state.seekBackStep.millis,
+                    seekForwardMs = state.seekForwardStep.millis,
+                    hasNext = playlist.hasNext,
+                    hasPrevious = playlist.hasPrevious,
+                )
+            if (mediaAction != null) {
+                return handleRemoteAction(event, mediaAction)
+            }
+        }
+        if (viewModel.isOverlayPanelOpen) {
+            return super.dispatchKeyEvent(event)
         }
 
         // Only physical full keyboards get shortcuts: remotes, gamepads and D-pads keep plain

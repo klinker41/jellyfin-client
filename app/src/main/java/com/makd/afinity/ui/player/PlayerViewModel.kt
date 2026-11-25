@@ -1102,7 +1102,7 @@ constructor(
                 isBuffering = isBuffering,
                 playWhenReady = playWhenReady,
                 duration = duration,
-                showPlayButton = if (isBuffering && playWhenReady) false else state.showPlayButton,
+                showPlayButton = state.showControls && !state.isControlsLocked,
             )
         }
     }
@@ -1198,6 +1198,7 @@ constructor(
                     val target = player.currentPosition.coerceAtLeast(0) + event.deltaMs
                     val newPos =
                         if (duration > 0) target.coerceIn(0, duration) else target.coerceAtLeast(0)
+                    _playbackProgress.update { it.copy(currentPosition = newPos) }
                     player.seekTo(newPos)
                 }
 
@@ -1351,6 +1352,7 @@ constructor(
                         )
                     }
                     trickplayLoader.hide()
+                    keepControlsVisible()
                 }
 
                 is PlayerEvent.ToggleRemainingTime -> {
@@ -3617,7 +3619,10 @@ constructor(
     }
 
     private fun onLockToggle() {
-        updateUiState { it.copy(isControlsLocked = !it.isControlsLocked) }
+        updateUiState { state ->
+            val locked = !state.isControlsLocked
+            state.copy(isControlsLocked = locked, showPlayButton = state.showControls && !locked)
+        }
     }
 
     fun onNewPlaybackRequest() {
@@ -3829,8 +3834,8 @@ constructor(
     }
 
     fun showControls() {
-        updateUiState {
-            it.copy(showControls = true, showPlayButton = !uiState.value.isControlsLocked)
+        updateUiState { state ->
+            state.copy(showControls = true, showPlayButton = !state.isControlsLocked)
         }
         startControlsAutoHide()
     }
@@ -3850,9 +3855,16 @@ constructor(
         controlsHideJob?.cancel()
         controlsHideJob = viewModelScope.launch {
             delay(3.seconds)
-            if (uiState.value.isPlaying && uiState.value.showControls && !uiState.value.isSeeking) {
+            if (
+                uiState.value.isPlaying &&
+                    uiState.value.showControls &&
+                    !uiState.value.isSeeking &&
+                    !isOverlayPanelOpen
+            ) {
                 hideControls()
-            } else if (uiState.value.isSeeking) {
+            } else if (
+                uiState.value.showControls && (uiState.value.isSeeking || isOverlayPanelOpen)
+            ) {
                 startControlsAutoHide()
             }
         }

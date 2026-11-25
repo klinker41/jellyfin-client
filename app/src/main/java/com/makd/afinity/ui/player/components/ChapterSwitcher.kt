@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.aspectRatio
@@ -39,6 +40,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -53,6 +56,7 @@ import com.makd.afinity.data.models.media.AfinityChapter
 import com.makd.afinity.data.models.media.getChapterImageUrl
 import com.makd.afinity.ui.components.AsyncImage
 import com.makd.afinity.ui.components.formatClock
+import com.makd.afinity.ui.theme.focusOutline
 import java.util.UUID
 
 private val ChapterCardWidth = 220.dp
@@ -78,16 +82,14 @@ fun ChapterSwitcher(
 
     val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
 
+    val initialFocusRequester = rememberPlayerOverlayInitialFocusRequester("chapter_switcher")
+
     LaunchedEffect(activeChapterIndex) { listState.animateScrollToItem(activeChapterIndex) }
 
-    Box(
-        modifier =
-            modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)).clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-            ) {
-                onDismiss()
-            },
+    PlayerOverlayBackdrop(
+        onDismiss = onDismiss,
+        modifier = modifier,
+        scrimColor = Color.Black.copy(alpha = 0.45f),
         contentAlignment = Alignment.BottomCenter,
     ) {
         AnimatedVisibility(
@@ -107,6 +109,7 @@ fun ChapterSwitcher(
                             WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal),
                         )
                         .padding(horizontal = 16.dp, vertical = 16.dp)
+                        .focusProperties { canFocus = false }
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
@@ -119,8 +122,9 @@ fun ChapterSwitcher(
                     LazyRow(
                         state = listState,
                         flingBehavior = flingBehavior,
+                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         itemsIndexed(
                             items = chapters,
@@ -133,6 +137,12 @@ fun ChapterSwitcher(
                                 baseUrl = baseUrl,
                                 isCurrent = index == activeChapterIndex,
                                 onClick = { onChapterClick(chapter.startPosition) },
+                                modifier =
+                                    if (index == activeChapterIndex) {
+                                        Modifier.focusRequester(initialFocusRequester)
+                                    } else {
+                                        Modifier
+                                    },
                             )
                         }
                     }
@@ -150,13 +160,17 @@ private fun ChapterSwitcherCard(
     baseUrl: String,
     isCurrent: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val title = chapter.name ?: stringResource(R.string.chapter_number_fmt, index + 1)
     val imageUrl = chapter.getChapterImageUrl(baseUrl, itemId)
 
     Column(
         modifier =
-            Modifier.width(ChapterCardWidth).clickable(role = Role.Button, onClick = onClick),
+            modifier
+                .width(ChapterCardWidth)
+                .focusOutline(RoundedCornerShape(12.dp))
+                .clickable(role = Role.Button, onClick = onClick),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Box(

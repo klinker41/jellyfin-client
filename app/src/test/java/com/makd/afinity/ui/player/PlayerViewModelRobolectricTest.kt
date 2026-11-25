@@ -780,4 +780,79 @@ class PlayerViewModelRobolectricTest {
                 h.dispose()
             }
         }
+
+    @Test
+    fun `showPlayButton stays visible across seek buffering, unlock, and open overlay panels`() =
+        runTest(mainDispatcherRule.testDispatcher, timeout = 30.seconds) {
+            val h = Harness()
+            val vm = h.createViewModel()
+            runCurrent()
+            val playerField =
+                PlayerViewModel::class.java.getDeclaredField("player").apply { isAccessible = true }
+            val realPlayer = vm.player
+            try {
+                var mockIsPlaying = true
+                var mockPlaybackState = androidx.media3.common.Player.STATE_READY
+                var mockPositionMs = 60_000L
+                val mockPlayer =
+                    mockk<androidx.media3.common.Player>(relaxed = true) {
+                        every { isPlaying } answers { mockIsPlaying }
+                        every { playbackState } answers { mockPlaybackState }
+                        every { playWhenReady } returns true
+                        every { duration } returns 300_000L
+                        every { currentPosition } answers { mockPositionMs }
+                        every { bufferedPosition } returns 120_000L
+                        every { seekTo(any<Long>()) } answers { mockPositionMs = firstArg() }
+                    }
+                playerField.set(vm, mockPlayer)
+
+                // Show controls and rewind 10s while buffering occurs
+                vm.showControls()
+                assertTrue(vm.uiState.value.showControls)
+                assertTrue(vm.uiState.value.showPlayButton)
+
+                vm.handlePlayerEvent(PlayerEvent.SeekRelative(-10_000L))
+                runCurrent()
+                assertEquals(50_000L, vm.playbackProgress.value.currentPosition)
+
+                mockIsPlaying = false
+                mockPlaybackState = androidx.media3.common.Player.STATE_BUFFERING
+                vm.onPlaybackStateChanged(androidx.media3.common.Player.STATE_BUFFERING)
+                assertTrue(vm.uiState.value.isBuffering)
+                assertTrue(vm.uiState.value.showPlayButton)
+
+                mockIsPlaying = true
+                mockPlaybackState = androidx.media3.common.Player.STATE_READY
+                vm.onPlaybackStateChanged(androidx.media3.common.Player.STATE_READY)
+                assertFalse(vm.uiState.value.isBuffering)
+                assertTrue(vm.uiState.value.showPlayButton)
+
+                // Lock hides play button, unlock restores it when controls are visible
+                vm.handlePlayerEvent(PlayerEvent.ToggleLock)
+                runCurrent()
+                assertTrue(vm.uiState.value.isControlsLocked)
+                assertFalse(vm.uiState.value.showPlayButton)
+
+                vm.handlePlayerEvent(PlayerEvent.ToggleLock)
+                runCurrent()
+                assertFalse(vm.uiState.value.isControlsLocked)
+                assertTrue(vm.uiState.value.showPlayButton)
+
+                // Controls do not auto-hide while an overlay panel is open
+                vm.isOverlayPanelOpen = true
+                vm.showControls()
+                advanceTimeBy(3_500L)
+                runCurrent()
+                assertTrue(vm.uiState.value.showControls)
+
+                vm.isOverlayPanelOpen = false
+                advanceTimeBy(3_500L)
+                runCurrent()
+                assertFalse(vm.uiState.value.showControls)
+                assertFalse(vm.uiState.value.showPlayButton)
+            } finally {
+                playerField.set(vm, realPlayer)
+                h.dispose()
+            }
+        }
 }

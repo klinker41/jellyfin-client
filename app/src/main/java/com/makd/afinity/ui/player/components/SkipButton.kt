@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.makd.afinity.R
 import com.makd.afinity.data.models.media.AfinitySegment
+import com.makd.afinity.ui.theme.focusOutline
 
 @Composable
 fun SkipButton(
@@ -66,6 +67,7 @@ fun SkipButton(
     ) {
         ElevatedButton(
             onClick = { onClick(segment) },
+            modifier = Modifier.focusOutline(CircleShape),
             shape = CircleShape,
             colors = skipPillColors(),
             elevation = skipPillElevation(),
@@ -126,7 +128,7 @@ fun SkipButton(
 fun UndoSkipChip(onClick: () -> Unit, modifier: Modifier = Modifier) {
     ElevatedButton(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.focusOutline(CircleShape),
         shape = CircleShape,
         colors = skipPillColors(),
         elevation = skipPillElevation(),

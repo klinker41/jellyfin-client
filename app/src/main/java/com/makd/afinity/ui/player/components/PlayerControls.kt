@@ -2,6 +2,7 @@ package com.makd.afinity.ui.player.components
 
 import android.content.Context
 import android.text.format.DateFormat
+import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
@@ -14,6 +15,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -75,12 +77,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusRestorer
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.key.Key
@@ -145,6 +151,7 @@ import com.makd.afinity.ui.player.SubtitleSearchViewModel
 import com.makd.afinity.ui.player.toLocalizedLanguageName
 import com.makd.afinity.ui.theme.focusOutline
 import com.makd.afinity.ui.utils.LocalIsTelevision
+import com.makd.afinity.ui.utils.requestFocusSafely
 import java.util.Date
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.delay
@@ -193,7 +200,11 @@ fun PlayerControls(
     syncPlayGroupName: String = "",
     syncPlayMemberInfo: Map<String, SyncPlayMemberInfo> = emptyMap(),
     onPanelOpenChange: (Boolean) -> Unit = {},
+    isExternalOverlayOpen: Boolean = false,
+    onShowControls: () -> Unit = {},
+    onKeepControlsVisible: () -> Unit = {},
     seekBarAnchor: SeekBarAnchor? = null,
+    subtitleSearchViewModel: SubtitleSearchViewModel = hiltViewModel(),
 ) {
     var showTrackPanel by remember { mutableStateOf(false) }
     var showQualityPanel by remember { mutableStateOf(false) }
@@ -204,7 +215,6 @@ fun PlayerControls(
     var showSleepTimerPanel by remember { mutableStateOf(false) }
     var showSubtitleSearchPanel by remember { mutableStateOf(false) }
 
-    val subtitleSearchViewModel: SubtitleSearchViewModel = hiltViewModel()
     val subtitleSearchAvailable by subtitleSearchViewModel.available.collectAsStateWithLifecycle()
     val subtitleSearchState by subtitleSearchViewModel.uiState.collectAsStateWithLifecycle()
     val canSearchSubtitles =
@@ -228,16 +238,46 @@ fun PlayerControls(
         }
     }
 
+    val pauseDetailsEligible =
+        uiState.pauseScreenEnabled &&
+            !uiState.isPlaying &&
+            !uiState.playWhenReady &&
+            !uiState.isControlsLocked &&
+            !uiState.isInPictureInPictureMode &&
+            !uiState.sleepTimerExpired &&
+            uiState.currentItem != null &&
+            !uiState.isLiveChannel &&
+            !uiState.isPlayingIntro
+
+    var pauseDetailsDismissed by remember { mutableStateOf(false) }
+    LaunchedEffect(pauseDetailsEligible) {
+        if (!pauseDetailsEligible) {
+            pauseDetailsDismissed = false
+        }
+    }
+
+    var showPauseDetails by remember { mutableStateOf(false) }
+    LaunchedEffect(pauseDetailsEligible, pauseDetailsDismissed, uiState.pauseScreenDelaySeconds) {
+        if (pauseDetailsEligible && !pauseDetailsDismissed) {
+            delay(uiState.pauseScreenDelaySeconds.seconds)
+            showPauseDetails = true
+        } else {
+            showPauseDetails = false
+        }
+    }
+
     // Same conditions the panels render under, so a panel that vanished doesn't stay "open".
     val isPanelOpen =
         showTrackPanel ||
             showQualityPanel ||
             showSpeedDialog ||
             (showEpisodeSwitcher && playlistQueue.isNotEmpty()) ||
-            (showChapterSwitcher && uiState.chapters.isNotEmpty()) ||
+            (showChapterSwitcher && uiState.chapters.isNotEmpty() && uiState.currentItem != null) ||
             (showMembersPopup && isSyncPlay) ||
             showSleepTimerPanel ||
-            showSubtitleSearchPanel
+            showSubtitleSearchPanel ||
+            showPauseDetails ||
+            (uiState.sleepTimerExpired && !uiState.isInPictureInPictureMode)
     DisposableEffect(isPanelOpen) {
         onPanelOpenChange(isPanelOpen)
         onDispose { onPanelOpenChange(false) }
@@ -475,28 +515,32 @@ fun PlayerControls(
             label = "overlayBottomPadding",
         )
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        val pauseDetailsEligible =
-            uiState.pauseScreenEnabled &&
-                !uiState.isPlaying &&
-                !uiState.playWhenReady &&
-                !uiState.isControlsLocked &&
-                !uiState.isInPictureInPictureMode &&
-                !uiState.sleepTimerExpired &&
-                uiState.currentItem != null &&
-                !uiState.isLiveChannel &&
-                !uiState.isPlayingIntro
+    val anyOverlayOpen = isPanelOpen || isExternalOverlayOpen
+    val isTelevision = LocalIsTelevision.current
+    val inputModeManager = LocalInputModeManager.current
+    val controlsFocusRequester = remember { FocusRequester() }
+    val playPauseFocusRequester = remember { FocusRequester() }
+    var wasAnyOverlayOpen by remember { mutableStateOf(false) }
 
-        var showPauseDetails by remember { mutableStateOf(false) }
-        LaunchedEffect(pauseDetailsEligible, uiState.pauseScreenDelaySeconds) {
-            if (pauseDetailsEligible) {
-                delay(uiState.pauseScreenDelaySeconds.seconds)
-                showPauseDetails = true
-            } else {
-                showPauseDetails = false
+    LaunchedEffect(anyOverlayOpen, shouldShowControls, isTelevision, inputModeManager.inputMode) {
+        if (
+            wasAnyOverlayOpen &&
+                !anyOverlayOpen &&
+                shouldShowControls &&
+                (isTelevision || inputModeManager.inputMode == InputMode.Keyboard)
+        ) {
+            val restored = runCatching {
+                controlsFocusRequester.restoreFocusedChild()
+            }
+                .getOrDefault(false)
+            if (!restored) {
+                requestFocusSafely(playPauseFocusRequester)
             }
         }
+        wasAnyOverlayOpen = anyOverlayOpen
+    }
 
+    Box(modifier = Modifier.fillMaxSize()) {
         AnimatedVisibility(
             visible = shouldShowControls,
             enter = fadeIn(animationSpec = tween(200)),
@@ -514,6 +558,10 @@ fun PlayerControls(
                 uiState = uiState,
                 playbackProgress = playbackProgress,
                 onPlayerEvent = onPlayerEvent,
+                onDismiss = {
+                    pauseDetailsDismissed = true
+                    onShowControls()
+                },
             )
         }
         AnimatedVisibility(
@@ -631,76 +679,101 @@ fun PlayerControls(
             enter = fadeIn(animationSpec = tween(300)),
             exit = fadeOut(animationSpec = tween(300)),
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                TopControls(
-                    modifier = Modifier.align(Alignment.TopCenter),
-                    uiState = uiState,
-                    onPlayerEvent = onPlayerEvent,
-                    onBackClick = onBackClick,
-                    onLockToggle = { onPlayerEvent(PlayerEvent.ToggleLock) },
-                    onPipToggle = onPipToggle,
-                    isSyncPlay = isSyncPlay,
-                    onSyncPlayClick = {
-                        if (isSyncPlay) showMembersPopup = !showMembersPopup else onSyncPlayClick()
+            Box(
+                modifier =
+                    Modifier.fillMaxSize().focusProperties {
+                        if (anyOverlayOpen) onEnter = { cancelFocusChange() }
                     },
-                )
-
-                if (
-                    !uiState.isControlsLocked &&
-                        !uiState.isInPictureInPictureMode &&
-                        !showPauseDetails
+            ) {
+                Box(
+                    modifier =
+                        Modifier.fillMaxSize()
+                            .focusRequester(controlsFocusRequester)
+                            .focusRestorer(playPauseFocusRequester)
+                            .focusGroup(),
                 ) {
-                    CenterPlayButton(
+                    TopControls(
+                        modifier = Modifier.align(Alignment.TopCenter),
                         uiState = uiState,
-                        isPlaying = uiState.isPlaying,
-                        showPlayButton =
-                            uiState.showPlayButton ||
-                                (uiState.isBuffering && uiState.playWhenReady),
-                        isBuffering = uiState.isBuffering && uiState.playWhenReady,
-                        hasQueueNeighbors = playlistQueue.size > 1,
-                        onPlayPauseClick = {
-                            if (uiState.isPlaying) onPlayerEvent(PlayerEvent.Pause)
-                            else onPlayerEvent(PlayerEvent.Play)
-                        },
-                        onSeekBackward = {
-                            onPlayerEvent(PlayerEvent.SeekRelative(-uiState.seekBackStep.millis))
-                        },
-                        onSeekForward = {
-                            onPlayerEvent(PlayerEvent.SeekRelative(uiState.seekForwardStep.millis))
-                        },
-                        onNextClick = onNextClick,
-                        onPreviousClick = onPreviousClick,
-                        modifier = Modifier.align(Alignment.Center),
-                    )
-                    BottomControls(
-                        uiState = uiState,
-                        playbackProgress = playbackProgress,
                         onPlayerEvent = onPlayerEvent,
-                        onSpeedToggle = { showSpeedDialog = !showSpeedDialog },
-                        onTrackPanelToggle = { showTrackPanel = !showTrackPanel },
-                        onQualityToggle =
-                            if (
-                                uiState.availableQualities.size > 1 &&
-                                    !uiState.isLiveChannel &&
-                                    !uiState.isQualityLocked
-                            ) {
-                                { showQualityPanel = !showQualityPanel }
-                            } else {
-                                null
-                            },
-                        onSleepTimerToggle = { showSleepTimerPanel = !showSleepTimerPanel },
-                        onEpisodeSwitcherToggle = { showEpisodeSwitcher = !showEpisodeSwitcher },
-                        showEpisodeSwitcherButton =
-                            (playlistQueue.size - playlistContentStartIndex) > 1 &&
-                                !uiState.isPlayingIntro,
-                        onChapterSwitcherToggle = { showChapterSwitcher = !showChapterSwitcher },
-                        showChapterSwitcherButton =
-                            uiState.chapters.isNotEmpty() && !uiState.isPlayingIntro,
-                        onVersionToggle = onVersionToggleRequest,
+                        onBackClick = onBackClick,
+                        onLockToggle = { onPlayerEvent(PlayerEvent.ToggleLock) },
+                        onPipToggle = onPipToggle,
                         isSyncPlay = isSyncPlay,
-                        seekBarAnchor = seekBarAnchor,
-                        modifier = Modifier.align(Alignment.BottomCenter),
+                        onSyncPlayClick = {
+                            if (isSyncPlay) showMembersPopup = !showMembersPopup
+                            else onSyncPlayClick()
+                        },
                     )
+
+                    if (
+                        !uiState.isControlsLocked &&
+                            !uiState.isInPictureInPictureMode &&
+                            !showPauseDetails
+                    ) {
+                        CenterPlayButton(
+                            uiState = uiState,
+                            isPlaying = uiState.isPlaying,
+                            showPlayButton =
+                                uiState.showPlayButton ||
+                                    (uiState.isBuffering && uiState.playWhenReady),
+                            isBuffering = uiState.isBuffering && uiState.playWhenReady,
+                            hasQueueNeighbors = playlistQueue.size > 1,
+                            playPauseFocusRequester = playPauseFocusRequester,
+                            blockInitialFocus = anyOverlayOpen,
+                            onPlayPauseClick = {
+                                if (uiState.isPlaying) onPlayerEvent(PlayerEvent.Pause)
+                                else onPlayerEvent(PlayerEvent.Play)
+                            },
+                            onSeekBackward = {
+                                onPlayerEvent(
+                                    PlayerEvent.SeekRelative(-uiState.seekBackStep.millis),
+                                )
+                            },
+                            onSeekForward = {
+                                onPlayerEvent(
+                                    PlayerEvent.SeekRelative(uiState.seekForwardStep.millis),
+                                )
+                            },
+                            onNextClick = onNextClick,
+                            onPreviousClick = onPreviousClick,
+                            modifier = Modifier.align(Alignment.Center),
+                        )
+                        BottomControls(
+                            uiState = uiState,
+                            playbackProgress = playbackProgress,
+                            onPlayerEvent = onPlayerEvent,
+                            onSpeedToggle = { showSpeedDialog = !showSpeedDialog },
+                            onTrackPanelToggle = { showTrackPanel = !showTrackPanel },
+                            onQualityToggle =
+                                if (
+                                    uiState.availableQualities.size > 1 &&
+                                        !uiState.isLiveChannel &&
+                                        !uiState.isQualityLocked
+                                ) {
+                                    { showQualityPanel = !showQualityPanel }
+                                } else {
+                                    null
+                                },
+                            onSleepTimerToggle = { showSleepTimerPanel = !showSleepTimerPanel },
+                            onEpisodeSwitcherToggle = {
+                                showEpisodeSwitcher = !showEpisodeSwitcher
+                            },
+                            showEpisodeSwitcherButton =
+                                (playlistQueue.size - playlistContentStartIndex) > 1 &&
+                                    !uiState.isPlayingIntro,
+                            onChapterSwitcherToggle = {
+                                showChapterSwitcher = !showChapterSwitcher
+                            },
+                            showChapterSwitcherButton =
+                                uiState.chapters.isNotEmpty() && !uiState.isPlayingIntro,
+                            onVersionToggle = onVersionToggleRequest,
+                            isSyncPlay = isSyncPlay,
+                            onKeepControlsVisible = onKeepControlsVisible,
+                            seekBarAnchor = seekBarAnchor,
+                            modifier = Modifier.align(Alignment.BottomCenter),
+                        )
+                    }
                 }
             }
         }
@@ -743,7 +816,8 @@ fun PlayerControls(
                             WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
                         ),
                     )
-                    .padding(end = 16.dp, bottom = overlayBottomPadding),
+                    .padding(end = 16.dp, bottom = overlayBottomPadding)
+                    .focusProperties { if (anyOverlayOpen) onEnter = { cancelFocusChange() } },
             enter =
                 fadeIn(tween(300)) +
                     scaleIn(
@@ -785,7 +859,8 @@ fun PlayerControls(
                             WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
                         ),
                     )
-                    .padding(end = 16.dp, bottom = overlayBottomPadding),
+                    .padding(end = 16.dp, bottom = overlayBottomPadding)
+                    .focusProperties { if (anyOverlayOpen) onEnter = { cancelFocusChange() } },
             enter =
                 fadeIn(tween(300)) +
                     scaleIn(
@@ -840,7 +915,8 @@ fun PlayerControls(
                             WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
                         ),
                     )
-                    .padding(end = 16.dp, bottom = overlayBottomPadding),
+                    .padding(end = 16.dp, bottom = overlayBottomPadding)
+                    .focusProperties { if (anyOverlayOpen) onEnter = { cancelFocusChange() } },
             enter =
                 fadeIn(tween(300)) +
                     scaleIn(
@@ -976,16 +1052,7 @@ fun PlayerControls(
         }
 
         if (showSpeedDialog) {
-            Box(
-                modifier =
-                    Modifier.fillMaxSize().clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                    ) {
-                        showSpeedDialog = false
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
+            PlayerOverlayBackdrop(onDismiss = { showSpeedDialog = false }) {
                 PlaybackSpeedPanel(
                     currentSpeed = uiState.playbackSpeed,
                     onSpeedChange = { speed -> onPlayerEvent(PlayerEvent.SetPlaybackSpeed(speed)) },
@@ -1017,24 +1084,20 @@ fun PlayerControls(
         }
 
         if (showMembersPopup && isSyncPlay) {
-            Box(
-                modifier =
-                    Modifier.fillMaxSize().clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                    ) {
-                        showMembersPopup = false
-                    },
+            val manageGroupFocusRequester = rememberPlayerOverlayInitialFocusRequester("members")
+            PlayerOverlayBackdrop(
+                onDismiss = { showMembersPopup = false },
+                contentAlignment = Alignment.TopEnd,
             ) {
                 Box(
                     modifier =
-                        Modifier.align(Alignment.TopEnd)
-                            .windowInsetsPadding(
+                        Modifier.windowInsetsPadding(
                                 WindowInsets.safeDrawing.only(
                                     WindowInsetsSides.Horizontal + WindowInsetsSides.Top,
                                 ),
                             )
                             .padding(top = 60.dp, end = 16.dp)
+                            .focusProperties { canFocus = false }
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,
@@ -1197,7 +1260,11 @@ fun PlayerControls(
                                 showMembersPopup = false
                                 onSyncPlayClick()
                             },
-                            modifier = Modifier.align(Alignment.End).height(32.dp),
+                            modifier =
+                                Modifier.align(Alignment.End)
+                                    .height(32.dp)
+                                    .focusRequester(manageGroupFocusRequester)
+                                    .focusOutline(RoundedCornerShape(8.dp)),
                             contentPadding =
                                 androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
                         ) {
@@ -1265,9 +1332,23 @@ private fun TopControls(
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                val unlockFocusRequester =
+                    rememberPlayerOverlayInitialFocusRequester(
+                        key = uiState.isControlsLocked,
+                        enabled = uiState.isControlsLocked,
+                    )
                 IconButton(
                     onClick = onLockToggle,
-                    modifier = Modifier.size(40.dp).focusOutline(CircleShape),
+                    modifier =
+                        Modifier.size(40.dp)
+                            .then(
+                                if (uiState.isControlsLocked) {
+                                    Modifier.focusRequester(unlockFocusRequester)
+                                } else {
+                                    Modifier
+                                },
+                            )
+                            .focusOutline(CircleShape),
                 ) {
                     Icon(
                         painter =
@@ -1350,17 +1431,19 @@ private fun TopControls(
 @OptIn(UnstableApi::class)
 @Composable
 private fun CenterPlayButton(
-    modifier: Modifier = Modifier,
     uiState: PlayerViewModel.PlayerUiState,
     isPlaying: Boolean,
     showPlayButton: Boolean,
     isBuffering: Boolean,
-    hasQueueNeighbors: Boolean = false,
     onPlayPauseClick: () -> Unit,
     onSeekBackward: () -> Unit,
     onSeekForward: () -> Unit,
     onNextClick: () -> Unit,
     onPreviousClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    hasQueueNeighbors: Boolean = false,
+    playPauseFocusRequester: FocusRequester = remember { FocusRequester() },
+    blockInitialFocus: Boolean = false,
 ) {
     val showSkipButtons = hasQueueNeighbors && !uiState.isPlayingIntro
     val isCompact = windowWidthDp() < 420.dp
@@ -1369,7 +1452,6 @@ private fun CenterPlayButton(
     val playIconSize = if (isCompact) 32.dp else 40.dp
     val spacing = if (isCompact) 8.dp else 16.dp
 
-    val playPauseFocusRequester = remember { FocusRequester() }
     val isTelevision = LocalIsTelevision.current
     val inputModeManager = LocalInputModeManager.current
 
@@ -1381,9 +1463,11 @@ private fun CenterPlayButton(
     ) {
         LaunchedEffect(showPlayButton) {
             if (
-                showPlayButton && (isTelevision || inputModeManager.inputMode == InputMode.Keyboard)
+                showPlayButton &&
+                    !blockInitialFocus &&
+                    (isTelevision || inputModeManager.inputMode == InputMode.Keyboard)
             ) {
-                runCatching { playPauseFocusRequester.requestFocus() }
+                requestFocusSafely(playPauseFocusRequester)
             }
         }
         Row(
@@ -1501,6 +1585,7 @@ private fun BottomControls(
     showChapterSwitcherButton: Boolean = false,
     onVersionToggle: () -> Unit = {},
     isSyncPlay: Boolean = false,
+    onKeepControlsVisible: () -> Unit = {},
     seekBarAnchor: SeekBarAnchor? = null,
 ) {
     Box(
@@ -1522,6 +1607,7 @@ private fun BottomControls(
                     onPlayerEvent = onPlayerEvent,
                     seekBarAnchor = seekBarAnchor,
                     isSyncPlay = isSyncPlay,
+                    onKeepControlsVisible = onKeepControlsVisible,
                 )
             } else {
                 Text(
@@ -1821,13 +1907,25 @@ private fun SeekBar(
     seekBarAnchor: SeekBarAnchor?,
     modifier: Modifier = Modifier,
     isSyncPlay: Boolean = false,
+    onKeepControlsVisible: () -> Unit = {},
 ) {
     val anchorOwner = remember { Any() }
     DisposableEffect(seekBarAnchor) { onDispose { seekBarAnchor?.release(anchorOwner) } }
     var draggedPosition by remember { mutableStateOf<Float?>(null) }
+    var isSeekBarFocused by remember { mutableStateOf(false) }
+    val dpadController =
+        rememberPlayerSeekBarDpadController(
+            onPlayerEvent = onPlayerEvent,
+            onKeepControlsVisible = onKeepControlsVisible,
+        )
+    DisposableEffect(Unit) { onDispose { dpadController.commitIfScrubbing() } }
     val duration = uiState.duration
     val position =
-        if (uiState.isSeeking) uiState.seekPosition else playbackProgress.value.currentPosition
+        when {
+            dpadController.isScrubbing -> dpadController.scrubPositionMs
+            uiState.isSeeking -> uiState.seekPosition
+            else -> playbackProgress.value.currentPosition
+        }
 
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -1849,6 +1947,7 @@ private fun SeekBar(
             Slider(
                 state = seekState,
                 onValueChange = { newPosition ->
+                    dpadController.cancelForTouchDrag()
                     if (!uiState.isSeeking) {
                         onPlayerEvent(PlayerEvent.OnSeekBarDragStart)
                     }
@@ -1870,13 +1969,14 @@ private fun SeekBar(
                 track = { sliderState ->
                     val primaryColor = MaterialTheme.colorScheme.primary
                     val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
+                    val trackHeight = if (isSeekBarFocused) 8.dp else 6.dp
                     Box(
-                        modifier = Modifier.fillMaxWidth().height(18.dp),
+                        modifier = Modifier.fillMaxWidth().height(24.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         SliderDefaults.Track(
                             sliderState = sliderState,
-                            modifier = Modifier.height(6.dp),
+                            modifier = Modifier.height(trackHeight),
                             thumbTrackGapSize = 6.dp,
                             colors =
                                 SliderDefaults.colors(
@@ -1885,7 +1985,7 @@ private fun SeekBar(
                                 ),
                             drawStopIndicator = null,
                         )
-                        Canvas(modifier = Modifier.fillMaxWidth().height(6.dp)) {
+                        Canvas(modifier = Modifier.fillMaxWidth().height(trackHeight)) {
                             if (duration > 0) {
                                 val rangeSpan =
                                     (sliderState.trackRange.endInclusive -
@@ -1928,45 +2028,47 @@ private fun SeekBar(
                                         center = Offset(cx, h / 2),
                                     )
                                 }
+                                if (isSeekBarFocused) {
+                                    drawCircle(
+                                        color = Color.White,
+                                        radius = 9.dp.toPx(),
+                                        center = Offset(thumbCenterX, h / 2f),
+                                        style = Stroke(width = 2.dp.toPx()),
+                                    )
+                                }
                             }
                         }
                     }
                 },
                 modifier =
                     Modifier.weight(1f)
-                        .height(18.dp)
+                        .height(24.dp)
                         .padding(start = 8.dp)
-                        .focusOutline(RoundedCornerShape(8.dp))
-                        .onPreviewKeyEvent { keyEvent ->
-                            if (keyEvent.type == KeyEventType.KeyDown) {
-                                val allowRepeat =
-                                    !isSyncPlay || keyEvent.nativeKeyEvent.repeatCount == 0
-                                when (keyEvent.key) {
-                                    Key.DirectionLeft -> {
-                                        if (allowRepeat) {
-                                            onPlayerEvent(
-                                                PlayerEvent.SeekRelative(
-                                                    -uiState.seekBackStep.millis,
-                                                ),
-                                            )
-                                        }
-                                        true
-                                    }
-                                    Key.DirectionRight -> {
-                                        if (allowRepeat) {
-                                            onPlayerEvent(
-                                                PlayerEvent.SeekRelative(
-                                                    uiState.seekForwardStep.millis,
-                                                ),
-                                            )
-                                        }
-                                        true
-                                    }
-                                    else -> false
-                                }
-                            } else {
-                                false
+                        .focusOutline(RoundedCornerShape(8.dp), focusedScale = 1.0f)
+                        .onFocusChanged { focusState ->
+                            val focused = focusState.isFocused || focusState.hasFocus
+                            if (isSeekBarFocused && !focused) {
+                                dpadController.commitIfScrubbing()
                             }
+                            isSeekBarFocused = focused
+                        }
+                        .onPreviewKeyEvent { keyEvent ->
+                            dpadController.handleKeyEvent(
+                                key = keyEvent.key,
+                                type = keyEvent.type,
+                                repeatCount = keyEvent.nativeKeyEvent.repeatCount,
+                                currentPositionMs = position,
+                                durationMs = duration,
+                                seekBackMs = uiState.seekBackStep.millis,
+                                seekForwardMs = uiState.seekForwardStep.millis,
+                                isSyncPlay = isSyncPlay,
+                                onTogglePlayPause = {
+                                    onPlayerEvent(
+                                        if (uiState.isPlaying) PlayerEvent.Pause
+                                        else PlayerEvent.Play,
+                                    )
+                                },
+                            )
                         }
                         .onGloballyPositioned {
                             seekBarAnchor?.report(anchorOwner, it.boundsInWindow())
@@ -1988,13 +2090,16 @@ private fun SeekBar(
                 }
             Box(
                 modifier =
-                    Modifier.width(maxOf(50.dp, timeLabelWidth)).clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        role = Role.Button,
-                    ) {
-                        onPlayerEvent(PlayerEvent.ToggleRemainingTime)
-                    },
+                    Modifier.width(maxOf(50.dp, timeLabelWidth))
+                        .focusOutline(RoundedCornerShape(6.dp))
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            role = Role.Button,
+                        ) {
+                            onPlayerEvent(PlayerEvent.ToggleRemainingTime)
+                        },
                 contentAlignment = Alignment.CenterEnd,
             ) {
                 Text(
@@ -2032,23 +2137,25 @@ private fun TrackPanel(
         } else {
             null
         }
-    Box(
-        modifier =
-            Modifier.fillMaxSize().clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-            ) {
-                onDismiss()
-            },
-        contentAlignment = Alignment.Center,
-    ) {
+    val initialFocusRequester = rememberPlayerOverlayInitialFocusRequester("track_panel")
+    val targetAudioIndex =
+        audioOptions.firstOrNull { it.position == currentAudioIndex }?.position
+            ?: audioOptions.firstOrNull()?.position
+    val targetSubtitleIndex =
+        if (targetAudioIndex == null) {
+            subtitleOptions.firstOrNull { it.index == currentSubtitleIndex }?.index
+                ?: subtitleOptions.firstOrNull()?.index
+        } else null
+
+    PlayerOverlayBackdrop(onDismiss = onDismiss) {
         Surface(
             shape = RoundedCornerShape(28.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             tonalElevation = 6.dp,
             shadowElevation = 8.dp,
             modifier =
-                Modifier.clickable(
+                Modifier.focusProperties { canFocus = false }
+                    .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
                     ) {}
@@ -2080,6 +2187,12 @@ private fun TrackPanel(
                                     onSelectTrack(C.TRACK_TYPE_AUDIO, option.position)
                                     onDismiss()
                                 },
+                                modifier =
+                                    if (option.position == targetAudioIndex) {
+                                        Modifier.focusRequester(initialFocusRequester)
+                                    } else {
+                                        Modifier
+                                    },
                                 secondaryLabel = option.secondaryName,
                             )
                         }
@@ -2099,6 +2212,12 @@ private fun TrackPanel(
                                     onSelectTrack(C.TRACK_TYPE_TEXT, option.index)
                                     onDismiss()
                                 },
+                                modifier =
+                                    if (option.index == targetSubtitleIndex) {
+                                        Modifier.focusRequester(initialFocusRequester)
+                                    } else {
+                                        Modifier
+                                    },
                                 secondaryLabel =
                                     if (burnedIn) {
                                         stringResource(R.string.player_subtitle_burned_in)
@@ -2201,23 +2320,18 @@ private fun QualityPanel(
             else -> null
         }
 
-    Box(
-        modifier =
-            Modifier.fillMaxSize().clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-            ) {
-                onDismiss()
-            },
-        contentAlignment = Alignment.Center,
-    ) {
+    val initialFocusRequester = rememberPlayerOverlayInitialFocusRequester("quality_panel")
+    val targetQuality = options.firstOrNull { it == selected } ?: options.firstOrNull()
+
+    PlayerOverlayBackdrop(onDismiss = onDismiss) {
         Surface(
             shape = RoundedCornerShape(28.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             tonalElevation = 6.dp,
             shadowElevation = 8.dp,
             modifier =
-                Modifier.clickable(
+                Modifier.focusProperties { canFocus = false }
+                    .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
                     ) {}
@@ -2262,6 +2376,12 @@ private fun QualityPanel(
                                 onSelectQuality(option)
                                 onDismiss()
                             },
+                            modifier =
+                                if (option == targetQuality) {
+                                    Modifier.focusRequester(initialFocusRequester)
+                                } else {
+                                    Modifier
+                                },
                         )
                     }
                 }
@@ -2282,11 +2402,14 @@ private fun QualityOptionRow(
     detail: String?,
     selected: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Row(
         modifier =
-            Modifier.fillMaxWidth()
+            modifier
+                .fillMaxWidth()
                 .heightIn(min = 48.dp)
+                .focusOutline(RoundedCornerShape(12.dp), focusedScale = 1.02f)
                 .clip(RoundedCornerShape(12.dp))
                 .background(
                     if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
@@ -2355,11 +2478,14 @@ private fun TrackRow(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     secondaryLabel: String? = null,
 ) {
     Row(
         modifier =
-            Modifier.fillMaxWidth()
+            modifier
+                .fillMaxWidth()
+                .focusOutline(RoundedCornerShape(12.dp), focusedScale = 1.02f)
                 .clip(RoundedCornerShape(12.dp))
                 .background(
                     if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
@@ -2413,6 +2539,7 @@ private fun TrackActionRow(
     Row(
         modifier =
             Modifier.fillMaxWidth()
+                .focusOutline(RoundedCornerShape(12.dp), focusedScale = 1.02f)
                 .clip(RoundedCornerShape(12.dp))
                 .clickable(role = Role.Button, onClick = onClick)
                 .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -2453,9 +2580,12 @@ private fun PauseDetailsOverlay(
     uiState: PlayerViewModel.PlayerUiState,
     playbackProgress: State<PlayerViewModel.PlaybackProgress>,
     onPlayerEvent: (PlayerEvent) -> Unit,
+    onDismiss: () -> Unit = {},
 ) {
     val item = uiState.currentItem ?: return
     val context = LocalContext.current
+    val resumeFocusRequester = rememberPlayerOverlayInitialFocusRequester(key = item.id)
+    BackHandler(onBack = onDismiss)
 
     val source =
         item.sources.firstOrNull { it.id == uiState.currentMediaSourceId }
@@ -2570,14 +2700,26 @@ private fun PauseDetailsOverlay(
 
     BoxWithConstraints(
         modifier =
-            Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        event.changes.forEach { it.consume() }
+            Modifier.fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f))
+                .onPreviewKeyEvent { keyEvent ->
+                    if (keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.Escape) {
+                        onDismiss()
+                        true
+                    } else {
+                        false
                     }
                 }
-            },
+                .focusProperties { onExit = { cancelFocusChange() } }
+                .focusGroup()
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            event.changes.forEach { it.consume() }
+                        }
+                    }
+                },
     ) {
         val compact = maxHeight < PauseCompactHeight
         val isWide = maxWidth >= 600.dp
@@ -2759,6 +2901,8 @@ private fun PauseDetailsOverlay(
                 ) {
                     Button(
                         onClick = { onPlayerEvent(PlayerEvent.Play) },
+                        modifier =
+                            Modifier.focusRequester(resumeFocusRequester).focusOutline(CircleShape),
                         colors =
                             ButtonDefaults.buttonColors(
                                 containerColor = Color.White,
@@ -2782,6 +2926,7 @@ private fun PauseDetailsOverlay(
                             onPlayerEvent(PlayerEvent.Seek(0))
                             onPlayerEvent(PlayerEvent.Play)
                         },
+                        modifier = Modifier.focusOutline(CircleShape),
                         colors = ButtonDefaults.textButtonColors(contentColor = Color.White),
                     ) {
                         Icon(
@@ -2824,6 +2969,9 @@ private fun PauseDetailsOverlay(
                     ) {
                         Button(
                             onClick = { onPlayerEvent(PlayerEvent.Play) },
+                            modifier =
+                                Modifier.focusRequester(resumeFocusRequester)
+                                    .focusOutline(CircleShape),
                             colors =
                                 ButtonDefaults.buttonColors(
                                     containerColor = Color.White,
@@ -2847,6 +2995,7 @@ private fun PauseDetailsOverlay(
                                 onPlayerEvent(PlayerEvent.Seek(0))
                                 onPlayerEvent(PlayerEvent.Play)
                             },
+                            modifier = Modifier.focusOutline(CircleShape),
                             colors = ButtonDefaults.textButtonColors(contentColor = Color.White),
                         ) {
                             Icon(

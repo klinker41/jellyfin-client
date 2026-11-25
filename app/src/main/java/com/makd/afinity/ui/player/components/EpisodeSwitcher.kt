@@ -42,6 +42,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -74,6 +76,7 @@ import com.makd.afinity.ui.components.episodeBlur
 import com.makd.afinity.ui.components.formatRuntimeTicks
 import com.makd.afinity.ui.components.rememberRatingMetadataScale
 import com.makd.afinity.ui.components.shouldBlurEpisode
+import com.makd.afinity.ui.theme.focusOutline
 import java.util.Locale
 import java.util.UUID
 
@@ -127,20 +130,20 @@ fun EpisodeSwitcher(
             initialFirstVisibleItemIndex = (activeEpisodeIndex - 1).coerceAtLeast(0),
         )
 
+    val initialFocusRequester = rememberPlayerOverlayInitialFocusRequester("episode_switcher")
+    val targetFocusIndex =
+        activeEpisodeIndex.coerceIn(0, (displayEpisodes.size - 1).coerceAtLeast(0))
+
     LaunchedEffect(activeEpisodeIndex) {
         if (activeEpisodeIndex >= 0) {
             listState.animateScrollToItem((activeEpisodeIndex - 1).coerceAtLeast(0))
         }
     }
 
-    Box(
-        modifier =
-            modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-            ) {
-                onDismiss()
-            },
+    PlayerOverlayBackdrop(
+        onDismiss = onDismiss,
+        modifier = modifier,
+        scrimColor = Color.Black.copy(alpha = 0.5f),
         contentAlignment = Alignment.CenterEnd,
     ) {
         AnimatedVisibility(
@@ -154,6 +157,7 @@ fun EpisodeSwitcher(
                         .playerOverlayInsets()
                         .padding(start = 32.dp, end = 16.dp, top = 16.dp, bottom = 16.dp)
                         .widthIn(max = 450.dp)
+                        .focusProperties { canFocus = false }
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
@@ -209,13 +213,14 @@ fun EpisodeSwitcher(
                         IconButton(
                             onClick = onDismiss,
                             modifier =
-                                Modifier.background(
+                                Modifier.size(32.dp)
+                                    .focusOutline(CircleShape)
+                                    .background(
                                         MaterialTheme.colorScheme.surfaceContainerHighest.copy(
                                             alpha = 0.5f,
                                         ),
                                         CircleShape,
-                                    )
-                                    .size(32.dp),
+                                    ),
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_close),
@@ -255,6 +260,12 @@ fun EpisodeSwitcher(
                                             )
                                     } else null,
                                 onClick = { onEpisodeClick(item.id) },
+                                modifier =
+                                    if (index == targetFocusIndex) {
+                                        Modifier.focusRequester(initialFocusRequester)
+                                    } else {
+                                        Modifier
+                                    },
                             )
                         }
                     }
@@ -294,6 +305,7 @@ private fun EpisodeSwitcherCard(
         modifier =
             modifier
                 .fillMaxWidth()
+                .focusOutline(RoundedCornerShape(16.dp), focusedScale = 1.02f)
                 .clip(RoundedCornerShape(16.dp))
                 .background(backgroundColor)
                 .border(1.dp, borderColor, RoundedCornerShape(16.dp))

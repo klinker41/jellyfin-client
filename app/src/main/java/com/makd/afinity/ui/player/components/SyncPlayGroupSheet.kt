@@ -34,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -369,6 +370,7 @@ private fun GroupStateChip(state: GroupStateType) {
         }
     SuggestionChip(
         onClick = {},
+        modifier = Modifier.focusProperties { canFocus = false },
         label = { Text(text = label, style = MaterialTheme.typography.labelSmall) },
         colors =
             SuggestionChipDefaults.suggestionChipColors(

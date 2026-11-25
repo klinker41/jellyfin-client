@@ -2,6 +2,7 @@ package com.makd.afinity.ui.player.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,9 +21,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -32,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makd.afinity.R
 import com.makd.afinity.data.models.media.AfinitySource
+import com.makd.afinity.ui.theme.focusOutline
 import java.util.Locale
 
 /**
@@ -46,9 +51,18 @@ fun VersionPickerSheet(
     onVersionSelected: (AfinitySource) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val initialFocusRequester = rememberPlayerOverlayInitialFocusRequester("version_picker")
+    val targetSourceId =
+        sources.firstOrNull { it.id == currentSourceId }?.id ?: sources.firstOrNull()?.id
+
     Box(
         modifier =
-            Modifier.clickable(onClick = {}) // consume — do not propagate
+            Modifier.focusProperties { canFocus = false }
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = {}, // consume — do not propagate
+                )
                 .background(Color.Black.copy(alpha = 0.95f), RoundedCornerShape(8.dp))
                 .padding(12.dp)
                 .width(240.dp)
@@ -73,6 +87,12 @@ fun VersionPickerSheet(
                         onVersionSelected(source)
                         onDismiss()
                     },
+                    modifier =
+                        if (source.id == targetSourceId) {
+                            Modifier.focusRequester(initialFocusRequester)
+                        } else {
+                            Modifier
+                        },
                 )
             }
         }
@@ -84,10 +104,13 @@ private fun VersionItem(
     source: AfinitySource,
     isSelected: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Row(
         modifier =
-            Modifier.fillMaxWidth()
+            modifier
+                .fillMaxWidth()
+                .focusOutline(RoundedCornerShape(6.dp), focusedScale = 1.02f)
                 .clip(RoundedCornerShape(6.dp))
                 .background(
                     if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)

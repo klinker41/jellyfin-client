@@ -1,5 +1,6 @@
 package com.makd.afinity.ui.player.components
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -25,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -32,6 +35,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makd.afinity.R
+import com.makd.afinity.ui.theme.focusOutline
 
 @Composable
 fun BufferingIndicator(
@@ -62,6 +66,13 @@ fun ErrorIndicator(
     onPlayAnywayClick: () -> Unit = {},
     onCloseClick: (() -> Unit)? = null,
 ) {
+    BackHandler(enabled = isVisible && onCloseClick != null) { onCloseClick?.invoke() }
+    val primaryActionFocusRequester =
+        rememberPlayerOverlayInitialFocusRequester(
+            key = canPlayAnyway,
+            enabled = isVisible,
+        )
+
     AnimatedVisibility(
         visible = isVisible,
         enter = scaleIn(animationSpec = tween(200)) + fadeIn(),
@@ -96,6 +107,9 @@ fun ErrorIndicator(
                 if (canPlayAnyway) {
                     Button(
                         onClick = onPlayAnywayClick,
+                        modifier =
+                            Modifier.focusRequester(primaryActionFocusRequester)
+                                .focusOutline(CircleShape),
                         colors =
                             ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
@@ -107,6 +121,15 @@ fun ErrorIndicator(
 
                 Button(
                     onClick = onRetryClick,
+                    modifier =
+                        Modifier.then(
+                                if (!canPlayAnyway) {
+                                    Modifier.focusRequester(primaryActionFocusRequester)
+                                } else {
+                                    Modifier
+                                },
+                            )
+                            .focusOutline(CircleShape),
                     colors =
                         if (canPlayAnyway) {
                             ButtonDefaults.buttonColors(
@@ -124,7 +147,10 @@ fun ErrorIndicator(
                 }
 
                 if (onCloseClick != null) {
-                    TextButton(onClick = onCloseClick) {
+                    TextButton(
+                        onClick = onCloseClick,
+                        modifier = Modifier.focusOutline(CircleShape),
+                    ) {
                         Text(
                             text = stringResource(R.string.cd_close),
                             color = Color.White.copy(alpha = 0.8f),

@@ -3,6 +3,7 @@ package com.makd.afinity.ui.player.components
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -41,7 +43,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -64,6 +74,7 @@ import com.makd.afinity.ui.player.SubtitleOptInReason
 import com.makd.afinity.ui.player.SubtitleSearchStage
 import com.makd.afinity.ui.player.SubtitleSearchUiState
 import com.makd.afinity.ui.player.subtitleLanguageDisplayName
+import com.makd.afinity.ui.theme.focusOutline
 import java.text.NumberFormat
 
 @Composable
@@ -87,23 +98,50 @@ fun SubtitleSearchPanel(
 
     BackHandler { if (menuOpen) closeMenu() else onBack() }
 
-    Box(
-        modifier =
-            Modifier.fillMaxSize().clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-            ) {
-                onDismiss()
-            },
-        contentAlignment = Alignment.Center,
-    ) {
+    val backFocusRequester =
+        rememberPlayerOverlayInitialFocusRequester(
+            key = state.stage,
+            enabled =
+                !menuOpen &&
+                    (state.stage == SubtitleSearchStage.LOADING ||
+                        state.stage == SubtitleSearchStage.EMPTY),
+        )
+    val optInFocusRequester =
+        rememberPlayerOverlayInitialFocusRequester(
+            key = "subtitle_opt_in",
+            enabled = !menuOpen && state.stage == SubtitleSearchStage.OPT_IN,
+        )
+    val resultsFocusRequester =
+        rememberPlayerOverlayInitialFocusRequester(
+            key = state.candidates.firstOrNull()?.id,
+            enabled =
+                !menuOpen &&
+                    state.stage == SubtitleSearchStage.RESULTS &&
+                    state.candidates.isNotEmpty(),
+        )
+    val errorFocusRequester =
+        rememberPlayerOverlayInitialFocusRequester(
+            key = "subtitle_error",
+            enabled = !menuOpen && state.stage == SubtitleSearchStage.ERROR,
+        )
+
+    PlayerOverlayBackdrop(onDismiss = onDismiss, handleBack = false) {
         Surface(
             shape = RoundedCornerShape(28.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             tonalElevation = 6.dp,
             shadowElevation = 8.dp,
             modifier =
-                Modifier.clickable(
+                Modifier.onPreviewKeyEvent { keyEvent ->
+                        if (keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.Escape) {
+                            if (menuOpen) closeMenu() else onBack()
+                            true
+                        } else {
+                            false
+                        }
+                    }
+                    .focusProperties { canFocus = false }
+                    .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
                     ) {}
@@ -118,6 +156,7 @@ fun SubtitleSearchPanel(
                         state = state,
                         onBack = onBack,
                         onFilter = { menuOpen = true },
+                        backFocusRequester = backFocusRequester,
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     when (state.stage) {
@@ -126,6 +165,7 @@ fun SubtitleSearchPanel(
                                 reason = state.optInReason,
                                 onEnable = onEnableSubtitleDb,
                                 onNotNow = onBack,
+                                enableFocusRequester = optInFocusRequester,
                                 modifier = Modifier.weight(1f, fill = false),
                             )
                         SubtitleSearchStage.LOADING -> LoadingRows()
@@ -134,6 +174,7 @@ fun SubtitleSearchPanel(
                                 state = state,
                                 onAdd = onAdd,
                                 onRemove = onRemove,
+                                firstItemFocusRequester = resultsFocusRequester,
                                 modifier = Modifier.weight(1f, fill = false),
                             )
                         SubtitleSearchStage.EMPTY ->
@@ -165,6 +206,7 @@ fun SubtitleSearchPanel(
                                 body = stringResource(R.string.subtitle_search_error_hint),
                                 actionLabel = stringResource(R.string.action_retry),
                                 onAction = onRetry,
+                                actionFocusRequester = errorFocusRequester,
                             )
                     }
                     val footer = footerText(state)
@@ -194,10 +236,18 @@ fun SubtitleSearchPanel(
 }
 
 @Composable
-private fun PanelHeader(state: SubtitleSearchUiState, onBack: () -> Unit, onFilter: () -> Unit) {
+private fun PanelHeader(
+    state: SubtitleSearchUiState,
+    onBack: () -> Unit,
+    onFilter: () -> Unit,
+    backFocusRequester: FocusRequester,
+) {
     val optIn = state.stage == SubtitleSearchStage.OPT_IN
     Row(verticalAlignment = Alignment.CenterVertically) {
-        AfinityBackButton(onClick = onBack, modifier = Modifier.padding(end = 4.dp))
+        AfinityBackButton(
+            onClick = onBack,
+            modifier = Modifier.padding(end = 4.dp).focusRequester(backFocusRequester),
+        )
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text =
@@ -225,7 +275,7 @@ private fun PanelHeader(state: SubtitleSearchUiState, onBack: () -> Unit, onFilt
                 (state.stage == SubtitleSearchStage.RESULTS ||
                     state.stage == SubtitleSearchStage.EMPTY)
         if (filterVisible) {
-            IconButton(onClick = onFilter) {
+            IconButton(onClick = onFilter, modifier = Modifier.focusOutline(CircleShape)) {
                 Icon(
                     painter =
                         painterResource(
@@ -285,6 +335,7 @@ private fun OptInContent(
     reason: SubtitleOptInReason,
     onEnable: () -> Unit,
     onNotNow: () -> Unit,
+    enableFocusRequester: FocusRequester,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -323,9 +374,16 @@ private fun OptInContent(
                 modifier = Modifier.weight(1f),
             )
             Spacer(modifier = Modifier.width(12.dp))
-            TextButton(onClick = onNotNow) { Text(stringResource(R.string.action_not_now)) }
+            TextButton(onClick = onNotNow, modifier = Modifier.focusOutline(CircleShape)) {
+                Text(stringResource(R.string.action_not_now))
+            }
             Spacer(modifier = Modifier.width(8.dp))
-            Button(onClick = onEnable) { Text(stringResource(R.string.subtitledb_connect_action)) }
+            Button(
+                onClick = onEnable,
+                modifier = Modifier.focusRequester(enableFocusRequester).focusOutline(CircleShape),
+            ) {
+                Text(stringResource(R.string.subtitledb_connect_action))
+            }
         }
     }
 }
@@ -335,9 +393,11 @@ private fun ResultList(
     state: SubtitleSearchUiState,
     onAdd: (SubtitleCandidate) -> Unit,
     onRemove: (SubtitleCandidate) -> Unit,
+    firstItemFocusRequester: FocusRequester,
     modifier: Modifier = Modifier,
 ) {
     val busy = state.downloadingId != null
+    val firstCandidateId = state.candidates.firstOrNull()?.id
     LazyColumn(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         items(state.candidates, key = { it.id }) { candidate ->
             val downloading = state.downloadingId == candidate.id
@@ -350,6 +410,12 @@ private fun ResultList(
                 enabled = !busy,
                 onClick = { onAdd(candidate) },
                 onRemove = { onRemove(candidate) },
+                modifier =
+                    if (candidate.id == firstCandidateId) {
+                        Modifier.focusRequester(firstItemFocusRequester)
+                    } else {
+                        Modifier
+                    },
             )
         }
     }
@@ -364,11 +430,14 @@ private fun SubtitleResultRow(
     enabled: Boolean,
     onClick: () -> Unit,
     onRemove: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Row(
         modifier =
-            Modifier.fillMaxWidth()
+            modifier
+                .fillMaxWidth()
                 .alpha(if (enabled || downloading) 1f else 0.45f)
+                .focusOutline(RoundedCornerShape(12.dp), focusedScale = 1.02f)
                 .clip(RoundedCornerShape(12.dp))
                 .background(
                     if (downloading) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
@@ -405,7 +474,11 @@ private fun SubtitleResultRow(
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
             }
             savedOnDevice ->
-                IconButton(onClick = onRemove, enabled = enabled) {
+                IconButton(
+                    onClick = onRemove,
+                    enabled = enabled,
+                    modifier = Modifier.focusOutline(CircleShape),
+                ) {
                     Icon(
                         painter = painterResource(R.drawable.ic_delete),
                         contentDescription = stringResource(R.string.cd_subtitle_remove),
@@ -468,6 +541,7 @@ private fun CenteredMessage(
     body: String?,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
+    actionFocusRequester: FocusRequester? = null,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
@@ -495,7 +569,20 @@ private fun CenteredMessage(
             )
         }
         if (actionLabel != null && onAction != null) {
-            TextButton(onClick = onAction) { Text(actionLabel) }
+            TextButton(
+                onClick = onAction,
+                modifier =
+                    Modifier.then(
+                            if (actionFocusRequester != null) {
+                                Modifier.focusRequester(actionFocusRequester)
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .focusOutline(CircleShape),
+            ) {
+                Text(actionLabel)
+            }
         }
     }
 }
@@ -509,9 +596,12 @@ private fun LanguageMenu(
     onSelect: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val menuFocusRequester =
+        rememberPlayerOverlayInitialFocusRequester(key = "lang_menu_$showAllLanguages")
     Box(
         modifier =
             Modifier.fillMaxSize()
+                .focusProperties { canFocus = false }
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
@@ -527,6 +617,11 @@ private fun LanguageMenu(
                     .padding(top = 72.dp, end = 16.dp)
                     .widthIn(min = 220.dp, max = 280.dp)
                     .heightIn(max = 300.dp)
+                    .focusProperties {
+                        canFocus = false
+                        onExit = { cancelFocusChange() }
+                    }
+                    .focusGroup()
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
@@ -540,6 +635,7 @@ private fun LanguageMenu(
                         text = stringResource(R.string.subtitle_search_your_languages),
                         iconRes = R.drawable.ic_chevron_left,
                         onClick = onHideAllLanguages,
+                        modifier = Modifier.focusRequester(menuFocusRequester),
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                     if (state.allLanguagesLoading) {
@@ -565,14 +661,35 @@ private fun LanguageMenu(
                         state.languages.partition {
                             SubtitleLanguageCodes.sameLanguage(it.code, state.language)
                         }
+                    val firstCode = (current.firstOrNull() ?: others.firstOrNull())?.code
                     current.forEach { entry ->
-                        LanguageMenuRow(entry = entry, selected = true, onSelect = onSelect)
+                        LanguageMenuRow(
+                            entry = entry,
+                            selected = true,
+                            onSelect = onSelect,
+                            modifier =
+                                if (entry.code == firstCode) {
+                                    Modifier.focusRequester(menuFocusRequester)
+                                } else {
+                                    Modifier
+                                },
+                        )
                     }
                     if (current.isNotEmpty() && others.isNotEmpty()) {
                         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                     }
                     others.forEach { entry ->
-                        LanguageMenuRow(entry = entry, selected = false, onSelect = onSelect)
+                        LanguageMenuRow(
+                            entry = entry,
+                            selected = false,
+                            onSelect = onSelect,
+                            modifier =
+                                if (entry.code == firstCode) {
+                                    Modifier.focusRequester(menuFocusRequester)
+                                } else {
+                                    Modifier
+                                },
+                        )
                     }
                     if (state.mode == SubtitleSearchMode.SERVER) {
                         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
@@ -594,6 +711,7 @@ private fun LanguageMenuRow(
     entry: SubtitleLanguageEntry,
     selected: Boolean,
     onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val noneText = stringResource(R.string.track_none)
     AfinityMenuItem(
@@ -608,5 +726,6 @@ private fun LanguageMenuRow(
                 else -> NumberFormat.getIntegerInstance().format(count)
             },
         onClick = { onSelect(entry.code) },
+        modifier = modifier,
     )
 }

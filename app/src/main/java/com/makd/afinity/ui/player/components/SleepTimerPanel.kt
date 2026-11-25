@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,6 +42,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -57,6 +60,7 @@ import com.makd.afinity.data.models.player.SLEEP_TIMER_PROMPT_THRESHOLD_MS
 import com.makd.afinity.data.models.player.SleepTimerMode
 import com.makd.afinity.ui.components.formatClock
 import com.makd.afinity.ui.player.PlayerViewModel
+import com.makd.afinity.ui.theme.focusOutline
 
 private val SLEEP_TIMER_DURATION_OPTIONS = listOf(5, 15, 30, 45, 60, 90)
 
@@ -73,24 +77,22 @@ fun SleepTimerPanel(
     val armed = uiState.isSleepTimerArmed
     val selectedMinutes = (uiState.sleepTimerMode as? SleepTimerMode.Duration)?.minutes
     val endOfItemSelected = uiState.sleepTimerMode is SleepTimerMode.EndOfItem
+    val initialFocusRequester = rememberPlayerOverlayInitialFocusRequester("sleep_timer")
+    val targetFocusMinutes =
+        if (!endOfItemSelected) {
+            selectedMinutes?.takeIf { it in SLEEP_TIMER_DURATION_OPTIONS }
+                ?: SLEEP_TIMER_DURATION_OPTIONS.first()
+        } else null
 
-    Box(
-        modifier =
-            Modifier.fillMaxSize().clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-            ) {
-                onDismiss()
-            },
-        contentAlignment = Alignment.Center,
-    ) {
+    PlayerOverlayBackdrop(onDismiss = onDismiss) {
         Surface(
             shape = RoundedCornerShape(28.dp),
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             tonalElevation = 6.dp,
             shadowElevation = 8.dp,
             modifier =
-                Modifier.clickable(
+                Modifier.focusProperties { canFocus = false }
+                    .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
                     ) {}
@@ -137,7 +139,15 @@ fun SleepTimerPanel(
                                         onSelectMode(SleepTimerMode.Duration(minutes))
                                         onDismiss()
                                     },
-                                    modifier = Modifier.weight(1f),
+                                    modifier =
+                                        Modifier.weight(1f)
+                                            .then(
+                                                if (minutes == targetFocusMinutes) {
+                                                    Modifier.focusRequester(initialFocusRequester)
+                                                } else {
+                                                    Modifier
+                                                },
+                                            ),
                                 )
                             }
                         }
@@ -154,6 +164,12 @@ fun SleepTimerPanel(
                             onSelectMode(SleepTimerMode.EndOfItem)
                             onDismiss()
                         },
+                        modifier =
+                            if (endOfItemSelected) {
+                                Modifier.focusRequester(initialFocusRequester)
+                            } else {
+                                Modifier
+                            },
                     )
                 }
 
@@ -182,6 +198,7 @@ private fun DurationTile(
         modifier =
             modifier
                 .heightIn(min = 60.dp)
+                .focusOutline(RoundedCornerShape(16.dp))
                 .clip(RoundedCornerShape(16.dp))
                 .background(
                     if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
@@ -215,11 +232,14 @@ private fun EndOfItemRow(
     remainingMs: Long,
     selected: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Row(
         modifier =
-            Modifier.fillMaxWidth()
+            modifier
+                .fillMaxWidth()
                 .heightIn(min = 56.dp)
+                .focusOutline(RoundedCornerShape(16.dp), focusedScale = 1.02f)
                 .clip(RoundedCornerShape(16.dp))
                 .background(
                     if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
@@ -267,6 +287,7 @@ private fun StopRow(onClick: () -> Unit) {
         modifier =
             Modifier.fillMaxWidth()
                 .height(48.dp)
+                .focusOutline(RoundedCornerShape(16.dp), focusedScale = 1.02f)
                 .clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f))
                 .clickable(role = Role.Button, onClick = onClick),
@@ -311,6 +332,7 @@ fun SleepTimerExtendPrompt(
 
         ElevatedButton(
             onClick = onExtend,
+            modifier = Modifier.focusOutline(CircleShape),
             shape = CircleShape,
             colors =
                 ButtonDefaults.elevatedButtonColors(
@@ -374,23 +396,32 @@ fun SleepTimerEndedOverlay(
         )
     }
 
+    val resumeFocusRequester =
+        rememberPlayerOverlayInitialFocusRequester(
+            key = uiState.sleepTimerExpired,
+            enabled = !uiState.isPlaying,
+        )
+
     Box(
-        modifier =
-            modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = dim.value))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    role = Role.Button,
-                    onClick = onResume,
-                ),
+        modifier = modifier.fillMaxSize().background(Color.Black.copy(alpha = dim.value)),
         contentAlignment = Alignment.Center,
     ) {
+        Box(
+            modifier =
+                Modifier.fillMaxSize()
+                    .focusProperties { canFocus = false }
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        role = Role.Button,
+                        onClick = onResume,
+                    ),
+        )
         AnimatedVisibility(
             visible = !uiState.isPlaying,
             enter = fadeIn(animationSpec = tween(400)),
             exit = fadeOut(animationSpec = tween(200)),
+            modifier = Modifier.focusProperties { onExit = { cancelFocusChange() } }.focusGroup(),
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(
@@ -430,6 +461,8 @@ fun SleepTimerEndedOverlay(
 
                 ElevatedButton(
                     onClick = onResume,
+                    modifier =
+                        Modifier.focusRequester(resumeFocusRequester).focusOutline(CircleShape),
                     shape = CircleShape,
                     colors =
                         ButtonDefaults.elevatedButtonColors(

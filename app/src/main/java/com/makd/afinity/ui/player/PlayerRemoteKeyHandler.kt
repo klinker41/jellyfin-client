@@ -117,6 +117,27 @@ object PlayerRemoteKeyHandler {
             else -> null
         }
 
+    fun resolveLockedControlsKey(keyCode: Int, showControls: Boolean): PlayerRemoteAction? =
+        when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_UP,
+            KeyEvent.KEYCODE_DPAD_DOWN,
+            KeyEvent.KEYCODE_DPAD_LEFT,
+            KeyEvent.KEYCODE_DPAD_RIGHT,
+            KeyEvent.KEYCODE_DPAD_CENTER,
+            KeyEvent.KEYCODE_ENTER,
+            KeyEvent.KEYCODE_NUMPAD_ENTER,
+            KeyEvent.KEYCODE_BUTTON_A ->
+                if (showControls) PlayerRemoteAction.KeepControlsAlive
+                else PlayerRemoteAction.ShowControls
+
+            else -> null
+        }
+
+    fun isPlayPauseMediaKey(keyCode: Int): Boolean =
+        keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE ||
+            keyCode == KeyEvent.KEYCODE_MEDIA_PLAY ||
+            keyCode == KeyEvent.KEYCODE_MEDIA_PAUSE
+
     fun isRepeatableRemoteKey(keyCode: Int, isInSyncPlay: Boolean): Boolean =
         !isInSyncPlay && keyCode in repeatableSeekKeys
 }

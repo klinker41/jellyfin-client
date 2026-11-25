@@ -32,6 +32,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -43,6 +50,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.makd.afinity.R
 import com.makd.afinity.ui.components.AfinitySlider
 import com.makd.afinity.ui.components.isLandscapeWindow
+import com.makd.afinity.ui.theme.focusOutline
 import kotlin.math.absoluteValue
 
 @Composable
@@ -61,9 +69,10 @@ fun PlaybackSpeedDialog(
     ) {
         Box(
             modifier =
-                Modifier.fillMaxSize().padding(16.dp).pointerInput(Unit) {
-                    detectTapGestures(onTap = { onDismiss() })
-                },
+                Modifier.fillMaxSize()
+                    .padding(16.dp)
+                    .focusProperties { canFocus = false }
+                    .pointerInput(Unit) { detectTapGestures(onTap = { onDismiss() }) },
             contentAlignment = Alignment.BottomCenter,
         ) {
             PlaybackSpeedPanel(
@@ -84,6 +93,10 @@ fun PlaybackSpeedPanel(
     modifier: Modifier = Modifier,
 ) {
     var sliderSpeed by remember(currentSpeed) { mutableFloatStateOf(currentSpeed) }
+    val presets = remember { listOf(0.25f, 0.50f, 1.00f, 1.50f, 2.00f) }
+    val initialFocusSpeed =
+        presets.firstOrNull { (currentSpeed - it).absoluteValue < 0.01f } ?: 1.00f
+    val initialFocusRequester = rememberPlayerOverlayInitialFocusRequester("speed_panel")
     val selectPreset: (Float) -> Unit = { speed ->
         sliderSpeed = speed
         onSpeedChange(speed)
@@ -124,6 +137,7 @@ fun PlaybackSpeedPanel(
                     },
                     modifier =
                         Modifier.size(48.dp)
+                            .focusOutline(CircleShape)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surfaceVariant),
                 ) {
@@ -143,7 +157,39 @@ fun PlaybackSpeedPanel(
                     },
                     valueRange = 0.25f..2.0f,
                     steps = 6,
-                    modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
+                    modifier =
+                        Modifier.weight(1f)
+                            .padding(horizontal = 16.dp)
+                            .focusOutline(RoundedCornerShape(8.dp), focusedScale = 1.0f)
+                            .onPreviewKeyEvent { keyEvent ->
+                                when (keyEvent.key) {
+                                    Key.DirectionLeft,
+                                    Key.DirectionRight -> {
+                                        if (keyEvent.type == KeyEventType.KeyDown) {
+                                            val delta =
+                                                if (keyEvent.key == Key.DirectionRight) 0.25f
+                                                else -0.25f
+                                            sliderSpeed =
+                                                (sliderSpeed + delta).coerceIn(0.25f, 2.0f)
+                                            onSpeedChange(sliderSpeed)
+                                        }
+                                        keyEvent.type == KeyEventType.KeyDown ||
+                                            keyEvent.type == KeyEventType.KeyUp
+                                    }
+
+                                    Key.DirectionCenter,
+                                    Key.Enter,
+                                    Key.NumPadEnter -> {
+                                        if (keyEvent.type == KeyEventType.KeyDown) {
+                                            onDismiss()
+                                        }
+                                        keyEvent.type == KeyEventType.KeyDown ||
+                                            keyEvent.type == KeyEventType.KeyUp
+                                    }
+
+                                    else -> false
+                                }
+                            },
                 )
 
                 IconButton(
@@ -153,6 +199,7 @@ fun PlaybackSpeedPanel(
                     },
                     modifier =
                         Modifier.size(48.dp)
+                            .focusOutline(CircleShape)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surfaceVariant),
                 ) {
@@ -170,41 +217,34 @@ fun PlaybackSpeedPanel(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
             ) {
-                SpeedChip(
-                    speed = 0.25f,
-                    isSelected = (sliderSpeed - 0.25f).absoluteValue < 0.01f,
-                    onClick = { selectPreset(0.25f) },
-                )
-                SpeedChip(
-                    speed = 0.50f,
-                    isSelected = (sliderSpeed - 0.50f).absoluteValue < 0.01f,
-                    onClick = { selectPreset(0.50f) },
-                )
-                SpeedChip(
-                    speed = 1.00f,
-                    isSelected = (sliderSpeed - 1.00f).absoluteValue < 0.01f,
-                    onClick = { selectPreset(1.00f) },
-                )
-                SpeedChip(
-                    speed = 1.50f,
-                    isSelected = (sliderSpeed - 1.50f).absoluteValue < 0.01f,
-                    onClick = { selectPreset(1.50f) },
-                )
-                SpeedChip(
-                    speed = 2.00f,
-                    isSelected = (sliderSpeed - 2.00f).absoluteValue < 0.01f,
-                    onClick = { selectPreset(2.00f) },
-                )
+                presets.forEach { preset ->
+                    SpeedChip(
+                        speed = preset,
+                        isSelected = (sliderSpeed - preset).absoluteValue < 0.01f,
+                        onClick = { selectPreset(preset) },
+                        modifier =
+                            if ((preset - initialFocusSpeed).absoluteValue < 0.01f) {
+                                Modifier.focusRequester(initialFocusRequester)
+                            } else {
+                                Modifier
+                            },
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun SpeedChip(speed: Float, isSelected: Boolean, onClick: () -> Unit) {
+private fun SpeedChip(
+    speed: Float,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Button(
         onClick = onClick,
-        modifier = Modifier.heightIn(min = 36.dp),
+        modifier = modifier.heightIn(min = 36.dp).focusOutline(RoundedCornerShape(20.dp)),
         shape = RoundedCornerShape(20.dp),
         colors =
             ButtonDefaults.buttonColors(

@@ -4,8 +4,6 @@ import android.graphics.Typeface
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -49,6 +47,7 @@ import com.makd.afinity.ui.player.components.GestureHandler
 import com.makd.afinity.ui.player.components.PlaybackStatsOverlay
 import com.makd.afinity.ui.player.components.PlayerControls
 import com.makd.afinity.ui.player.components.PlayerIndicators
+import com.makd.afinity.ui.player.components.PlayerOverlayBackdrop
 import com.makd.afinity.ui.player.components.SeekBarAnchor
 import com.makd.afinity.ui.player.components.SyncPlayGroupSheet
 import com.makd.afinity.ui.player.components.SyncPlayWaitingOverlay
@@ -114,8 +113,18 @@ fun PlayerScreen(
     var showVersionPicker by remember { mutableStateOf(false) }
     var isControlsPanelOpen by remember { mutableStateOf(false) }
     val seekBarAnchor = remember { SeekBarAnchor() }
-    val isOverlayPanelOpen =
-        isControlsPanelOpen || (showVersionPicker && uiState.availableSources.size > 1)
+    val isExternalOverlayOpen =
+        uiState.showPlaybackStats ||
+            uiState.showError ||
+            (showVersionPicker && uiState.availableSources.size > 1)
+    val isOverlayPanelOpen = isControlsPanelOpen || isExternalOverlayOpen
+    var wasOverlayPanelOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(isOverlayPanelOpen) {
+        if (wasOverlayPanelOpen && !isOverlayPanelOpen && uiState.showControls) {
+            viewModel.keepControlsVisible()
+        }
+        wasOverlayPanelOpen = isOverlayPanelOpen
+    }
     DisposableEffect(isOverlayPanelOpen) {
         viewModel.isOverlayPanelOpen = isOverlayPanelOpen
         onDispose { viewModel.isOverlayPanelOpen = false }
@@ -380,6 +389,9 @@ fun PlayerScreen(
                 syncPlayGroupName = syncPlayState.groupName,
                 syncPlayMemberInfo = syncPlayMemberInfo,
                 onPanelOpenChange = { isControlsPanelOpen = it },
+                isExternalOverlayOpen = isExternalOverlayOpen,
+                onShowControls = viewModel::showControls,
+                onKeepControlsVisible = viewModel::keepControlsVisible,
                 seekBarAnchor = seekBarAnchor,
             )
 
@@ -421,26 +433,13 @@ fun PlayerScreen(
             }
 
             if (showVersionPicker && uiState.availableSources.size > 1) {
-                Box(
-                    modifier =
-                        Modifier.fillMaxSize().clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                        ) {
-                            showVersionPicker = false
-                        },
+                PlayerOverlayBackdrop(
+                    onDismiss = { showVersionPicker = false },
+                    contentAlignment = Alignment.BottomEnd,
                 ) {
                     Box(
                         modifier =
-                            Modifier.align(Alignment.BottomEnd)
-                                .playerOverlayInsets()
-                                .padding(bottom = 100.dp, end = 16.dp)
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
-                                ) {
-                                    /* consume */
-                                },
+                            Modifier.playerOverlayInsets().padding(bottom = 100.dp, end = 16.dp),
                     ) {
                         VersionPickerSheet(
                             sources = uiState.availableSources,

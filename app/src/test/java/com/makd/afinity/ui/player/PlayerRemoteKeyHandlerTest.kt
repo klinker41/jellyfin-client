@@ -242,6 +242,49 @@ class PlayerRemoteKeyHandlerTest {
         )
     }
 
+    @Test
+    fun `resolveLockedControlsKey wakes or keeps controls alive for dpad keys only`() {
+        val wakeKeys =
+            listOf(
+                KeyEvent.KEYCODE_DPAD_UP,
+                KeyEvent.KEYCODE_DPAD_DOWN,
+                KeyEvent.KEYCODE_DPAD_LEFT,
+                KeyEvent.KEYCODE_DPAD_RIGHT,
+                KeyEvent.KEYCODE_DPAD_CENTER,
+                KeyEvent.KEYCODE_ENTER,
+                KeyEvent.KEYCODE_NUMPAD_ENTER,
+                KeyEvent.KEYCODE_BUTTON_A,
+            )
+        wakeKeys.forEach { key ->
+            assertEquals(
+                PlayerRemoteAction.ShowControls,
+                PlayerRemoteKeyHandler.resolveLockedControlsKey(
+                    keyCode = key,
+                    showControls = false,
+                ),
+            )
+            assertEquals(
+                PlayerRemoteAction.KeepControlsAlive,
+                PlayerRemoteKeyHandler.resolveLockedControlsKey(keyCode = key, showControls = true),
+            )
+        }
+        assertNull(
+            PlayerRemoteKeyHandler.resolveLockedControlsKey(
+                keyCode = KeyEvent.KEYCODE_BACK,
+                showControls = false,
+            ),
+        )
+    }
+
+    @Test
+    fun `isPlayPauseMediaKey matches play pause and dedicated play or pause keys`() {
+        assertTrue(PlayerRemoteKeyHandler.isPlayPauseMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE))
+        assertTrue(PlayerRemoteKeyHandler.isPlayPauseMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY))
+        assertTrue(PlayerRemoteKeyHandler.isPlayPauseMediaKey(KeyEvent.KEYCODE_MEDIA_PAUSE))
+        assertFalse(PlayerRemoteKeyHandler.isPlayPauseMediaKey(KeyEvent.KEYCODE_MEDIA_FAST_FORWARD))
+        assertFalse(PlayerRemoteKeyHandler.isPlayPauseMediaKey(KeyEvent.KEYCODE_DPAD_CENTER))
+    }
+
     private fun resolveMedia(
         keyCode: Int,
         isPlaying: Boolean = false,

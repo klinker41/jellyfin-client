@@ -1,19 +1,18 @@
 package com.makd.afinity.ui.player.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -23,9 +22,18 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -33,24 +41,49 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.makd.afinity.R
 import com.makd.afinity.data.models.player.PlaybackStats
+import com.makd.afinity.ui.theme.focusOutline
+import kotlinx.coroutines.launch
 
 @Composable
 fun PlaybackStatsOverlay(stats: PlaybackStats, onClose: () -> Unit) {
-    Box(
-        modifier =
-            Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)).clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-            ) {
-                onClose()
-            },
-        contentAlignment = Alignment.Center,
+    val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
+    val closeFocusRequester = rememberPlayerOverlayInitialFocusRequester("playback_stats")
+    val scrollStepPx = with(LocalDensity.current) { 120.dp.toPx() }
+
+    PlayerOverlayBackdrop(
+        onDismiss = onClose,
+        scrimColor = Color.Black.copy(alpha = 0.6f),
     ) {
         Surface(
             modifier =
                 Modifier.playerOverlayInsets()
                     .padding(horizontal = 24.dp, vertical = 24.dp)
                     .widthIn(max = 420.dp)
+                    .onPreviewKeyEvent { keyEvent ->
+                        if (keyEvent.type == KeyEventType.KeyDown) {
+                            when (keyEvent.key) {
+                                Key.DirectionDown -> {
+                                    coroutineScope.launch {
+                                        scrollState.animateScrollBy(scrollStepPx)
+                                    }
+                                    true
+                                }
+
+                                Key.DirectionUp -> {
+                                    coroutineScope.launch {
+                                        scrollState.animateScrollBy(-scrollStepPx)
+                                    }
+                                    true
+                                }
+
+                                else -> false
+                            }
+                        } else {
+                            false
+                        }
+                    }
+                    .focusProperties { canFocus = false }
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
@@ -61,7 +94,7 @@ fun PlaybackStatsOverlay(stats: PlaybackStats, onClose: () -> Unit) {
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 6.dp,
         ) {
-            Column(modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState())) {
+            Column(modifier = Modifier.padding(24.dp).verticalScroll(scrollState)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -73,7 +106,11 @@ fun PlaybackStatsOverlay(stats: PlaybackStats, onClose: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    IconButton(onClick = onClose) {
+                    IconButton(
+                        onClick = onClose,
+                        modifier =
+                            Modifier.focusRequester(closeFocusRequester).focusOutline(CircleShape),
+                    ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_close),
                             contentDescription = stringResource(R.string.cd_playback_stats_close),
