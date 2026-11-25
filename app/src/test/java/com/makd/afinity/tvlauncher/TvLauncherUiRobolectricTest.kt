@@ -2,20 +2,33 @@ package com.makd.afinity.tvlauncher
 
 import android.app.Application
 import android.content.Context
+import android.view.KeyEvent as AndroidKeyEvent
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.InputMode
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.platform.LocalInputModeManager
+import androidx.compose.ui.platform.ViewRootForTest
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.performKeyPress
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
@@ -32,7 +45,9 @@ import com.makd.afinity.ui.components.AppNavigationDrawerContent
 import com.makd.afinity.ui.components.LocalPinnedDrawerStartInset
 import com.makd.afinity.ui.preview.PreviewHost
 import com.makd.afinity.ui.settings.SessionSwitcherState
+import com.makd.afinity.ui.utils.LocalIsTelevision
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -253,6 +268,153 @@ class TvLauncherUiRobolectricTest {
             .performClick()
         assertEquals(systemApp, infoApp)
     }
+
+    @Test
+    fun `TvAppActionsDialog ignores repeated key-down and release from opening long press and allows dpad navigation`() {
+        var launchedApp: TvInstalledApp? = null
+        var infoApp: TvInstalledApp? = null
+        val userApp =
+            openTvAppActionsDialogViaLongPress(
+                onAppClick = { launchedApp = it },
+                onAppInfoClick = { infoApp = it },
+            )
+
+        val openText = context.getString(R.string.tv_launcher_app_action_open)
+        val infoText = context.getString(R.string.tv_launcher_app_action_info)
+
+        // Simulate held DPAD_CENTER repeat events + release arriving in the dialog window
+        composeRule.onNodeWithText(openText).apply {
+            performKeyPress(
+                keyEvent(AndroidKeyEvent.ACTION_DOWN, AndroidKeyEvent.KEYCODE_DPAD_CENTER, 1),
+            )
+            performKeyPress(
+                keyEvent(AndroidKeyEvent.ACTION_UP, AndroidKeyEvent.KEYCODE_DPAD_CENTER),
+            )
+        }
+        assertNull(launchedApp)
+        composeRule.onNodeWithText(openText).assertIsDisplayed()
+        composeRule.onNodeWithText(infoText).assertIsDisplayed()
+
+        // Standalone stale KeyUp with no fresh KeyDown is also ignored
+        composeRule
+            .onNodeWithText(openText)
+            .performKeyPress(
+                keyEvent(AndroidKeyEvent.ACTION_UP, AndroidKeyEvent.KEYCODE_DPAD_CENTER),
+            )
+        assertNull(launchedApp)
+
+        // Navigate down to "App info" and activate with a fresh press
+        composeRule
+            .onNodeWithText(openText)
+            .performKeyPress(
+                keyEvent(AndroidKeyEvent.ACTION_DOWN, AndroidKeyEvent.KEYCODE_DPAD_DOWN),
+            )
+        composeRule.onNodeWithText(infoText).apply {
+            performKeyPress(
+                keyEvent(AndroidKeyEvent.ACTION_UP, AndroidKeyEvent.KEYCODE_DPAD_DOWN),
+            )
+            assertIsFocused()
+            performKeyPress(
+                keyEvent(AndroidKeyEvent.ACTION_DOWN, AndroidKeyEvent.KEYCODE_DPAD_CENTER),
+            )
+            performKeyPress(
+                keyEvent(AndroidKeyEvent.ACTION_UP, AndroidKeyEvent.KEYCODE_DPAD_CENTER),
+            )
+        }
+
+        assertEquals(userApp, infoApp)
+        assertNull(launchedApp)
+    }
+
+    @Test
+    fun `TvAppActionsDialog activates first option on fresh press after ignoring stale activation keys`() {
+        var launchedApp: TvInstalledApp? = null
+        val userApp = openTvAppActionsDialogViaLongPress(onAppClick = { launchedApp = it })
+        val openText = context.getString(R.string.tv_launcher_app_action_open)
+
+        val staleKeyCodes =
+            listOf(
+                AndroidKeyEvent.KEYCODE_ENTER,
+                AndroidKeyEvent.KEYCODE_NUMPAD_ENTER,
+                AndroidKeyEvent.KEYCODE_SPACE,
+            )
+        staleKeyCodes.forEach { keyCode ->
+            composeRule.onNodeWithText(openText).apply {
+                performKeyPress(keyEvent(AndroidKeyEvent.ACTION_DOWN, keyCode, 1))
+                performKeyPress(keyEvent(AndroidKeyEvent.ACTION_UP, keyCode))
+            }
+            assertNull(launchedApp)
+        }
+
+        // Fresh press (including a held repeat after fresh down) still triggers Open on release
+        composeRule.onNodeWithText(openText).apply {
+            performKeyPress(
+                keyEvent(AndroidKeyEvent.ACTION_DOWN, AndroidKeyEvent.KEYCODE_DPAD_CENTER),
+            )
+            performKeyPress(
+                keyEvent(AndroidKeyEvent.ACTION_DOWN, AndroidKeyEvent.KEYCODE_DPAD_CENTER, 1),
+            )
+            performKeyPress(
+                keyEvent(AndroidKeyEvent.ACTION_UP, AndroidKeyEvent.KEYCODE_DPAD_CENTER),
+            )
+        }
+        assertEquals(userApp, launchedApp)
+    }
+
+    private fun openTvAppActionsDialogViaLongPress(
+        onAppClick: (TvInstalledApp) -> Unit = {},
+        onAppInfoClick: (TvInstalledApp) -> Unit = {},
+    ): TvInstalledApp {
+        val userApp =
+            TvInstalledApp(
+                packageName = "com.example.user",
+                activityName = "MainActivity",
+                label = "User App",
+                isLeanback = true,
+                isSystemApp = false,
+            )
+
+        composeRule.setContent {
+            PreviewHost {
+                val inputModeManager = LocalInputModeManager.current
+                LaunchedEffect(Unit) { inputModeManager.requestInputMode(InputMode.Keyboard) }
+                CompositionLocalProvider(
+                    LocalIsTelevision provides true,
+                    LocalPinnedDrawerStartInset provides 0.dp,
+                ) {
+                    TvAppsRowContent(
+                        apps = listOf(userApp),
+                        onAppClick = onAppClick,
+                        onAppInfoClick = onAppInfoClick,
+                        onUninstallClick = {},
+                    )
+                }
+            }
+        }
+
+        val openText = context.getString(R.string.tv_launcher_app_action_open)
+        val tile = composeRule.onNodeWithContentDescription("User App")
+        tile.performSemanticsAction(SemanticsActions.RequestFocus)
+        tile.assertIsFocused()
+        tile.performKeyInput { keyDown(Key.DirectionCenter) }
+        composeRule.mainClock.advanceTimeBy(1_000L)
+        composeRule.waitForIdle()
+
+        val dialogView =
+            (composeRule.onNode(isDialog()).fetchSemanticsNode().root as ViewRootForTest).view
+        composeRule.runOnIdle { dialogView.requestFocusFromTouch() }
+
+        composeRule
+            .onNodeWithText(openText)
+            .assertIsDisplayed()
+            .performSemanticsAction(SemanticsActions.RequestFocus)
+            .assertIsFocused()
+
+        return userApp
+    }
+
+    private fun keyEvent(action: Int, keyCode: Int, repeatCount: Int = 0): KeyEvent =
+        KeyEvent(AndroidKeyEvent(0L, 0L, action, keyCode, repeatCount))
 
     @Test
     fun `TvLauncherTopBarActionsContent displays clock, network state, and settings button`() {

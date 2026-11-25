@@ -35,6 +35,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -56,6 +63,7 @@ import com.makd.afinity.ui.components.afinityDialogProperties
 import com.makd.afinity.ui.home.components.HomeSectionHeader
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.focusOutline
+import com.makd.afinity.ui.utils.rememberTvInitialFocusRequester
 
 private val TvAppTileWidth = 176.dp
 
@@ -278,15 +286,30 @@ private fun TvAppActionsDialog(
     onUninstall: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val observedKeyDowns = remember(app.packageName) { mutableSetOf<Key>() }
+
     AlertDialog(
         properties = afinityDialogProperties(),
         onDismissRequest = onDismiss,
+        modifier =
+            Modifier.onPreviewKeyEvent { event ->
+                consumeStaleActivationKey(event, observedKeyDowns)
+            },
         title = { Text(app.label) },
         text = {
+            val initialFocusRequester = rememberTvInitialFocusRequester(key = app.packageName)
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 TextButton(
                     onClick = onOpen,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .then(
+                                if (initialFocusRequester != null) {
+                                    Modifier.focusRequester(initialFocusRequester)
+                                } else {
+                                    Modifier
+                                },
+                            ),
                 ) {
                     Text(stringResource(R.string.tv_launcher_app_action_open))
                 }
@@ -314,3 +337,28 @@ private fun TvAppActionsDialog(
         },
     )
 }
+
+private fun consumeStaleActivationKey(
+    event: KeyEvent,
+    observedKeyDowns: MutableSet<Key>,
+): Boolean {
+    if (!event.key.isActivationKey()) return false
+    return when (event.type) {
+        KeyEventType.KeyDown -> {
+            if (event.nativeKeyEvent.repeatCount > 0) {
+                true
+            } else {
+                observedKeyDowns.add(event.key)
+                false
+            }
+        }
+        KeyEventType.KeyUp -> !observedKeyDowns.remove(event.key)
+        else -> false
+    }
+}
+
+private fun Key.isActivationKey(): Boolean =
+    this == Key.DirectionCenter ||
+        this == Key.Enter ||
+        this == Key.NumPadEnter ||
+        this == Key.Spacebar
