@@ -23,10 +23,13 @@ import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -56,6 +59,8 @@ import com.makd.afinity.ui.components.windowHeightDp
 import com.makd.afinity.ui.components.windowWidthDp
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.focusOutline
+import com.makd.afinity.ui.utils.LocalCardRowFocusFirstOnEnter
+import com.makd.afinity.ui.utils.tvFocusFirstOnEnter
 import com.makd.afinity.util.formatOneDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,6 +79,20 @@ fun SpotlightCarousel(
     val windowHeight = windowHeightDp()
     val state = rememberCarouselState { items.size }
     val ratingScale = rememberRatingMetadataScale()
+    val focusFirstOnEnter = LocalCardRowFocusFirstOnEnter.current
+    val firstItemFocusRequester = remember { FocusRequester() }
+    val coroutineScope = rememberCoroutineScope()
+    val carouselFocusModifier =
+        if (focusFirstOnEnter) {
+            Modifier.tvFocusFirstOnEnter(
+                firstItemFocusRequester = firstItemFocusRequester,
+                coroutineScope = coroutineScope,
+                isScrolledPastFirst = { state.currentItem > 0 },
+                scrollToFirst = { state.scrollToItem(0) },
+            )
+        } else {
+            Modifier
+        }
 
     Column(modifier = modifier) {
         HomeSectionHeader(title = title, startPadding = CardDimensions.RowGutter)
@@ -98,7 +117,7 @@ fun SpotlightCarousel(
             HorizontalMultiBrowseCarousel(
                 state = state,
                 preferredItemWidth = itemSize.width,
-                modifier = Modifier.height(itemSize.height),
+                modifier = Modifier.height(itemSize.height).then(carouselFocusModifier),
                 itemSpacing = 12.dp,
                 maxSmallItemWidth = CardDimensions.spotlightMaxSmallItemWidth,
             ) { index ->
@@ -107,6 +126,13 @@ fun SpotlightCarousel(
                 Box(
                     modifier =
                         Modifier.height(itemSize.height)
+                            .then(
+                                if (focusFirstOnEnter && index == 0) {
+                                    Modifier.focusRequester(firstItemFocusRequester)
+                                } else {
+                                    Modifier
+                                },
+                            )
                             .maskClip(MaterialTheme.shapes.extraLarge)
                             .focusOutline(MaterialTheme.shapes.extraLarge)
                             .clickable(

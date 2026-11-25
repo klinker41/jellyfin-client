@@ -6,6 +6,8 @@ import android.graphics.Canvas
 import android.view.View
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.BringIntoViewSpec
+import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -31,6 +34,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
@@ -71,13 +75,16 @@ import androidx.test.core.app.ApplicationProvider
 import com.makd.afinity.R
 import com.makd.afinity.data.models.HomeRow
 import com.makd.afinity.data.models.common.HeroStyle
+import com.makd.afinity.data.models.media.AfinityImages
 import com.makd.afinity.data.models.server.ConnectionType
 import com.makd.afinity.navigation.LocalHeroStyle
+import com.makd.afinity.ui.home.HomeTvFocusTarget
 import com.makd.afinity.ui.home.HomeTvHeroFocusScrollEffect
 import com.makd.afinity.ui.home.HomeTvInitialFocusEffect
 import com.makd.afinity.ui.home.HomeTvRowBox
 import com.makd.afinity.ui.home.rememberHomeTvFocusState
 import com.makd.afinity.ui.home.resolveInitialTvFocusTarget
+import com.makd.afinity.ui.home.tvHeroPinBringIntoViewToTop
 import com.makd.afinity.ui.item.components.shared.PlaybackSelectionButton
 import com.makd.afinity.ui.item.components.shared.PrimaryPlaybackButton
 import com.makd.afinity.ui.preview.PreviewData
@@ -98,6 +105,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -1067,4 +1075,443 @@ class TvFocusNavigationRobolectricTest {
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("sheet_secondary_btn").assertIsFocused()
     }
+
+    @Test
+    @Config(qualifiers = "w960dp-h540dp")
+    fun `hero carousel stays scrolled to top when navigating across all hero buttons under PivotBringIntoViewSpec`() {
+        val context = ApplicationProvider.getApplicationContext<Application>()
+        val watchNowDesc = context.getString(R.string.hero_btn_watch_now)
+        val playTrailerDesc = context.getString(R.string.hero_btn_play_trailer)
+        val moreInfoDesc = context.getString(R.string.hero_btn_more_info)
+        lateinit var listState: LazyListState
+
+        composeTestRule.setContent {
+            PreviewHost(modifier = Modifier.fillMaxSize(), themeMode = ThemeMode.DARK) {
+                val inputModeManager = LocalInputModeManager.current
+                LaunchedEffect(Unit) { inputModeManager.requestInputMode(InputMode.Keyboard) }
+
+                CompositionLocalProvider(
+                    LocalIsTelevision provides true,
+                    LocalHeroStyle provides HeroStyle.FULL_BLEED,
+                    LocalBringIntoViewSpec provides TestPivotBringIntoViewSpec,
+                ) {
+                    listState = rememberLazyListState()
+                    var isHeroFocused by remember { mutableStateOf(false) }
+
+                    HomeTvHeroFocusScrollEffect(
+                        isHeroFocused = isHeroFocused,
+                        lazyListState = listState,
+                    )
+
+                    LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+                        item(key = "hero_carousel") {
+                            HeroCarousel(
+                                items = PreviewData.posterRow.take(2),
+                                onWatchNowClick = {},
+                                onPlayTrailerClick = {},
+                                onMoreInformationClick = {},
+                                modifier =
+                                    Modifier.tvHeroPinBringIntoViewToTop().onFocusChanged {
+                                        isHeroFocused = it.hasFocus
+                                    },
+                            )
+                        }
+                        items(6) { rowIndex ->
+                            CardRow(modifier = Modifier.fillMaxWidth().height(200.dp)) {
+                                items(
+                                    PreviewData.posterRow.take(2),
+                                    key = { "${rowIndex}_${it.id}" },
+                                ) { item ->
+                                    MediaItemCard(
+                                        item = item,
+                                        onClick = {},
+                                        cardWidth = 140.dp,
+                                        modifier =
+                                            Modifier.testTag(
+                                                "pivot_scroll_row_${rowIndex}_${item.name}",
+                                            ),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.runOnIdle { listState.requestScrollToItem(index = 0, scrollOffset = 220) }
+        composeTestRule.waitForIdle()
+        assertNotEquals(0, listState.firstVisibleItemScrollOffset)
+
+        val firstRowCard =
+            composeTestRule.onNode(
+                hasAnyAncestor(
+                    hasTestTag("pivot_scroll_row_0_${PreviewData.posterRow[0].name}"),
+                ) and hasClickAction(),
+            )
+        firstRowCard.performSemanticsAction(SemanticsActions.RequestFocus)
+        firstRowCard.assertIsFocused()
+
+        firstRowCard.performKeyInput { pressKey(Key.DirectionUp) }
+        composeTestRule.waitForIdle()
+        composeTestRule
+            .onNode(
+                (hasContentDescription(watchNowDesc) or
+                    hasContentDescription(moreInfoDesc) or
+                    hasContentDescription(playTrailerDesc)) and isFocused(),
+            )
+            .assertExists()
+        assertEquals(0, listState.firstVisibleItemIndex)
+        assertEquals(0, listState.firstVisibleItemScrollOffset)
+
+        // Move to the leftmost hero button (More Info), then traverse right and back left across
+        // all three hero buttons while verifying LazyColumn remains pinned at (0, 0).
+        composeTestRule
+            .onNodeWithContentDescription(moreInfoDesc)
+            .performSemanticsAction(
+                SemanticsActions.RequestFocus,
+            )
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithContentDescription(moreInfoDesc).assertIsFocused()
+        assertEquals(0, listState.firstVisibleItemIndex)
+        assertEquals(0, listState.firstVisibleItemScrollOffset)
+
+        composeTestRule.onNodeWithContentDescription(moreInfoDesc).performKeyInput {
+            pressKey(Key.DirectionRight)
+        }
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithContentDescription(playTrailerDesc).assertIsFocused()
+        assertEquals(0, listState.firstVisibleItemIndex)
+        assertEquals(0, listState.firstVisibleItemScrollOffset)
+
+        composeTestRule.onNodeWithContentDescription(playTrailerDesc).performKeyInput {
+            pressKey(Key.DirectionRight)
+        }
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithContentDescription(watchNowDesc).assertIsFocused()
+        assertEquals(0, listState.firstVisibleItemIndex)
+        assertEquals(0, listState.firstVisibleItemScrollOffset)
+
+        composeTestRule.onNodeWithContentDescription(watchNowDesc).performKeyInput {
+            pressKey(Key.DirectionLeft)
+        }
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithContentDescription(playTrailerDesc).assertIsFocused()
+        assertEquals(0, listState.firstVisibleItemIndex)
+        assertEquals(0, listState.firstVisibleItemScrollOffset)
+    }
+
+    @Test
+    @Config(qualifiers = "w960dp-h540dp")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `focused grid card draws visible highlight overlay and border on top of dark content`() {
+        lateinit var hostView: View
+        lateinit var inputModeManager: InputModeManager
+        var cardBounds: Rect? = null
+        var borderInsetPx = 0
+        val darkMovie = PreviewData.movie(name = "GridHighlight").copy(images = AfinityImages())
+
+        composeTestRule.setContent {
+            PreviewHost(modifier = Modifier.fillMaxSize(), themeMode = ThemeMode.DARK) {
+                hostView = LocalView.current
+                inputModeManager = LocalInputModeManager.current
+                borderInsetPx = with(LocalDensity.current) { 2.dp.toPx().roundToInt() }
+
+                Box(modifier = Modifier.fillMaxSize().background(Color.Black).padding(32.dp)) {
+                    Box(
+                        modifier =
+                            Modifier.width(140.dp)
+                                .testTag("grid_card_wrapper")
+                                .onGloballyPositioned { cardBounds = it.boundsInRoot() },
+                    ) {
+                        MediaItemGridCard(item = darkMovie, onClick = {})
+                    }
+                }
+            }
+        }
+
+        fun samplePixel(x: Float, y: Float): Int {
+            composeTestRule.waitForIdle()
+            var pixel = 0
+            composeTestRule.runOnIdle {
+                val bitmap =
+                    Bitmap.createBitmap(
+                        hostView.width.coerceAtLeast(1),
+                        hostView.height.coerceAtLeast(1),
+                        Bitmap.Config.ARGB_8888,
+                    )
+                try {
+                    hostView.draw(Canvas(bitmap))
+                    pixel =
+                        bitmap.getPixel(
+                            x.roundToInt().coerceIn(0, bitmap.width - 1),
+                            y.roundToInt().coerceIn(0, bitmap.height - 1),
+                        )
+                } finally {
+                    bitmap.recycle()
+                }
+            }
+            return pixel
+        }
+
+        composeTestRule.waitForIdle()
+        val bounds = cardBounds
+        assertNotNull(bounds)
+        val posterHeight = bounds!!.width / CardDimensions.ASPECT_RATIO_PORTRAIT
+        // When focused, the poster scales 1.06x around its center, moving the top border outward by
+        // 3% of the poster height.
+        val scaledTopY = bounds.top - (posterHeight * 0.03f)
+        val borderX = bounds.center.x
+        val borderY = scaledTopY + borderInsetPx
+        val interiorX = bounds.center.x
+        val interiorY = bounds.top + posterHeight * 0.25f
+
+        val unfocusedBorderPixel = samplePixel(borderX, borderY)
+        val unfocusedInteriorPixel = samplePixel(interiorX, interiorY)
+
+        composeTestRule.runOnIdle { inputModeManager.requestInputMode(InputMode.Keyboard) }
+        val cardNode =
+            composeTestRule.onNode(
+                hasAnyAncestor(hasTestTag("grid_card_wrapper")) and hasClickAction(),
+            )
+        cardNode.performSemanticsAction(SemanticsActions.RequestFocus)
+        cardNode.assertIsFocused()
+
+        val focusedBorderPixel = samplePixel(borderX, borderY)
+        val focusedInteriorPixel = samplePixel(interiorX, interiorY)
+
+        assertTrue(
+            "Expected brighter focus border on top of focused grid card",
+            android.graphics.Color.luminance(focusedBorderPixel) >
+                android.graphics.Color.luminance(unfocusedBorderPixel) + 0.3f,
+        )
+        assertTrue(
+            "Expected brighter sheen highlight on top of focused grid card",
+            android.graphics.Color.luminance(focusedInteriorPixel) >
+                android.graphics.Color.luminance(unfocusedInteriorPixel) + 0.05f,
+        )
+    }
+
+    @Test
+    @Config(qualifiers = "w960dp-h540dp")
+    fun `home screen sections always focus first item when navigating vertically`() {
+        val row0Items = List(10) { index -> PreviewData.movie(name = "Row0Movie$index") }
+        val row1Items = List(10) { index -> PreviewData.movie(name = "Row1Movie$index") }
+        lateinit var row0State: LazyListState
+        lateinit var row1State: LazyListState
+        lateinit var scope: CoroutineScope
+
+        composeTestRule.setContent {
+            PreviewHost(modifier = Modifier.fillMaxSize(), themeMode = ThemeMode.DARK) {
+                val inputModeManager = LocalInputModeManager.current
+                LaunchedEffect(Unit) { inputModeManager.requestInputMode(InputMode.Keyboard) }
+
+                CompositionLocalProvider(LocalIsTelevision provides true) {
+                    val tvFocus =
+                        rememberHomeTvFocusState(
+                            target = HomeTvFocusTarget(rowKey = "row_0", itemIndex = 0),
+                        )
+                    row0State = rememberCardRowListState()
+                    row1State = rememberCardRowListState()
+                    scope = rememberCoroutineScope()
+
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        HomeTvRowBox(rowKey = "row_0", tvFocus = tvFocus) {
+                            CardRow(
+                                state = row0State,
+                                modifier = Modifier.fillMaxWidth().height(240.dp),
+                            ) {
+                                items(row0Items, key = { "r0_${it.id}" }) { item ->
+                                    MediaItemCard(
+                                        item = item,
+                                        onClick = {},
+                                        cardWidth = 140.dp,
+                                        modifier = Modifier.testTag("section0_${item.name}"),
+                                    )
+                                }
+                            }
+                        }
+                        HomeTvRowBox(rowKey = "row_1", tvFocus = tvFocus) {
+                            CardRow(
+                                state = row1State,
+                                modifier = Modifier.fillMaxWidth().height(240.dp),
+                            ) {
+                                items(row1Items, key = { "r1_${it.id}" }) { item ->
+                                    MediaItemCard(
+                                        item = item,
+                                        onClick = {},
+                                        cardWidth = 140.dp,
+                                        modifier = Modifier.testTag("section1_${item.name}"),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        fun card(section: Int, index: Int) =
+            composeTestRule.onNode(
+                hasAnyAncestor(
+                    hasTestTag("section${section}_Row${section}Movie$index"),
+                ) and hasClickAction(),
+            )
+
+        composeTestRule.waitForIdle()
+        card(0, 0).assertIsFocused()
+
+        card(0, 0).performKeyInput { pressKey(Key.DirectionRight) }
+        composeTestRule.waitForIdle()
+        card(0, 1).assertIsFocused()
+
+        card(0, 1).performKeyInput { pressKey(Key.DirectionRight) }
+        composeTestRule.waitForIdle()
+        card(0, 2).assertIsFocused()
+
+        card(0, 2).performKeyInput { pressKey(Key.DirectionDown) }
+        composeTestRule.waitForIdle()
+        card(1, 0).assertIsFocused()
+
+        card(1, 0).performKeyInput { pressKey(Key.DirectionRight) }
+        composeTestRule.waitForIdle()
+        card(1, 1).performKeyInput { pressKey(Key.DirectionRight) }
+        composeTestRule.waitForIdle()
+        card(1, 2).assertIsFocused()
+
+        card(1, 2).performKeyInput { pressKey(Key.DirectionUp) }
+        composeTestRule.waitForIdle()
+        card(0, 0).assertIsFocused()
+
+        // Navigate back down, scroll row 0 past item 0, then return Up and verify row 0 resets to
+        // 0.
+        card(0, 0).performKeyInput { pressKey(Key.DirectionDown) }
+        composeTestRule.waitForIdle()
+        card(1, 0).assertIsFocused()
+
+        composeTestRule.runOnIdle { scope.launch { row0State.scrollToItem(3) } }
+        composeTestRule.waitForIdle()
+        assertEquals(3, row0State.firstVisibleItemIndex)
+
+        card(1, 0).performKeyInput { pressKey(Key.DirectionUp) }
+        composeTestRule.waitForIdle()
+        assertEquals(0, row0State.firstVisibleItemIndex)
+        card(0, 0).assertIsFocused()
+    }
+
+    @Test
+    @Config(qualifiers = "w960dp-h540dp")
+    fun `horizontal focus movement in home card row keeps vertical scroll offset stable under PivotBringIntoViewSpec`() {
+        val rowItems = PreviewData.posterRow.take(5)
+        lateinit var listState: LazyListState
+        val observedVerticalPositions = mutableListOf<Pair<Int, Int>>()
+
+        composeTestRule.setContent {
+            PreviewHost(modifier = Modifier.fillMaxSize(), themeMode = ThemeMode.DARK) {
+                val inputModeManager = LocalInputModeManager.current
+                LaunchedEffect(Unit) { inputModeManager.requestInputMode(InputMode.Keyboard) }
+
+                CompositionLocalProvider(
+                    LocalIsTelevision provides true,
+                    LocalBringIntoViewSpec provides TestPivotBringIntoViewSpec,
+                ) {
+                    listState = rememberLazyListState()
+                    val tvFocus =
+                        rememberHomeTvFocusState(
+                            target = HomeTvFocusTarget(rowKey = "row_0", itemIndex = 1),
+                        )
+
+                    LaunchedEffect(listState) {
+                        snapshotFlow {
+                            listState.firstVisibleItemIndex to
+                                listState.firstVisibleItemScrollOffset
+                        }
+                            .collect { observedVerticalPositions.add(it) }
+                    }
+
+                    LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+                        item(key = "header") {
+                            Box(modifier = Modifier.fillMaxWidth().height(260.dp))
+                        }
+                        items(4, key = { "row_$it" }) { rowIndex ->
+                            HomeTvRowBox(rowKey = "row_$rowIndex", tvFocus = tvFocus) {
+                                CardRow(modifier = Modifier.fillMaxWidth().height(240.dp)) {
+                                    items(rowItems, key = { "r${rowIndex}_${it.id}" }) { item ->
+                                        MediaItemCard(
+                                            item = item,
+                                            onClick = {},
+                                            cardWidth = 140.dp,
+                                            modifier =
+                                                Modifier.testTag(
+                                                    "stable_r${rowIndex}_${item.name}",
+                                                ),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        fun card(index: Int) =
+            composeTestRule.onNode(
+                hasAnyAncestor(hasTestTag("stable_r0_${rowItems[index].name}")) and
+                    hasClickAction(),
+            )
+
+        composeTestRule.waitForIdle()
+        card(0).assertIsFocused()
+        val baselinePosition =
+            listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset
+        observedVerticalPositions.clear()
+
+        for (index in 0..2) {
+            card(index).performKeyInput { pressKey(Key.DirectionRight) }
+            composeTestRule.waitForIdle()
+            card(index + 1).assertIsFocused()
+        }
+        for (index in 3 downTo 1) {
+            card(index).performKeyInput { pressKey(Key.DirectionLeft) }
+            composeTestRule.waitForIdle()
+            card(index - 1).assertIsFocused()
+        }
+
+        assertEquals(
+            baselinePosition,
+            listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset,
+        )
+        assertTrue(
+            "Expected zero vertical scroll bounce during horizontal focus movement, saw $observedVerticalPositions",
+            observedVerticalPositions.all { it == baselinePosition },
+        )
+    }
 }
+
+private val TestPivotBringIntoViewSpec =
+    object : BringIntoViewSpec {
+        private val parentFraction = 0.3f
+        private val childFraction = 0f
+
+        override fun calculateScrollDistance(
+            offset: Float,
+            size: Float,
+            containerSize: Float,
+        ): Float {
+            val leading = offset
+            val trailing = offset + size
+            val itemSize = kotlin.math.abs(trailing - leading)
+            val childSmallerThanParent = itemSize <= containerSize
+            val initialTarget = parentFraction * containerSize - childFraction * itemSize
+            val spaceAvailable = containerSize - initialTarget
+            val targetForLeadingEdge =
+                if (childSmallerThanParent && spaceAvailable < itemSize) {
+                    containerSize - itemSize
+                } else {
+                    initialTarget
+                }
+            return leading - targetForLeadingEdge
+        }
+    }

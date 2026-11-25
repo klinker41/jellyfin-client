@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import com.makd.afinity.ui.utils.LocalIsTelevision
 import com.makd.afinity.ui.utils.rememberTopBarScrollProgress
 import com.makd.afinity.ui.utils.topBarScrollKey
 import kotlin.math.ceil
@@ -173,13 +174,14 @@ fun rememberTopBarBlurState(
 ): TopBarBlurState {
     val currentProgress = rememberUpdatedState(progress)
     val currentScrollKey = rememberUpdatedState(scrollKey)
+    val currentDisableBlur = rememberUpdatedState(LocalIsTelevision.current)
     val contentLayer = rememberGraphicsLayer()
     val blurLayer = rememberGraphicsLayer()
     return remember(contentLayer, blurLayer, maxBlurRadius) {
         TopBarBlurState(
             contentLayer = contentLayer,
             blurLayer = blurLayer,
-            progressProvider = { currentProgress.value() },
+            progressProvider = { if (currentDisableBlur.value) 0f else currentProgress.value() },
             scrollKeyProvider = { currentScrollKey.value() },
             maxBlurRadius = maxBlurRadius,
         )

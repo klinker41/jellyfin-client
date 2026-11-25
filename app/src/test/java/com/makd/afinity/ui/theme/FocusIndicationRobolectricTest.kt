@@ -13,6 +13,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Text
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsFocused
@@ -105,7 +106,11 @@ class FocusIndicationRobolectricTest {
                         modifier =
                             Modifier.size(80.dp)
                                 .testTag("no_indication_box")
-                                .focusOutline(RoundedCornerShape(8.dp))
+                                .focusOutline(
+                                    shape = RoundedCornerShape(8.dp),
+                                    strokeWidth = 4.dp,
+                                    color = Color.Cyan,
+                                )
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null,

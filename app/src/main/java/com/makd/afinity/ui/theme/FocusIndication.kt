@@ -7,13 +7,19 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.IndicationNodeFactory
 import androidx.compose.foundation.interaction.FocusInteraction
 import androidx.compose.foundation.interaction.InteractionSource
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusEventModifierNode
 import androidx.compose.ui.focus.FocusState
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.inset
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureResult
@@ -25,11 +31,13 @@ import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.TraversableNode
 import androidx.compose.ui.node.findNearestAncestor
+import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.node.invalidatePlacement
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.abs
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -39,6 +47,14 @@ private const val WideControlMinWidthDp = 260f
 private const val SmallControlFocusScale = 1.14f
 private const val DefaultCardFocusScale = 1.06f
 private const val WideControlFocusScale = 1.03f
+
+private val DefaultFocusStrokeWidth = 3.dp
+private val DefaultFocusHaloExtra = 2.dp
+private val DefaultFocusShape = RoundedCornerShape(12.dp)
+private val DefaultFocusBorderColor = Color.White
+private val DefaultFocusHaloColor = Color.Black.copy(alpha = 0.65f)
+private const val FocusSheenTopAlpha = 0.24f
+private const val FocusSheenBottomAlpha = 0.08f
 
 private val FocusScaleAnimationSpec =
     spring<Float>(
@@ -61,6 +77,49 @@ internal fun resolveFocusScale(
             heightDp <= SmallControlMaxDp -> SmallControlFocusScale
         widthDp >= WideControlMinWidthDp -> WideControlFocusScale
         else -> DefaultCardFocusScale
+    }
+}
+
+private fun DrawScope.drawFocusHighlight(
+    shape: Shape,
+    strokeWidth: Dp,
+    borderColor: Color,
+    alpha: Float,
+) {
+    val clampedAlpha = alpha.coerceIn(0f, 1f)
+    if (clampedAlpha <= 0f || size.width <= 0f || size.height <= 0f) return
+
+    val fillOutline = shape.createOutline(size, layoutDirection, this)
+    drawOutline(
+        outline = fillOutline,
+        brush =
+            Brush.verticalGradient(
+                colors =
+                    listOf(
+                        Color.White.copy(alpha = FocusSheenTopAlpha * clampedAlpha),
+                        Color.White.copy(alpha = FocusSheenBottomAlpha * clampedAlpha),
+                    ),
+            ),
+    )
+
+    val strokePx = strokeWidth.toPx()
+    val haloPx = DefaultFocusHaloExtra.toPx()
+    if (strokePx <= 0f) return
+
+    val insetPx = strokePx / 2f
+    inset(insetPx, insetPx) {
+        if (size.width <= 0f || size.height <= 0f) return@inset
+        val strokeOutline = shape.createOutline(size, layoutDirection, this)
+        drawOutline(
+            outline = strokeOutline,
+            color = DefaultFocusHaloColor.copy(alpha = DefaultFocusHaloColor.alpha * clampedAlpha),
+            style = Stroke(width = strokePx + haloPx),
+        )
+        drawOutline(
+            outline = strokeOutline,
+            color = borderColor.copy(alpha = borderColor.alpha * clampedAlpha),
+            style = Stroke(width = strokePx),
+        )
     }
 }
 
@@ -97,9 +156,7 @@ private class FocusScaleIndicationNode(
 ) : DelegatingNode(), DrawModifierNode {
 
     private var isFocused = false
-    private var lastWidthDp = 0f
-    private var lastHeightDp = 0f
-    private var scaleAnimatable: Animatable<Float, AnimationVector1D> = Animatable(1f)
+    private var focusProgress: Animatable<Float, AnimationVector1D> = Animatable(0f)
     private var animationJob: Job? = null
 
     init {
@@ -118,13 +175,8 @@ private class FocusScaleIndicationNode(
                 if (isFocused != focused) {
                     isFocused = focused
                     val hasExplicitScaleAncestor = focused && hasActiveFocusScaleAncestor()
-                    val target =
-                        if (focused && !hasExplicitScaleAncestor) {
-                            resolveFocusScale(lastWidthDp, lastHeightDp, focusedScale)
-                        } else {
-                            1f
-                        }
-                    animateScaleTo(target)
+                    val target = if (focused && !hasExplicitScaleAncestor) 1f else 0f
+                    animateProgressTo(target)
                 }
             }
         }
@@ -137,80 +189,139 @@ private class FocusScaleIndicationNode(
         animationJob?.cancel()
         animationJob = null
         isFocused = false
-        scaleAnimatable = Animatable(1f)
+        focusProgress = Animatable(0f)
     }
 
-    private fun animateScaleTo(target: Float) {
+    private fun animateProgressTo(target: Float) {
         if (!isAttached) return
+        if (focusProgress.targetValue == target) return
         animationJob?.cancel()
         animationJob = coroutineScope.launch {
-            scaleAnimatable.animateTo(target, FocusScaleAnimationSpec)
+            focusProgress.animateTo(target, FocusScaleAnimationSpec)
         }
     }
 
     override fun ContentDrawScope.draw() {
-        val widthDp = size.width.toDp().value
-        val heightDp = size.height.toDp().value
-        val sizeChanged = widthDp != lastWidthDp || heightDp != lastHeightDp
-        lastWidthDp = widthDp
-        lastHeightDp = heightDp
-        if (isFocused && sizeChanged && !hasActiveFocusScaleAncestor()) {
-            val target = resolveFocusScale(widthDp, heightDp, focusedScale)
-            if (scaleAnimatable.targetValue != target) {
-                animateScaleTo(target)
-            }
+        val progress = focusProgress.value.coerceIn(0f, 1f)
+        if (progress <= 0f || hasActiveFocusScaleAncestor()) {
+            drawContent()
+            return
         }
 
-        val currentScale = scaleAnimatable.value
+        val widthDp = size.width.toDp().value
+        val heightDp = size.height.toDp().value
+        val targetScale = resolveFocusScale(widthDp, heightDp, focusedScale)
+        val currentScale = 1f + (targetScale - 1f) * progress
+        val fallbackShape =
+            if (
+                widthDp > 0f &&
+                    heightDp > 0f &&
+                    widthDp <= SmallControlMaxDp &&
+                    heightDp <= SmallControlMaxDp &&
+                    abs(widthDp - heightDp) <= 4f
+            ) {
+                CircleShape
+            } else {
+                DefaultFocusShape
+            }
+
         if (currentScale != 1f) {
-            scale(currentScale, currentScale) { this@draw.drawContent() }
+            scale(currentScale, currentScale) {
+                this@draw.drawContent()
+                drawFocusHighlight(
+                    shape = fallbackShape,
+                    strokeWidth = DefaultFocusStrokeWidth,
+                    borderColor = DefaultFocusBorderColor,
+                    alpha = progress,
+                )
+            }
         } else {
             drawContent()
+            drawFocusHighlight(
+                shape = fallbackShape,
+                strokeWidth = DefaultFocusStrokeWidth,
+                borderColor = DefaultFocusBorderColor,
+                alpha = progress,
+            )
         }
     }
 }
 
 fun Modifier.focusScale(focusedScale: Float = Float.NaN): Modifier =
-    this then FocusScaleElement(focusedScale = focusedScale)
+    this then
+        FocusScaleElement(
+            shape = DefaultFocusShape,
+            strokeWidth = DefaultFocusStrokeWidth,
+            color = Color.Unspecified,
+            focusedScale = focusedScale,
+        )
 
-@Suppress("UNUSED_PARAMETER")
 fun Modifier.focusOutline(
-    shape: Shape = RoundedCornerShape(12.dp),
-    strokeWidth: Dp = 3.dp,
+    shape: Shape = DefaultFocusShape,
+    strokeWidth: Dp = DefaultFocusStrokeWidth,
     color: Color = Color.Unspecified,
     focusedScale: Float = Float.NaN,
-): Modifier = focusScale(focusedScale = focusedScale)
+): Modifier =
+    this then
+        FocusScaleElement(
+            shape = shape,
+            strokeWidth = strokeWidth,
+            color = color,
+            focusedScale = focusedScale,
+        )
 
-private data class FocusScaleElement(val focusedScale: Float) :
-    ModifierNodeElement<FocusScaleNode>() {
+private data class FocusScaleElement(
+    val shape: Shape,
+    val strokeWidth: Dp,
+    val color: Color,
+    val focusedScale: Float,
+) : ModifierNodeElement<FocusScaleNode>() {
 
-    override fun create(): FocusScaleNode = FocusScaleNode(focusedScale = focusedScale)
+    override fun create(): FocusScaleNode =
+        FocusScaleNode(
+            shape = shape,
+            strokeWidth = strokeWidth,
+            color = color,
+            focusedScale = focusedScale,
+        )
 
     override fun update(node: FocusScaleNode) {
-        val changed = node.focusedScale.toRawBits() != focusedScale.toRawBits()
+        val visualChanged =
+            node.shape != shape ||
+                node.strokeWidth != strokeWidth ||
+                node.color != color ||
+                node.focusedScale.toRawBits() != focusedScale.toRawBits()
+        node.shape = shape
+        node.strokeWidth = strokeWidth
+        node.color = color
         node.focusedScale = focusedScale
-        if (changed && node.isFocused) {
-            node.refreshFocusScale()
+        if (visualChanged) {
+            node.invalidateDraw()
         }
     }
 
     override fun InspectorInfo.inspectableProperties() {
         name = "focusScale"
+        properties["shape"] = shape
+        properties["strokeWidth"] = strokeWidth
+        properties["color"] = color
         properties["focusedScale"] = focusedScale
     }
 }
 
-private class FocusScaleNode(var focusedScale: Float) :
-    Modifier.Node(), FocusEventModifierNode, LayoutModifierNode, TraversableNode {
+private class FocusScaleNode(
+    var shape: Shape,
+    var strokeWidth: Dp,
+    var color: Color,
+    var focusedScale: Float,
+) : Modifier.Node(), FocusEventModifierNode, LayoutModifierNode, DrawModifierNode, TraversableNode {
 
     override val traverseKey: Any = FocusScaleTraverseKey
 
     var isFocused: Boolean = false
         private set
 
-    private var lastWidthDp = 0f
-    private var lastHeightDp = 0f
-    private var scaleAnimatable: Animatable<Float, AnimationVector1D> = Animatable(1f)
+    private var focusProgress: Animatable<Float, AnimationVector1D> = Animatable(0f)
     private var animationJob: Job? = null
 
     override fun onFocusEvent(focusState: FocusState) {
@@ -218,18 +329,18 @@ private class FocusScaleNode(var focusedScale: Float) :
         if (isFocused != focused) {
             isFocused = focused
             invalidatePlacement()
-            refreshFocusScale()
+            invalidateDraw()
+            refreshFocusProgress()
         }
     }
 
-    fun refreshFocusScale() {
-        val target =
-            if (isFocused) resolveFocusScale(lastWidthDp, lastHeightDp, focusedScale) else 1f
+    private fun refreshFocusProgress() {
+        val target = if (isFocused) 1f else 0f
         if (!isAttached) return
-        if (scaleAnimatable.targetValue == target) return
+        if (focusProgress.targetValue == target) return
         animationJob?.cancel()
         animationJob = coroutineScope.launch {
-            scaleAnimatable.animateTo(target, FocusScaleAnimationSpec)
+            focusProgress.animateTo(target, FocusScaleAnimationSpec)
         }
     }
 
@@ -237,7 +348,7 @@ private class FocusScaleNode(var focusedScale: Float) :
         animationJob?.cancel()
         animationJob = null
         isFocused = false
-        scaleAnimatable = Animatable(1f)
+        focusProgress = Animatable(0f)
     }
 
     override fun MeasureScope.measure(
@@ -245,20 +356,44 @@ private class FocusScaleNode(var focusedScale: Float) :
         constraints: Constraints,
     ): MeasureResult {
         val placeable = measurable.measure(constraints)
-        val widthDp = placeable.width.toDp().value
-        val heightDp = placeable.height.toDp().value
-        val sizeChanged = widthDp != lastWidthDp || heightDp != lastHeightDp
-        lastWidthDp = widthDp
-        lastHeightDp = heightDp
-        if (isFocused && sizeChanged) {
-            refreshFocusScale()
-        }
+        // Lift the focused node in z-order without scaling the layout layer so LayoutCoordinates
+        // remain invariant across focus transitions and never trigger BringIntoView scroll bounce.
         return layout(placeable.width, placeable.height) {
-            placeable.placeWithLayer(x = 0, y = 0, zIndex = if (isFocused) 1f else 0f) {
-                val s = scaleAnimatable.value
-                scaleX = s
-                scaleY = s
+            placeable.place(x = 0, y = 0, zIndex = if (isFocused) 1f else 0f)
+        }
+    }
+
+    override fun ContentDrawScope.draw() {
+        val progress = focusProgress.value.coerceIn(0f, 1f)
+        if (progress <= 0f) {
+            drawContent()
+            return
+        }
+
+        val widthDp = size.width.toDp().value
+        val heightDp = size.height.toDp().value
+        val targetScale = resolveFocusScale(widthDp, heightDp, focusedScale)
+        val currentScale = 1f + (targetScale - 1f) * progress
+        val borderColor = if (color == Color.Unspecified) DefaultFocusBorderColor else color
+
+        if (currentScale != 1f) {
+            scale(currentScale, currentScale) {
+                this@draw.drawContent()
+                drawFocusHighlight(
+                    shape = shape,
+                    strokeWidth = strokeWidth,
+                    borderColor = borderColor,
+                    alpha = progress,
+                )
             }
+        } else {
+            drawContent()
+            drawFocusHighlight(
+                shape = shape,
+                strokeWidth = strokeWidth,
+                borderColor = borderColor,
+                alpha = progress,
+            )
         }
     }
 }

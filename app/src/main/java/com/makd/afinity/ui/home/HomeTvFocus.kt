@@ -15,10 +15,18 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.node.requireLayoutCoordinates
+import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.relocation.BringIntoViewModifierNode
+import androidx.compose.ui.relocation.bringIntoView
 import com.makd.afinity.data.models.CustomSectionCardStyle
 import com.makd.afinity.data.models.GenreType
 import com.makd.afinity.data.models.HomeRow
+import com.makd.afinity.ui.utils.LocalCardRowFocusFirstOnEnter
 import com.makd.afinity.ui.utils.LocalCardRowInitialFocusRequester
 import com.makd.afinity.ui.utils.LocalIsTelevision
 import com.makd.afinity.ui.utils.requestFocusSafely
@@ -418,6 +426,41 @@ fun HomeTvHeroFocusScrollEffect(isHeroFocused: Boolean, lazyListState: LazyListS
     }
 }
 
+fun Modifier.tvHeroPinBringIntoViewToTop(): Modifier = this then TvHeroPinBringIntoViewToTopElement
+
+private object TvHeroPinBringIntoViewToTopElement :
+    ModifierNodeElement<TvHeroPinBringIntoViewToTopNode>() {
+    override fun create(): TvHeroPinBringIntoViewToTopNode = TvHeroPinBringIntoViewToTopNode()
+
+    override fun update(node: TvHeroPinBringIntoViewToTopNode) = Unit
+
+    override fun equals(other: Any?): Boolean = other === this
+
+    override fun hashCode(): Int = System.identityHashCode(this)
+
+    override fun InspectorInfo.inspectableProperties() {
+        name = "tvHeroPinBringIntoViewToTop"
+    }
+}
+
+private class TvHeroPinBringIntoViewToTopNode : Modifier.Node(), BringIntoViewModifierNode {
+    override suspend fun bringIntoView(
+        childCoordinates: LayoutCoordinates,
+        boundsProvider: () -> Rect?,
+    ) {
+        if (!isAttached) return
+        bringIntoView {
+            val coordinates = requireLayoutCoordinates()
+            if (!coordinates.isAttached) {
+                null
+            } else {
+                val width = coordinates.size.width.toFloat().coerceAtLeast(1f)
+                Rect(left = 0f, top = 0f, right = width, bottom = 1f)
+            }
+        }
+    }
+}
+
 @Composable
 fun HomeTvRowBox(
     rowKey: String,
@@ -439,6 +482,7 @@ fun HomeTvRowBox(
     CompositionLocalProvider(
         LocalCardRowInitialFocusRequester provides
             if (isTarget) tvFocus.initialFocusRequester else null,
+        LocalCardRowFocusFirstOnEnter provides tvFocus.isTelevision,
     ) {
         Box(modifier = modifier, content = content)
     }

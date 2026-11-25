@@ -563,7 +563,14 @@ fun HomeScreen(
                                     },
                                     onMoreInformationClick = onItemClick,
                                     modifier =
-                                        Modifier.onFocusChanged { isHeroFocused = it.hasFocus },
+                                        Modifier.then(
+                                                if (tvFocus.isTelevision) {
+                                                    Modifier.tvHeroPinBringIntoViewToTop()
+                                                } else {
+                                                    Modifier
+                                                },
+                                            )
+                                            .onFocusChanged { isHeroFocused = it.hasFocus },
                                 )
                             } else if (heroPending) {
                                 Spacer(modifier = Modifier.fillMaxWidth().height(heroHeight))

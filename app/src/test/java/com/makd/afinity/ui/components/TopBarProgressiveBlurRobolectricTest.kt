@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -27,6 +28,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.makd.afinity.ui.preview.PreviewHost
+import com.makd.afinity.ui.utils.LocalIsTelevision
 import com.makd.afinity.ui.utils.rememberTopBarScrollProgress
 import com.makd.afinity.ui.utils.topBarScrollKey
 import kotlin.math.roundToInt
@@ -323,6 +325,57 @@ class TopBarProgressiveBlurRobolectricTest {
 
         assertTrue(heightWithExtension > heightWithoutExtension)
         assertEquals(expectedHeightWithExtension, heightWithExtension)
+    }
+
+    @Test
+    fun `television mode disables top bar blur even when scrolled`() {
+        lateinit var listState: LazyListState
+        lateinit var scope: CoroutineScope
+        lateinit var blurState: TopBarBlurState
+        lateinit var hostView: View
+        var fullThresholdPx = 0
+
+        composeTestRule.setContent {
+            PreviewHost(modifier = Modifier.fillMaxSize()) {
+                CompositionLocalProvider(LocalIsTelevision provides true) {
+                    hostView = LocalView.current
+                    fullThresholdPx = with(LocalDensity.current) { 450.dp.toPx().roundToInt() }
+                    listState = rememberLazyListState()
+                    scope = rememberCoroutineScope()
+                    val progress by rememberTopBarScrollProgress(listState, hasHeroSlot = true)
+                    blurState =
+                        rememberTopBarBlurState(
+                            progress = { progress },
+                            scrollKey = { listState.topBarScrollKey() },
+                        )
+
+                    BlurHarness(
+                        listState = listState,
+                        blurState = blurState,
+                        showSource = true,
+                    )
+                }
+            }
+        }
+
+        composeTestRule.runOnIdle {
+            scope.launch { listState.scrollToItem(index = 0, scrollOffset = fullThresholdPx) }
+        }
+        composeTestRule.waitForIdle()
+        composeTestRule.runOnIdle {
+            val bitmap =
+                Bitmap.createBitmap(
+                    hostView.width.coerceAtLeast(1),
+                    hostView.height.coerceAtLeast(1),
+                    Bitmap.Config.ARGB_8888,
+                )
+            hostView.draw(Canvas(bitmap))
+            bitmap.recycle()
+        }
+
+        assertFalse(blurState.isBlurActive)
+        assertFalse(blurState.hasRecordedContent)
+        assertNull(blurState.blurLayer.renderEffect)
     }
 
     @Composable
