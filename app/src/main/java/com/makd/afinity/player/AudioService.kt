@@ -133,13 +133,15 @@ class AudioService : MediaLibraryService() {
         private const val RESUMPTION_SHUTDOWN_NOTIFICATION_ID = 4107
         private val RESUMPTION_TIMEOUT = 8.seconds
 
-        private val ABS_AUDIO_ATTRIBUTES =
+        // Use AUDIO_CONTENT_TYPE_MUSIC rather than SPEECH so Media3's AudioFocusManager sets
+        // willPauseWhenDucked=false and ducks instead of pausing when a notification arrives.
+        internal val ABS_AUDIO_ATTRIBUTES =
             AudioAttributes.Builder()
                 .setUsage(C.USAGE_MEDIA)
-                .setContentType(C.AUDIO_CONTENT_TYPE_SPEECH)
+                .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
                 .build()
 
-        private val MUSIC_AUDIO_ATTRIBUTES =
+        internal val MUSIC_AUDIO_ATTRIBUTES =
             AudioAttributes.Builder()
                 .setUsage(C.USAGE_MEDIA)
                 .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
