@@ -4,6 +4,7 @@ import android.app.Application
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.view.View
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusGroup
@@ -24,6 +25,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.WideNavigationRailState
@@ -31,6 +33,7 @@ import androidx.compose.material3.rememberWideNavigationRailState
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.computedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -97,6 +100,7 @@ import com.makd.afinity.ui.home.HomeTvRowBox
 import com.makd.afinity.ui.home.rememberHomeTvFocusState
 import com.makd.afinity.ui.home.rememberHomeTvTopBarFocusState
 import com.makd.afinity.ui.home.resolveInitialTvFocusTarget
+import com.makd.afinity.ui.home.shouldShowHomeScrollToTop
 import com.makd.afinity.ui.home.tvHeroPinBringIntoViewToTop
 import com.makd.afinity.ui.item.components.shared.PlaybackSelectionButton
 import com.makd.afinity.ui.item.components.shared.PrimaryPlaybackButton
@@ -2177,6 +2181,160 @@ class TvFocusNavigationRobolectricTest {
         composeTestRule.onNodeWithTag("ret_menu_btn").assertIsNotFocused()
         composeTestRule.onNodeWithTag("ret_hero_btn").assertIsNotFocused()
         card(1, 0).assertIsFocused()
+    }
+
+    @Test
+    @Config(qualifiers = "w960dp-h540dp")
+    fun `home scroll to top fab is never composed and cannot steal focus in TV mode`() {
+        val rows =
+            (0 until 8).map { rowIdx ->
+                List(2) { itemIdx -> PreviewData.movie(name = "Stt${rowIdx}_$itemIdx") }
+            }
+        lateinit var lazyListState: LazyListState
+
+        composeTestRule.setContent {
+            PreviewHost(modifier = Modifier.fillMaxSize(), themeMode = ThemeMode.DARK) {
+                val inputModeManager = LocalInputModeManager.current
+                LaunchedEffect(Unit) { inputModeManager.requestInputMode(InputMode.Keyboard) }
+                CompositionLocalProvider(LocalIsTelevision provides true) {
+                    lazyListState = rememberLazyListState()
+                    val topBarFocusState = rememberHomeTvTopBarFocusState()
+                    val showScrollToTop by
+                        remember(lazyListState, topBarFocusState.isTelevision) {
+                            computedStateOf {
+                                shouldShowHomeScrollToTop(
+                                    isTelevision = topBarFocusState.isTelevision,
+                                    firstVisibleItemIndex = lazyListState.firstVisibleItemIndex,
+                                )
+                            }
+                        }
+                    val tvFocus =
+                        rememberHomeTvFocusState(
+                            target = HomeTvFocusTarget("row_0", 0),
+                            topBarFocusState = topBarFocusState,
+                        )
+                    HomeTvInitialFocusEffect(lazyListState = lazyListState, tvFocus = tvFocus)
+
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        LazyColumn(
+                            state = lazyListState,
+                            modifier =
+                                Modifier.fillMaxSize()
+                                    .focusRequester(tvFocus.listFocusRequester)
+                                    .focusGroup(),
+                        ) {
+                            items(rows.size, key = { "row_$it" }) { rowIdx ->
+                                HomeTvRowBox(rowKey = "row_$rowIdx", tvFocus = tvFocus) {
+                                    CardRow(modifier = Modifier.fillMaxWidth().height(220.dp)) {
+                                        items(rows[rowIdx], key = { it.id }) { item ->
+                                            MediaItemCard(
+                                                item = item,
+                                                onClick = {},
+                                                cardWidth = 140.dp,
+                                                modifier = Modifier.testTag("stt_${item.name}"),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        AnimatedVisibility(
+                            visible = showScrollToTop,
+                            modifier = Modifier.align(Alignment.BottomEnd),
+                        ) {
+                            FloatingActionButton(
+                                onClick = {},
+                                modifier = Modifier.testTag("scroll_to_top_fab"),
+                            ) {
+                                Text("Top")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        fun card(row: Int, index: Int) =
+            composeTestRule.onNode(
+                hasAnyAncestor(hasTestTag("stt_Stt${row}_$index")) and hasClickAction(),
+            )
+
+        composeTestRule.waitForIdle()
+        card(0, 0).assertIsFocused()
+        composeTestRule.onNodeWithTag("scroll_to_top_fab").assertDoesNotExist()
+
+        for (row in 0 until 6) {
+            card(row, 0).performKeyInput { pressKey(Key.DirectionDown) }
+            composeTestRule.waitForIdle()
+        }
+
+        assertTrue(
+            "Expected list to scroll past index 3, got ${lazyListState.firstVisibleItemIndex}",
+            lazyListState.firstVisibleItemIndex > 3,
+        )
+        composeTestRule.onNodeWithTag("scroll_to_top_fab").assertDoesNotExist()
+        card(6, 0).assertIsFocused()
+
+        card(6, 0).performKeyInput { pressKey(Key.DirectionRight) }
+        composeTestRule.waitForIdle()
+        card(6, 1).assertIsFocused()
+        composeTestRule.onNodeWithTag("scroll_to_top_fab").assertDoesNotExist()
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h800dp")
+    fun `home scroll to top fab appears after scrolling past index 3 in non-TV mode`() {
+        lateinit var lazyListState: LazyListState
+        lateinit var scope: CoroutineScope
+
+        composeTestRule.setContent {
+            PreviewHost(modifier = Modifier.fillMaxSize(), themeMode = ThemeMode.DARK) {
+                CompositionLocalProvider(LocalIsTelevision provides false) {
+                    lazyListState = rememberLazyListState()
+                    scope = rememberCoroutineScope()
+                    val topBarFocusState = rememberHomeTvTopBarFocusState()
+                    val showScrollToTop by
+                        remember(lazyListState, topBarFocusState.isTelevision) {
+                            computedStateOf {
+                                shouldShowHomeScrollToTop(
+                                    isTelevision = topBarFocusState.isTelevision,
+                                    firstVisibleItemIndex = lazyListState.firstVisibleItemIndex,
+                                )
+                            }
+                        }
+
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize()) {
+                            items(10, key = { it }) { index ->
+                                Box(modifier = Modifier.fillMaxWidth().height(200.dp)) {
+                                    Text("Row $index")
+                                }
+                            }
+                        }
+
+                        AnimatedVisibility(
+                            visible = showScrollToTop,
+                            modifier = Modifier.align(Alignment.BottomEnd),
+                        ) {
+                            FloatingActionButton(
+                                onClick = {},
+                                modifier = Modifier.testTag("scroll_to_top_fab"),
+                            ) {
+                                Text("Top")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("scroll_to_top_fab").assertDoesNotExist()
+
+        composeTestRule.runOnIdle { scope.launch { lazyListState.scrollToItem(4) } }
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("scroll_to_top_fab").assertIsDisplayed()
     }
 }
 

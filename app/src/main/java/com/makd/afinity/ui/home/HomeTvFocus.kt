@@ -54,6 +54,11 @@ internal fun shouldAllowHomeTopBarFocus(
     return focusedRowKey == topmostRowKey
 }
 
+internal fun shouldShowHomeScrollToTop(
+    isTelevision: Boolean,
+    firstVisibleItemIndex: Int,
+): Boolean = !isTelevision && firstVisibleItemIndex > 3
+
 @Stable
 class HomeTvTopBarFocusState(val isTelevision: Boolean) {
     private var isShowingHomeList by mutableStateOf(true)

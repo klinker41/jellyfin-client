@@ -490,4 +490,24 @@ class HomeTvFocusTest {
             ),
         )
     }
+
+    @Test
+    fun `shouldShowHomeScrollToTop stays false on TV regardless of scroll index`() {
+        for (index in listOf(0, 1, 2, 3)) {
+            assertFalse(
+                shouldShowHomeScrollToTop(isTelevision = false, firstVisibleItemIndex = index),
+            )
+        }
+        for (index in listOf(4, 10)) {
+            assertTrue(
+                shouldShowHomeScrollToTop(isTelevision = false, firstVisibleItemIndex = index),
+            )
+        }
+
+        for (index in listOf(0, 3, 4, 10, 100)) {
+            assertFalse(
+                shouldShowHomeScrollToTop(isTelevision = true, firstVisibleItemIndex = index),
+            )
+        }
+    }
 }

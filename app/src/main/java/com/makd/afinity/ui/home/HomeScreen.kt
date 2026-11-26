@@ -200,7 +200,15 @@ fun HomeScreen(
             lazyListState.animateScrollToItem(0)
         }
     }
-    val showScrollToTop by remember { computedStateOf { lazyListState.firstVisibleItemIndex > 3 } }
+    val showScrollToTop by
+        remember(lazyListState, topBarFocusState.isTelevision) {
+            computedStateOf {
+                shouldShowHomeScrollToTop(
+                    isTelevision = topBarFocusState.isTelevision,
+                    firstVisibleItemIndex = lazyListState.firstVisibleItemIndex,
+                )
+            }
+        }
     val continueWatchingScrollState = rememberCardRowListState()
     val nextUpMerged =
         !uiState.isOffline &&
