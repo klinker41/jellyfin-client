@@ -29,6 +29,16 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Configure CI Gradle limits
+        run: |
+          gradle_home="${GRADLE_USER_HOME:-$HOME/.gradle}"
+          mkdir -p "$gradle_home"
+          cat <<'EOF' >> "$gradle_home/gradle.properties"
+          org.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8
+          kotlin.daemon.jvm.options=-Xmx2g
+          org.gradle.workers.max=4
+          EOF
+
       - name: Make gradlew executable
         run: chmod +x gradlew
 
