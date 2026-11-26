@@ -115,6 +115,14 @@ class DestinationRouteTest {
             Destination.createAudiobookshelfPlayerRoute("item1"),
         )
         assertEquals(
+            "audiobookshelf/player/item1?source=jellyfin&autoPlay=true",
+            Destination.createAudiobookshelfPlayerRoute(
+                itemId = "item1",
+                source = Destination.AUDIOBOOK_SOURCE_JELLYFIN,
+                autoPlay = true,
+            ),
+        )
+        assertEquals(
             "audiobookshelf/player/item1?episodeId=ep2&startPosition=42.5&episodeSort=asc&includePlayed=true&source=jellyfin",
             Destination.createAudiobookshelfPlayerRoute(
                 itemId = "item1",

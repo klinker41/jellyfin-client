@@ -334,6 +334,33 @@ constructor(
         )
     }
 
+    /**
+     * Resumes [track] if it is already loaded in the active player or cast session, otherwise
+     * prepares and starts a new single-item queue at [startPositionMs].
+     */
+    fun playOrResumeTrack(
+        track: AfinityTrack,
+        startPositionMs: Long = 0L,
+        onBeforeNewQueue: () -> Unit = {},
+    ) {
+        val isCurrentTrack = playbackState.value.currentTrack?.id == track.id
+        val castState = castManager.castState.value
+        if (isCurrentTrack && castState.isMusicCasting) {
+            if (!castState.isPlaying) {
+                castManager.play()
+            }
+            return
+        }
+        if (isCurrentTrack && playbackManager.getPlayer() != null) {
+            if (!playbackState.value.isPlaying) {
+                playbackManager.play()
+            }
+            return
+        }
+        onBeforeNewQueue()
+        playQueue(tracks = listOf(track), startIndex = 0, startPositionMs = startPositionMs)
+    }
+
     fun play() {
         if (isMusicCasting.value) castManager.play() else playbackManager.play()
     }

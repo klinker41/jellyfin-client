@@ -44,7 +44,7 @@ import com.makd.afinity.ui.settings.AudiobookshelfBottomSheet
 @Composable
 fun AudiobookshelfLibrariesScreen(
     onNavigateToItem: (String) -> Unit,
-    onNavigateToPlayer: (itemId: String, episodeId: String) -> Unit,
+    onNavigateToPlayer: (itemId: String, episodeId: String?) -> Unit,
     onNavigateToSeries: (seriesId: String, libraryId: String, seriesName: String) -> Unit,
     onNavigateToSeriesList: () -> Unit,
     onNavigateToLibrary: (libraryId: String, libraryName: String) -> Unit,
@@ -153,12 +153,12 @@ fun AudiobookshelfLibrariesScreen(
                             sections = personalizedSections,
                             libraries = libraries,
                             serverUrl = config?.serverUrl,
-                            onItemClick = { item ->
-                                val episodeId = item.recentEpisode?.id
-                                if (episodeId != null) {
-                                    onNavigateToPlayer(item.id, episodeId)
-                                } else {
-                                    onNavigateToItem(item.id)
+                            onItemClick = { sectionId, item ->
+                                when (val target = resolveAbsHomeClick(sectionId, item)) {
+                                    is AbsHomeClickTarget.Player ->
+                                        onNavigateToPlayer(target.itemId, target.episodeId)
+                                    is AbsHomeClickTarget.ItemDetail ->
+                                        onNavigateToItem(target.itemId)
                                 }
                             },
                             onSeriesClick = { series ->

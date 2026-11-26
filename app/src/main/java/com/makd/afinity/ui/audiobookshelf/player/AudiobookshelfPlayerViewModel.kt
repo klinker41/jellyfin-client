@@ -75,6 +75,8 @@ constructor(
         savedStateHandle.get<String>("includePlayed")?.toBooleanStrictOrNull() == true
     private val sourceArg: String? = savedStateHandle.get<String>("source")
     private val isJellyfinRoute: Boolean = sourceArg == Destination.AUDIOBOOK_SOURCE_JELLYFIN
+    private val autoPlay: Boolean =
+        savedStateHandle.get<String>("autoPlay")?.toBooleanStrictOrNull() == true
 
     private val _uiState = MutableStateFlow(AudiobookshelfPlayerUiState())
     val uiState: StateFlow<AudiobookshelfPlayerUiState> = _uiState.asStateFlow()
@@ -170,13 +172,26 @@ constructor(
 
     @UnstableApi
     private fun startPlayback() {
-        if (castManager.castState.value.isAbsCasting) return
         val currentState = playbackManager.playbackState.value
         val isSameEpisode = episodeId == null || episodeId == currentState.episodeId
+        if (castManager.castState.value.isAbsCasting) {
+            if (
+                autoPlay &&
+                    currentState.itemId == itemId &&
+                    isSameEpisode &&
+                    !castManager.castState.value.isPlaying
+            ) {
+                castManager.play()
+            }
+            return
+        }
         if (currentState.sessionId != null && currentState.itemId == itemId && isSameEpisode) {
             Timber.d("Resuming existing playback session for item: $itemId")
             if (startPosition != null) {
                 audiobookshelfPlayer.seekToPosition(startPosition)
+            }
+            if (autoPlay && !audiobookshelfPlayer.isPlaying()) {
+                audiobookshelfPlayer.play()
             }
             return
         }

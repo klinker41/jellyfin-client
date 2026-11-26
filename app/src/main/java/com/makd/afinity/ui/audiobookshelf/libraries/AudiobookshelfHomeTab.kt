@@ -46,7 +46,7 @@ fun AudiobookshelfHomeTab(
     sections: List<PersonalizedSection>,
     libraries: List<Library>,
     serverUrl: String?,
-    onItemClick: (LibraryItem) -> Unit,
+    onItemClick: (sectionId: String, item: LibraryItem) -> Unit,
     onSeriesClick: (AudiobookshelfSeries) -> Unit,
     onBrowseSeries: () -> Unit,
     onBrowseLibrary: (Library) -> Unit,
@@ -182,7 +182,7 @@ fun AudiobookshelfHomeTab(
                                         AudiobookCard(
                                             item = item,
                                             serverUrl = serverUrl,
-                                            onClick = { onItemClick(item) },
+                                            onClick = { onItemClick(section.id, item) },
                                             modifier = Modifier.width(cardWidth),
                                         )
                                     }

@@ -74,6 +74,7 @@ import com.makd.afinity.data.manager.UnreachableReason
 import com.makd.afinity.data.models.CustomSectionCardStyle
 import com.makd.afinity.data.models.GenreType
 import com.makd.afinity.data.models.HomeRow
+import com.makd.afinity.data.models.media.AfinityAudiobook
 import com.makd.afinity.data.models.media.AfinityBook
 import com.makd.afinity.data.models.media.AfinityCollection
 import com.makd.afinity.data.models.media.AfinityEpisode
@@ -132,6 +133,7 @@ import com.makd.afinity.ui.home.components.UpcomingEpisodesSection
 import com.makd.afinity.ui.main.MainUiState
 import com.makd.afinity.ui.music.library.startMusicService
 import com.makd.afinity.ui.music.player.MusicPlayerViewModel
+import com.makd.afinity.ui.podcast.resumePositionMs
 import com.makd.afinity.ui.theme.CardDimensions
 import com.makd.afinity.ui.theme.CardDimensions.landscapeWidth
 import com.makd.afinity.ui.theme.CardDimensions.portraitWidth
@@ -166,6 +168,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     playerViewModel: MusicPlayerViewModel = hiltViewModel(),
     onPodcastEpisodeClick: (String) -> Unit = {},
+    onPlayAudiobook: (AfinityAudiobook) -> Unit = onItemClick,
     onAbsItemClick: (String) -> Unit = {},
     onMenuClick: (() -> Unit)? = null,
     hideLibrariesSection: Boolean = false,
@@ -757,9 +760,16 @@ fun HomeScreen(
                                             title =
                                                 stringResource(R.string.home_continue_listening),
                                             entries = continueListeningEntries,
-                                            onAudiobookClick = onItemClick,
+                                            onAudiobookClick = onPlayAudiobook,
                                             onPodcastClick = { episode ->
-                                                onPodcastEpisodeClick(episode.id.toString())
+                                                playerViewModel.playOrResumeTrack(
+                                                    track = episode,
+                                                    startPositionMs = episode.resumePositionMs(),
+                                                    onBeforeNewQueue = {
+                                                        startMusicService(context)
+                                                    },
+                                                )
+                                                onOpenMusicPlayer()
                                             },
                                             widthSizeClass = widthSizeClass,
                                         )
@@ -826,7 +836,7 @@ fun HomeScreen(
                                     AudiobookRowSection(
                                         title = stringResource(R.string.home_continue_listening),
                                         books = uiState.offlineContinueListening,
-                                        onBookClick = onItemClick,
+                                        onBookClick = onPlayAudiobook,
                                         widthSizeClass = widthSizeClass,
                                         showProgress = true,
                                     )

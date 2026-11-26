@@ -643,6 +643,16 @@ fun MainNavigation(
                                                 ),
                                             )
                                         },
+                                        onPlayAudiobook = { book ->
+                                            navController.navigate(
+                                                Destination.createAudiobookshelfPlayerRoute(
+                                                    itemId =
+                                                        book.playableParts.first().id.toString(),
+                                                    source = Destination.AUDIOBOOK_SOURCE_JELLYFIN,
+                                                    autoPlay = true,
+                                                ),
+                                            )
+                                        },
                                         onAbsItemClick = { itemId ->
                                             navController.navigate(
                                                 Destination.createAudiobookshelfItemRoute(itemId),
@@ -2257,6 +2267,7 @@ fun MainNavigation(
                                                 Destination.createAudiobookshelfPlayerRoute(
                                                     itemId = itemId,
                                                     episodeId = episodeId,
+                                                    autoPlay = true,
                                                 ),
                                             )
                                         },
@@ -2415,6 +2426,11 @@ fun MainNavigation(
                                                 defaultValue = null
                                             },
                                             navArgument("source") {
+                                                type = NavType.StringType
+                                                nullable = true
+                                                defaultValue = null
+                                            },
+                                            navArgument("autoPlay") {
                                                 type = NavType.StringType
                                                 nullable = true
                                                 defaultValue = null

@@ -3,6 +3,7 @@ package com.makd.afinity.ui.music.player
 import android.content.Context
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
 import com.makd.afinity.cast.CastEvent
 import com.makd.afinity.cast.CastManager
 import com.makd.afinity.cast.CastSessionState
@@ -314,4 +315,127 @@ class MusicPlayerViewModelTest {
             )
         assertEquals(25_000L, state.positionAt(11_000L))
     }
+
+    @Test
+    fun `playOrResumeTrack starts new queue when track is not currently loaded`() = runTest {
+        val harness = Harness()
+        val track = testTrack(id = testUuid(701))
+        var beforeCalled = 0
+
+        harness.viewModel.playOrResumeTrack(
+            track = track,
+            startPositionMs = 45_000L,
+            onBeforeNewQueue = { beforeCalled++ },
+        )
+
+        assertEquals(1, beforeCalled)
+        verify(exactly = 1) { harness.radioManager.stopRadio() }
+        verify(exactly = 1) {
+            harness.queueManager.loadQueue(
+                tracks = listOf(track),
+                startIndex = 0,
+                startPositionMs = 45_000L,
+                shuffle = false,
+            )
+        }
+    }
+
+    @Test
+    fun `playOrResumeTrack resumes paused local track without reloading queue`() = runTest {
+        val harness = Harness()
+        val track = testTrack(id = testUuid(702))
+        val player: ExoPlayer = mockk(relaxed = true)
+        every { harness.playbackManager.getPlayer() } returns player
+        harness.playbackStateFlow.value =
+            MusicPlaybackState(currentTrack = track, isPlaying = false)
+        var beforeCalled = 0
+
+        harness.viewModel.playOrResumeTrack(
+            track = track,
+            startPositionMs = 45_000L,
+            onBeforeNewQueue = { beforeCalled++ },
+        )
+
+        assertEquals(0, beforeCalled)
+        verify(exactly = 1) { harness.playbackManager.play() }
+        verify(exactly = 0) { harness.queueManager.loadQueue(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `playOrResumeTrack does not toggle or reload when local track is already playing`() =
+        runTest {
+            val harness = Harness()
+            val track = testTrack(id = testUuid(703))
+            val player: ExoPlayer = mockk(relaxed = true)
+            every { harness.playbackManager.getPlayer() } returns player
+            harness.playbackStateFlow.value =
+                MusicPlaybackState(currentTrack = track, isPlaying = true)
+            var beforeCalled = 0
+
+            harness.viewModel.playOrResumeTrack(
+                track = track,
+                startPositionMs = 45_000L,
+                onBeforeNewQueue = { beforeCalled++ },
+            )
+
+            assertEquals(0, beforeCalled)
+            verify(exactly = 0) { harness.playbackManager.play() }
+            verify(exactly = 0) { harness.queueManager.loadQueue(any(), any(), any(), any()) }
+        }
+
+    @Test
+    fun `playOrResumeTrack reloads queue when same track is stale with null player`() = runTest {
+        val harness = Harness()
+        val track = testTrack(id = testUuid(704))
+        every { harness.playbackManager.getPlayer() } returns null
+        harness.playbackStateFlow.value =
+            MusicPlaybackState(currentTrack = track, isPlaying = false)
+        var beforeCalled = 0
+
+        harness.viewModel.playOrResumeTrack(
+            track = track,
+            startPositionMs = 30_000L,
+            onBeforeNewQueue = { beforeCalled++ },
+        )
+
+        assertEquals(1, beforeCalled)
+        verify(exactly = 0) { harness.playbackManager.play() }
+        verify(exactly = 1) {
+            harness.queueManager.loadQueue(
+                tracks = listOf(track),
+                startIndex = 0,
+                startPositionMs = 30_000L,
+                shuffle = false,
+            )
+        }
+    }
+
+    @Test
+    fun `playOrResumeTrack resumes paused cast track and leaves playing cast track alone`() =
+        runTest {
+            val harness = Harness()
+            val track = testTrack(id = testUuid(705))
+            harness.playbackStateFlow.value = MusicPlaybackState(currentTrack = track)
+            harness.castStateFlow.value =
+                CastSessionState(isConnected = true, isMusicCasting = true, isPlaying = false)
+            var beforeCalled = 0
+
+            harness.viewModel.playOrResumeTrack(
+                track = track,
+                startPositionMs = 20_000L,
+                onBeforeNewQueue = { beforeCalled++ },
+            )
+
+            assertEquals(0, beforeCalled)
+            verify(exactly = 1) { harness.castManager.play() }
+            verify(exactly = 0) { harness.queueManager.loadQueue(any(), any(), any(), any()) }
+
+            harness.castStateFlow.value =
+                CastSessionState(isConnected = true, isMusicCasting = true, isPlaying = true)
+
+            harness.viewModel.playOrResumeTrack(track = track, startPositionMs = 20_000L)
+
+            verify(exactly = 1) { harness.castManager.play() }
+            verify(exactly = 0) { harness.queueManager.loadQueue(any(), any(), any(), any()) }
+        }
 }
