@@ -86,7 +86,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.key.Key
@@ -1944,6 +1943,20 @@ private fun SeekBar(
             val seekRange = 0f..duration.toFloat().coerceAtLeast(0f)
             val seekState = remember(seekRange) { SliderState(trackRange = seekRange) }
             seekState.value = draggedPosition ?: position.toFloat()
+            val interactionSource = remember { MutableInteractionSource() }
+            val seekBarStyle =
+                rememberSeekBarVisualStyle(
+                    isFocused = isSeekBarFocused,
+                    isSeeking = uiState.isSeeking,
+                    primaryColor = MaterialTheme.colorScheme.primary,
+                    onPrimaryColor = MaterialTheme.colorScheme.onPrimary,
+                )
+            val sliderColors =
+                SliderDefaults.colors(
+                    thumbColor = seekBarStyle.dotColor,
+                    activeTrackColor = seekBarStyle.activeTrackColor,
+                    inactiveTrackColor = seekBarStyle.inactiveTrackColor,
+                )
             Slider(
                 state = seekState,
                 onValueChange = { newPosition ->
@@ -1960,16 +1973,23 @@ private fun SeekBar(
                     )
                     draggedPosition = null
                 },
-                colors =
-                    SliderDefaults.colors(
-                        thumbColor = MaterialTheme.colorScheme.primary,
-                        activeTrackColor = MaterialTheme.colorScheme.primary,
-                        inactiveTrackColor = Color.White.copy(alpha = 0.3f),
-                    ),
+                interactionSource = interactionSource,
+                colors = sliderColors,
+                thumb = {
+                    if (seekBarStyle.useDotThumb) {
+                        TvSeekBarThumb(
+                            dotSize = seekBarStyle.dotSize,
+                            dotColor = seekBarStyle.dotColor,
+                        )
+                    } else {
+                        SliderDefaults.Thumb(
+                            interactionSource = interactionSource,
+                            colors = sliderColors,
+                        )
+                    }
+                },
                 track = { sliderState ->
-                    val primaryColor = MaterialTheme.colorScheme.primary
-                    val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
-                    val trackHeight = if (isSeekBarFocused) 8.dp else 6.dp
+                    val trackHeight = seekBarStyle.trackHeight
                     Box(
                         modifier = Modifier.fillMaxWidth().height(24.dp),
                         contentAlignment = Alignment.Center,
@@ -1977,12 +1997,8 @@ private fun SeekBar(
                         SliderDefaults.Track(
                             sliderState = sliderState,
                             modifier = Modifier.height(trackHeight),
-                            thumbTrackGapSize = 6.dp,
-                            colors =
-                                SliderDefaults.colors(
-                                    activeTrackColor = primaryColor,
-                                    inactiveTrackColor = Color.White.copy(alpha = 0.3f),
-                                ),
+                            thumbTrackGapSize = seekBarStyle.thumbTrackGapSize,
+                            colors = sliderColors,
                             drawStopIndicator = null,
                         )
                         Canvas(modifier = Modifier.fillMaxWidth().height(trackHeight)) {
@@ -1993,7 +2009,7 @@ private fun SeekBar(
                                         .coerceAtLeast(1f)
                                 val progress =
                                     (sliderState.value - sliderState.trackRange.start) / rangeSpan
-                                val thumbTrackGapPx = 6.dp.toPx()
+                                val thumbTrackGapPx = seekBarStyle.thumbTrackGapSize.toPx()
                                 val thumbCenterX = progress * size.width
                                 val bufferStartX =
                                     (thumbCenterX + thumbTrackGapPx).coerceAtMost(size.width)
@@ -2007,7 +2023,7 @@ private fun SeekBar(
                                 val cornerR = CornerRadius(h / 2f, h / 2f)
                                 if (bufferedEndX > bufferStartX) {
                                     drawRoundRect(
-                                        color = Color.White.copy(alpha = 0.55f),
+                                        color = seekBarStyle.bufferedTrackColor,
                                         topLeft = Offset(bufferStartX, 0f),
                                         size = Size(bufferedEndX - bufferStartX, h),
                                         cornerRadius = cornerR,
@@ -2020,20 +2036,15 @@ private fun SeekBar(
                                             size.width
                                     val cx = x.coerceIn(markerRadius, size.width - markerRadius)
                                     val markerColor =
-                                        if (cx < thumbCenterX) onPrimaryColor.copy(alpha = 0.85f)
-                                        else Color.White.copy(alpha = 0.8f)
+                                        if (cx < thumbCenterX) {
+                                            seekBarStyle.activeChapterMarkerColor
+                                        } else {
+                                            seekBarStyle.inactiveChapterMarkerColor
+                                        }
                                     drawCircle(
                                         color = markerColor,
                                         radius = markerRadius,
                                         center = Offset(cx, h / 2),
-                                    )
-                                }
-                                if (isSeekBarFocused) {
-                                    drawCircle(
-                                        color = Color.White,
-                                        radius = 9.dp.toPx(),
-                                        center = Offset(thumbCenterX, h / 2f),
-                                        style = Stroke(width = 2.dp.toPx()),
                                     )
                                 }
                             }
@@ -2044,7 +2055,6 @@ private fun SeekBar(
                     Modifier.weight(1f)
                         .height(24.dp)
                         .padding(start = 8.dp)
-                        .focusOutline(RoundedCornerShape(8.dp), focusedScale = 1.0f)
                         .onFocusChanged { focusState ->
                             val focused = focusState.isFocused || focusState.hasFocus
                             if (isSeekBarFocused && !focused) {
