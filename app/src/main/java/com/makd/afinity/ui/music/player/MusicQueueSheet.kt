@@ -57,6 +57,7 @@ import com.makd.afinity.R
 import com.makd.afinity.data.models.music.AfinityTrack
 import com.makd.afinity.ui.components.AfinityModalBottomSheet
 import com.makd.afinity.ui.components.rememberAfinitySheetState
+import com.makd.afinity.ui.player.components.ContinueListeningUpcomingList
 import java.util.concurrent.atomic.AtomicInteger
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -69,6 +70,8 @@ fun MusicQueueSheet(
 ) {
     val queue by viewModel.queue.collectAsStateWithLifecycle()
     val currentIndex by viewModel.currentIndex.collectAsStateWithLifecycle()
+    val continueListeningUpcoming by
+        viewModel.continueListeningUpcoming.collectAsStateWithLifecycle()
 
     val sheetState = rememberAfinitySheetState()
 
@@ -76,6 +79,7 @@ fun MusicQueueSheet(
     val nextTracks =
         if (currentIndex + 1 < queue.size) queue.subList(currentIndex + 1, queue.size)
         else emptyList()
+    val showingContinueListening = nextTracks.isEmpty() && continueListeningUpcoming.isNotEmpty()
 
     val lazyListState = rememberLazyListState()
 
@@ -114,8 +118,12 @@ fun MusicQueueSheet(
                 )
                 TextButton(
                     onClick = {
-                        viewModel.clearQueue()
-                        onDismiss()
+                        if (showingContinueListening) {
+                            viewModel.clearContinueListeningQueue()
+                        } else {
+                            viewModel.clearQueue()
+                            onDismiss()
+                        }
                     },
                 ) {
                     Text(
@@ -144,7 +152,27 @@ fun MusicQueueSheet(
                 }
             }
 
-            if (nextTracks.isNotEmpty()) {
+            if (showingContinueListening) {
+                Text(
+                    text = stringResource(R.string.home_continue_listening),
+                    style =
+                        MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier =
+                        Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 8.dp),
+                )
+
+                ContinueListeningUpcomingList(
+                    items = continueListeningUpcoming,
+                    onItemClick = { index ->
+                        onDismiss()
+                        viewModel.playContinueListeningItem(index)
+                    },
+                    onMoveItem = viewModel::moveContinueListeningItem,
+                    onRemoveItem = viewModel::removeContinueListeningItem,
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                )
+            } else if (nextTracks.isNotEmpty()) {
                 Text(
                     text = stringResource(R.string.music_queue_next),
                     style =

@@ -19,6 +19,7 @@ import com.makd.afinity.data.repository.PreferencesRepository
 import com.makd.afinity.data.repository.SecurePreferencesRepository
 import com.makd.afinity.navigation.Destination
 import com.makd.afinity.player.ContinueListeningQueue
+import com.makd.afinity.player.ContinueListeningQueueItem
 import com.makd.afinity.player.LastPlayback
 import com.makd.afinity.player.LastPlaybackStore
 import com.makd.afinity.player.audiobook.AudiobookNotFoundException
@@ -65,7 +66,7 @@ constructor(
     private val lastPlaybackStore: LastPlaybackStore,
     private val sessionManager: SessionManager,
     preferencesRepository: PreferencesRepository,
-    continueListeningQueue: ContinueListeningQueue,
+    private val continueListeningQueue: ContinueListeningQueue,
 ) : ViewModel() {
 
     private val itemId: String = savedStateHandle.get<String>("itemId") ?: ""
@@ -85,6 +86,8 @@ constructor(
 
     val playbackState = playbackManager.playbackState
     val isContinueListeningAdvancing: StateFlow<Boolean> = continueListeningQueue.isAdvancing
+    val continueListeningUpcoming: StateFlow<List<ContinueListeningQueueItem>> =
+        continueListeningQueue.upcomingItems
     val currentConfig = audiobookshelfRepository.currentConfig
     val equalizerState = equalizerManager.state
     val skipSilenceEnabled = skipSilenceManager.isEnabled
@@ -398,6 +401,22 @@ constructor(
     fun stopPlayback() {
         audiobookshelfPlayer.pause()
         audiobookshelfPlayer.closeSession()
+    }
+
+    fun playContinueListeningItem(index: Int) {
+        continueListeningQueue.requestJumpToUpcoming(index)
+    }
+
+    fun moveContinueListeningItem(from: Int, to: Int) {
+        continueListeningQueue.moveUpcoming(from, to)
+    }
+
+    fun removeContinueListeningItem(index: Int) {
+        continueListeningQueue.removeUpcomingAt(index)
+    }
+
+    fun clearContinueListeningQueue() {
+        continueListeningQueue.clearUpcoming()
     }
 }
 

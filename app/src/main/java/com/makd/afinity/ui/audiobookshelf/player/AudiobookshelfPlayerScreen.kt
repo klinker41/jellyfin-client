@@ -40,6 +40,7 @@ import com.makd.afinity.ui.player.components.AudioPlayerLayout
 import com.makd.afinity.ui.player.components.AudioPlayerScaffold
 import com.makd.afinity.ui.player.components.AudioPlayerTitleBlock
 import com.makd.afinity.ui.player.components.AudioPlayerValueSlot
+import com.makd.afinity.ui.player.components.ContinueListeningQueueSheet
 import com.makd.afinity.ui.player.components.EqualizerBottomSheet
 import com.makd.afinity.ui.player.components.PlaybackStatsOverlay
 import com.makd.afinity.ui.player.components.PlayerMoreRow
@@ -66,6 +67,8 @@ fun SharedTransitionScope.AudiobookshelfPlayerScreen(
     val bookmarks by viewModel.bookmarks.collectAsStateWithLifecycle()
     val isContinueListeningAdvancing by
         viewModel.isContinueListeningAdvancing.collectAsStateWithLifecycle()
+    val continueListeningUpcoming by
+        viewModel.continueListeningUpcoming.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val launchCastChooser = rememberCastChooserLauncher()
     var showMoreSheet by rememberSaveable { mutableStateOf(false) }
@@ -74,9 +77,14 @@ fun SharedTransitionScope.AudiobookshelfPlayerScreen(
     var showSleepTimer by rememberSaveable { mutableStateOf(false) }
     var showEqualizer by rememberSaveable { mutableStateOf(false) }
     var showBookmarks by rememberSaveable { mutableStateOf(false) }
+    var showContinueListeningQueue by rememberSaveable { mutableStateOf(false) }
     val openBookmarks = {
         showBookmarks = true
         viewModel.refreshBookmarks()
+    }
+
+    LaunchedEffect(continueListeningUpcoming.isEmpty()) {
+        if (continueListeningUpcoming.isEmpty()) showContinueListeningQueue = false
     }
 
     val defaultColor = MaterialTheme.colorScheme.surface
@@ -217,6 +225,13 @@ fun SharedTransitionScope.AudiobookshelfPlayerScreen(
                     activeColor = animatedColor,
                 )
             }
+            if (continueListeningUpcoming.isNotEmpty()) {
+                AudioPlayerControlSlot(
+                    painter = painterResource(id = R.drawable.ic_playlist),
+                    contentDescription = stringResource(R.string.player_up_next),
+                    onClick = { showContinueListeningQueue = true },
+                )
+            }
         },
     ) {
         if (uiState.showPlaybackStats) {
@@ -339,6 +354,24 @@ fun SharedTransitionScope.AudiobookshelfPlayerScreen(
                 onDismiss = { showEqualizer = false },
                 skipSilenceEnabled = skipSilenceEnabled,
                 onSkipSilenceToggle = viewModel::setSkipSilence,
+            )
+        }
+
+        if (showContinueListeningQueue && continueListeningUpcoming.isNotEmpty()) {
+            ContinueListeningQueueSheet(
+                nowPlayingTitle =
+                    playbackState.displayTitle.ifEmpty { stringResource(R.string.unknown_title) },
+                nowPlayingSubtitle = playbackState.displayAuthor,
+                nowPlayingCoverUrl = playbackState.coverUrl,
+                upcomingItems = continueListeningUpcoming,
+                onItemClick = { index ->
+                    showContinueListeningQueue = false
+                    viewModel.playContinueListeningItem(index)
+                },
+                onMoveItem = viewModel::moveContinueListeningItem,
+                onRemoveItem = viewModel::removeContinueListeningItem,
+                onClear = viewModel::clearContinueListeningQueue,
+                onDismiss = { showContinueListeningQueue = false },
             )
         }
     }

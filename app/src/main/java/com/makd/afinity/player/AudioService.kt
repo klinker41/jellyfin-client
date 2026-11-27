@@ -190,6 +190,7 @@ class AudioService : MediaLibraryService() {
     private var skipSilenceJob: Job? = null
     private var musicSpeedJob: Job? = null
     private var continueListeningAdvanceJob: Job? = null
+    private var continueListeningJumpJob: Job? = null
     private var pendingMusicTransitionPositionMs: Long? = null
 
     private fun currentMusicPositionMs(): Long {
@@ -207,6 +208,7 @@ class AudioService : MediaLibraryService() {
         createNotificationChannel()
         val bufferSizeMb = runBlocking { preferencesRepository.getBufferSizeMb() }
         initializePlayer(bufferSizeMb)
+        startContinueListeningJumpListener()
     }
 
     private fun createNotificationChannel() {
@@ -1335,6 +1337,40 @@ class AudioService : MediaLibraryService() {
         }
     }
 
+    private fun startContinueListeningJumpListener() {
+        continueListeningJumpJob?.cancel()
+        continueListeningJumpJob = serviceScope.launch {
+            continueListeningQueue.jumpRequests.collect { pending ->
+                when (activeEngine) {
+                    ActiveEngine.ABS -> {
+                        absPlaybackManager.updatePlayingState(false)
+                        stopPositionUpdates()
+                        if (isJellyfinAudiobook()) {
+                            absPlayer.cancelSleepTimer()
+                            endJellyfinAudiobook()
+                        }
+                    }
+                    ActiveEngine.MUSIC -> {
+                        musicPlaybackManager.updatePlayingState(false)
+                        stopPositionUpdates()
+                        pendingMusicTransitionPositionMs = null
+                        musicProgressReporter.onPlaybackStopped(
+                            currentMusicPositionMs(),
+                            isEnded = false,
+                            allowCompletion = false,
+                        )
+                    }
+                    ActiveEngine.NONE -> {}
+                }
+                exoPlayer?.stop()
+                continueListeningAdvanceJob?.cancel()
+                continueListeningAdvanceJob = serviceScope.launch {
+                    advanceContinueListening(pending)
+                }
+            }
+        }
+    }
+
     private suspend fun advanceContinueListening(
         firstPending: ContinueListeningQueue.PendingAdvance,
     ) {
@@ -1405,6 +1441,7 @@ class AudioService : MediaLibraryService() {
     }
 
     override fun onDestroy() {
+        continueListeningJumpJob?.cancel()
         continueListeningAdvanceJob?.cancel()
         continueListeningQueue.clear()
         absEqualizerManager.releaseEqualizer()

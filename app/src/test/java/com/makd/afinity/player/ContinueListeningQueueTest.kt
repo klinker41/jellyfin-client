@@ -2,6 +2,7 @@ package com.makd.afinity.player
 
 import com.makd.afinity.data.models.media.AfinityAudiobook
 import com.makd.afinity.data.models.media.AfinityImages
+import com.makd.afinity.data.models.media.AfinityPerson
 import com.makd.afinity.data.models.music.AfinityTrack
 import com.makd.afinity.data.podcasts.ContinueListeningEntry
 import io.mockk.every
@@ -12,6 +13,7 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import org.jellyfin.sdk.model.api.PersonKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -112,10 +114,15 @@ class ContinueListeningQueueTest {
         assertNotNull(firstAdvance)
         assertEquals(ContinueListeningQueueItem.PodcastEpisode(track1), firstAdvance!!.item)
         assertTrue(queue.isAdvancing.value)
+        assertEquals(
+            listOf(ContinueListeningQueueItem.Audiobook(testUuid(30))),
+            queue.upcomingItems.value.map { ContinueListeningQueueItem.Audiobook(it.itemId) },
+        )
 
         val secondAdvance = queue.consumeNextForPodcast(track1.id)
         assertNotNull(secondAdvance)
-        assertEquals(ContinueListeningQueueItem.Audiobook(testUuid(30)), secondAdvance!!.item)
+        assertEquals(testUuid(30), secondAdvance!!.item.itemId)
+        assertTrue(queue.upcomingItems.value.isEmpty())
 
         assertNull(queue.consumeNextForAudiobook(testUuid(30).toString()))
     }
@@ -151,7 +158,7 @@ class ContinueListeningQueueTest {
         assertNull(queue.consumeNextForAudiobook(testUuid(10).toString()))
         val advance = queue.consumeNextForAudiobook(testUuid(11).toString())
         assertNotNull(advance)
-        assertEquals(ContinueListeningQueueItem.Audiobook(testUuid(20)), advance!!.item)
+        assertEquals(testUuid(20), advance!!.item.itemId)
     }
 
     @Test
@@ -261,5 +268,125 @@ class ContinueListeningQueueTest {
         queue.startFrom(entries2, clickedIndex = 0)
         queue.clearIfDifferentAudiobook(testUuid(3).toString())
         assertNotNull(queue.consumeNextForAudiobook(testUuid(3).toString()))
+    }
+
+    @Test
+    fun `audiobook toQueueItem populates display metadata`() {
+        val author =
+            AfinityPerson(
+                id = testUuid(100),
+                name = "Author Name",
+                type = PersonKind.AUTHOR,
+                role = "",
+                image = mockk(relaxed = true),
+            )
+        val book =
+            testAudiobook(id = testUuid(50))
+                .copy(
+                    name = "Dune",
+                    people = listOf(author),
+                )
+
+        val queueItem = book.toQueueItem()
+        assertEquals(testUuid(50), queueItem.bookId)
+        assertEquals("Dune", queueItem.title)
+        assertEquals("Author Name", queueItem.subtitle)
+
+        val dedupPodcast =
+            ContinueListeningQueueItem.PodcastEpisode(
+                testTrack(testUuid(51)).copy(artist = "Same Show", album = "Same Show"),
+            )
+        assertEquals("Same Show", dedupPodcast.subtitle)
+    }
+
+    @Test
+    fun `moveUpcoming, removeUpcomingAt, and clearUpcoming update upcomingItems`() {
+        val queue = ContinueListeningQueue()
+        val book1 = testAudiobook(testUuid(1))
+        val track2 = testTrack(testUuid(2))
+        val track3 = testTrack(testUuid(3))
+        val track4 = testTrack(testUuid(4))
+        val entries =
+            listOf(
+                ContinueListeningEntry.Audiobook(book1),
+                ContinueListeningEntry.PodcastEpisode(track2),
+                ContinueListeningEntry.PodcastEpisode(track3),
+                ContinueListeningEntry.PodcastEpisode(track4),
+            )
+
+        queue.startFrom(entries, clickedIndex = 0)
+        assertEquals(
+            listOf(testUuid(2), testUuid(3), testUuid(4)),
+            queue.upcomingItems.value.map { it.itemId },
+        )
+
+        queue.moveUpcoming(fromIndex = 2, toIndex = 0)
+        assertEquals(
+            listOf(testUuid(4), testUuid(2), testUuid(3)),
+            queue.upcomingItems.value.map { it.itemId },
+        )
+
+        // Out-of-bounds moves are ignored.
+        queue.moveUpcoming(fromIndex = -1, toIndex = 1)
+        queue.moveUpcoming(fromIndex = 0, toIndex = 5)
+        assertEquals(
+            listOf(testUuid(4), testUuid(2), testUuid(3)),
+            queue.upcomingItems.value.map { it.itemId },
+        )
+
+        queue.removeUpcomingAt(1)
+        assertEquals(listOf(testUuid(4), testUuid(3)), queue.upcomingItems.value.map { it.itemId })
+
+        // Out-of-bounds removals are ignored.
+        queue.removeUpcomingAt(-1)
+        queue.removeUpcomingAt(5)
+        assertEquals(listOf(testUuid(4), testUuid(3)), queue.upcomingItems.value.map { it.itemId })
+
+        // Removing the remaining items clears activeItem as well.
+        queue.removeUpcomingAt(1)
+        queue.removeUpcomingAt(0)
+        assertTrue(queue.upcomingItems.value.isEmpty())
+        assertNull(queue.consumeNextForAudiobook(testUuid(1).toString()))
+
+        queue.startFrom(entries, clickedIndex = 0)
+        queue.clearUpcoming()
+        assertTrue(queue.upcomingItems.value.isEmpty())
+        assertNull(queue.consumeNextForAudiobook(testUuid(1).toString()))
+    }
+
+    @Test
+    fun `requestJumpToUpcoming skips prior items and emits when subscribed`() = runTest {
+        val queue = ContinueListeningQueue()
+        val book1 = testAudiobook(testUuid(1))
+        val track2 = testTrack(testUuid(2))
+        val track3 = testTrack(testUuid(3))
+        val track4 = testTrack(testUuid(4))
+        val entries =
+            listOf(
+                ContinueListeningEntry.Audiobook(book1),
+                ContinueListeningEntry.PodcastEpisode(track2),
+                ContinueListeningEntry.PodcastEpisode(track3),
+                ContinueListeningEntry.PodcastEpisode(track4),
+            )
+        queue.startFrom(entries, clickedIndex = 0)
+
+        // No subscriber -> returns false without mutating upcomingItems.
+        assertFalse(queue.requestJumpToUpcoming(1))
+        assertEquals(
+            listOf(testUuid(2), testUuid(3), testUuid(4)),
+            queue.upcomingItems.value.map { it.itemId },
+        )
+
+        val collected = async(start = CoroutineStart.UNDISPATCHED) { queue.jumpRequests.first() }
+        assertTrue(queue.requestJumpToUpcoming(1))
+
+        val jumped = collected.await()
+        assertEquals(testUuid(3), jumped.item.itemId)
+        assertTrue(queue.isAdvancing.value)
+        assertEquals(listOf(testUuid(4)), queue.upcomingItems.value.map { it.itemId })
+
+        val afterJump = queue.consumeNextForPodcast(testUuid(3))
+        assertNotNull(afterJump)
+        assertEquals(testUuid(4), afterJump!!.item.itemId)
     }
 }
