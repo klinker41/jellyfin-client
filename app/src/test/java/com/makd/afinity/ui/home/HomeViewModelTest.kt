@@ -15,6 +15,7 @@ import com.makd.afinity.data.repository.home.HomeLayoutPreferencesRepository
 import com.makd.afinity.data.repository.home.HomeSectionsRepository
 import com.makd.afinity.data.repository.media.MediaRepository
 import com.makd.afinity.data.store.ItemStore
+import com.makd.afinity.player.ContinueListeningQueue
 import com.makd.afinity.testutil.MainDispatcherRule
 import com.makd.afinity.testutil.TestMediaFixtures.testCollection
 import com.makd.afinity.testutil.TestMediaFixtures.testEpisode
@@ -179,6 +180,7 @@ class HomeViewModelTest {
                 itemStore = itemStore,
                 bookMetadataStore = mockk(relaxed = true),
                 audiobookDownloadStore = mockk(relaxed = true),
+                continueListeningQueue = ContinueListeningQueue(),
             )
     }
 

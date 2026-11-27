@@ -760,8 +760,24 @@ fun HomeScreen(
                                             title =
                                                 stringResource(R.string.home_continue_listening),
                                             entries = continueListeningEntries,
-                                            onAudiobookClick = onPlayAudiobook,
+                                            onAudiobookClick = { book ->
+                                                val index = continueListeningEntries.indexOfFirst {
+                                                    it.id == book.id
+                                                }
+                                                viewModel.startContinueListening(
+                                                    continueListeningEntries,
+                                                    index,
+                                                )
+                                                onPlayAudiobook(book)
+                                            },
                                             onPodcastClick = { episode ->
+                                                val index = continueListeningEntries.indexOfFirst {
+                                                    it.id == episode.id
+                                                }
+                                                viewModel.startContinueListening(
+                                                    continueListeningEntries,
+                                                    index,
+                                                )
                                                 playerViewModel.playOrResumeTrack(
                                                     track = episode,
                                                     startPositionMs = episode.resumePositionMs(),
@@ -836,7 +852,17 @@ fun HomeScreen(
                                     AudiobookRowSection(
                                         title = stringResource(R.string.home_continue_listening),
                                         books = uiState.offlineContinueListening,
-                                        onBookClick = onPlayAudiobook,
+                                        onBookClick = { book ->
+                                            val index =
+                                                uiState.offlineContinueListening.indexOfFirst {
+                                                    it.id == book.id
+                                                }
+                                            viewModel.startContinueListeningAudiobooks(
+                                                uiState.offlineContinueListening,
+                                                index,
+                                            )
+                                            onPlayAudiobook(book)
+                                        },
                                         widthSizeClass = widthSizeClass,
                                         showProgress = true,
                                     )

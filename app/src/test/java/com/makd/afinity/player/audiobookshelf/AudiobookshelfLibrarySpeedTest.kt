@@ -17,6 +17,7 @@ import com.makd.afinity.data.models.media.AfinityAudiobook
 import com.makd.afinity.data.models.media.AfinityImages
 import com.makd.afinity.data.repository.AudiobookshelfRepository
 import com.makd.afinity.data.repository.media.MediaRepository
+import com.makd.afinity.player.ContinueListeningQueue
 import com.makd.afinity.player.LibraryPlaybackSpeedStore
 import com.makd.afinity.player.audiobook.JellyfinAudiobookReporter
 import com.makd.afinity.player.audiobook.JellyfinAudiobookStarter
@@ -84,6 +85,7 @@ class AudiobookshelfLibrarySpeedTest {
                 castManager = dagger.Lazy { castManager },
                 jellyfinReporter = mockk<JellyfinAudiobookReporter>(relaxed = true),
                 libraryPlaybackSpeedStore = speedStore,
+                continueListeningQueue = ContinueListeningQueue(),
             )
     }
 

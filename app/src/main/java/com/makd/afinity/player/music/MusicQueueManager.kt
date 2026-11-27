@@ -26,6 +26,7 @@ import com.makd.afinity.data.repository.DatabaseRepository
 import com.makd.afinity.data.repository.PreferencesRepository
 import com.makd.afinity.data.repository.playback.PlaybackRepository
 import com.makd.afinity.player.AudioService
+import com.makd.afinity.player.ContinueListeningQueue
 import com.makd.afinity.util.NetworkConnectivityMonitor
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
@@ -103,6 +104,7 @@ constructor(
     private val networkConnectivityMonitor: NetworkConnectivityMonitor,
     private val playbackRepository: PlaybackRepository,
     private val databaseRepository: DatabaseRepository,
+    private val continueListeningQueue: ContinueListeningQueue,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -271,6 +273,7 @@ constructor(
         }
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun loadQueue(
         tracks: List<AfinityTrack>,
         startIndex: Int,
@@ -280,6 +283,8 @@ constructor(
         val clamped = tracks.take(MAX_QUEUE_SIZE)
         val ordered = if (shuffle) clamped.shuffled() else clamped
         val index = if (shuffle) 0 else startIndex
+        continueListeningQueue.clearIfDifferentPodcast(ordered)
+        _loadQueueEvents.resetReplayCache()
         _queue.value = ordered
         _currentIndex.value = index.coerceIn(0, (ordered.size - 1).coerceAtLeast(0))
         originalQueue = if (shuffle) clamped else emptyList()
@@ -400,6 +405,7 @@ constructor(
     }
 
     fun clearQueue() {
+        continueListeningQueue.clear()
         _queue.value = emptyList()
         _currentIndex.value = 0
         originalQueue = emptyList()

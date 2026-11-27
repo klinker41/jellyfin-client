@@ -31,6 +31,7 @@ import com.makd.afinity.data.repository.AudiobookshelfRepository
 import com.makd.afinity.data.repository.PreferencesRepository
 import com.makd.afinity.data.repository.SecurePreferencesRepository
 import com.makd.afinity.data.repository.audiobookshelf.AbsProgressSyncScheduler
+import com.makd.afinity.player.ContinueListeningQueue
 import com.makd.afinity.player.LibraryPlaybackSpeedStore
 import com.makd.afinity.player.audiobook.JellyfinAudiobookReporter
 import com.makd.afinity.player.music.MusicPlaybackManager
@@ -76,6 +77,7 @@ constructor(
     private val castManager: dagger.Lazy<CastManager>,
     private val jellyfinReporter: JellyfinAudiobookReporter,
     private val libraryPlaybackSpeedStore: LibraryPlaybackSpeedStore,
+    private val continueListeningQueue: ContinueListeningQueue,
 ) {
     private var mediaController: MediaController? = null
     private var controllerFuture: ListenableFuture<MediaController>? = null
@@ -213,6 +215,7 @@ constructor(
         includePlayed: Boolean = false,
     ) {
         scope.launch {
+            continueListeningQueue.clear()
             val trackBefore = musicPlaybackManager.state.value.currentTrack
             Timber.d(
                 "ABS loadSession: START itemId=${session.libraryItemId} musicTrack=${trackBefore?.name} controllerCached=${mediaController != null}",
@@ -249,6 +252,7 @@ constructor(
     @UnstableApi
     fun loadJellyfinSession(session: JellyfinAudiobookSession, startPosition: Double) {
         scope.launch {
+            continueListeningQueue.clearIfDifferentAudiobook(session.bookId)
             if (playbackManager.playbackState.value.sessionId != null) {
                 closeSession(stopService = false)
             }
@@ -743,6 +747,9 @@ constructor(
 
     @OptIn(UnstableApi::class)
     fun closeSession(stopService: Boolean = true) {
+        if (stopService) {
+            continueListeningQueue.clear()
+        }
         cancelSleepTimer()
         val state = playbackManager.playbackState.value
         val sessionId = state.sessionId

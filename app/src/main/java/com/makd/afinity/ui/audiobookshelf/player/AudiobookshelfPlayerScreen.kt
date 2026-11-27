@@ -64,6 +64,8 @@ fun SharedTransitionScope.AudiobookshelfPlayerScreen(
     val skipSilenceEnabled by viewModel.skipSilenceEnabled.collectAsStateWithLifecycle()
     val isAbsCasting by viewModel.isAbsCasting.collectAsStateWithLifecycle()
     val bookmarks by viewModel.bookmarks.collectAsStateWithLifecycle()
+    val isContinueListeningAdvancing by
+        viewModel.isContinueListeningAdvancing.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val launchCastChooser = rememberCastChooserLauncher()
     var showMoreSheet by rememberSaveable { mutableStateOf(false) }
@@ -94,10 +96,10 @@ fun SharedTransitionScope.AudiobookshelfPlayerScreen(
     }
 
     var hadSession by remember { mutableStateOf(false) }
-    LaunchedEffect(playbackState.sessionId) {
+    LaunchedEffect(playbackState.sessionId, isContinueListeningAdvancing) {
         if (playbackState.sessionId != null) {
             hadSession = true
-        } else if (hadSession) {
+        } else if (hadSession && !isContinueListeningAdvancing) {
             onNavigateBack()
         }
     }

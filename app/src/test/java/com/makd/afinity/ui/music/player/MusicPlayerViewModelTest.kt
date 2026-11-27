@@ -25,6 +25,7 @@ import com.makd.afinity.data.repository.AppDataRepository
 import com.makd.afinity.data.repository.PreferencesRepository
 import com.makd.afinity.data.repository.music.MusicRepository
 import com.makd.afinity.data.repository.playback.PlaybackRepository
+import com.makd.afinity.player.ContinueListeningQueue
 import com.makd.afinity.player.LibraryPlaybackSpeedStore
 import com.makd.afinity.player.common.EqualizerPreset
 import com.makd.afinity.player.common.EqualizerState
@@ -129,6 +130,7 @@ class MusicPlayerViewModelTest {
                 preferencesRepository = preferencesRepository,
                 adminChangeBroadcaster = adminChangeBroadcaster,
                 libraryPlaybackSpeedStore = libraryPlaybackSpeedStore,
+                continueListeningQueue = ContinueListeningQueue(),
                 context = context,
             )
     }

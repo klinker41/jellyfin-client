@@ -263,6 +263,11 @@ fun MainNavigation(
             viewModel.consumePendingNavigation()
         }
     }
+
+    ContinueListeningNavigationEffect(
+        continueListeningQueue = viewModel.continueListeningQueue,
+        navController = navController,
+    )
     val snackbarHostState = remember { SnackbarHostState() }
     val webSocketState by mainViewModel.webSocketState.collectAsStateWithLifecycle()
     val serverRestartingMessage = stringResource(R.string.websocket_server_restarting)

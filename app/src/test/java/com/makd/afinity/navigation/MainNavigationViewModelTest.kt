@@ -23,6 +23,7 @@ import com.makd.afinity.data.repository.livetv.LiveTvRepository
 import com.makd.afinity.data.repository.media.MediaRepository
 import com.makd.afinity.data.repository.server.ServerRepository
 import com.makd.afinity.data.repository.watchlist.WatchlistRepository
+import com.makd.afinity.player.ContinueListeningQueue
 import com.makd.afinity.player.audiobookshelf.AudiobookshelfPlaybackState
 import com.makd.afinity.testutil.MainDispatcherRule
 import com.makd.afinity.testutil.TestMediaFixtures.testEpisode
@@ -165,6 +166,7 @@ class MainNavigationViewModelTest {
                 sessionManager = sessionManager,
                 preferencesRepository = preferencesRepository,
                 pendingNavigationManager = pendingNavigationManager,
+                continueListeningQueue = ContinueListeningQueue(),
                 serverRepository = serverRepository,
             )
     }

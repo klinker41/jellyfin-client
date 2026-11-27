@@ -13,6 +13,7 @@ import com.makd.afinity.data.repository.AudiobookshelfRepository
 import com.makd.afinity.data.repository.PreferencesRepository
 import com.makd.afinity.data.repository.SecurePreferencesRepository
 import com.makd.afinity.navigation.Destination
+import com.makd.afinity.player.ContinueListeningQueue
 import com.makd.afinity.player.LastPlaybackStore
 import com.makd.afinity.player.audiobook.JellyfinAudiobookStarter
 import com.makd.afinity.player.audiobookshelf.AbsPlaybackStarter
@@ -99,6 +100,7 @@ class AudiobookshelfPlayerViewModelTest {
                 lastPlaybackStore = lastPlaybackStore,
                 sessionManager = sessionManager,
                 preferencesRepository = preferencesRepository,
+                continueListeningQueue = ContinueListeningQueue(),
             )
     }
 

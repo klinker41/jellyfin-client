@@ -29,6 +29,7 @@ import com.makd.afinity.data.repository.PreferencesRepository
 import com.makd.afinity.data.repository.music.MusicRepository
 import com.makd.afinity.data.repository.playback.PlaybackRepository
 import com.makd.afinity.player.AudioService
+import com.makd.afinity.player.ContinueListeningQueue
 import com.makd.afinity.player.LibraryPlaybackSpeedStore
 import com.makd.afinity.player.common.EqualizerPreset
 import com.makd.afinity.player.music.MusicEqualizerManager
@@ -73,10 +74,12 @@ constructor(
     preferencesRepository: PreferencesRepository,
     private val adminChangeBroadcaster: AdminChangeBroadcaster,
     private val libraryPlaybackSpeedStore: LibraryPlaybackSpeedStore,
+    continueListeningQueue: ContinueListeningQueue,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
     val playbackState: StateFlow<MusicPlaybackState> = playbackManager.state
+    val isContinueListeningAdvancing: StateFlow<Boolean> = continueListeningQueue.isAdvancing
     val queue: StateFlow<List<AfinityTrack>> = queueManager.queue
     val currentIndex: StateFlow<Int> = queueManager.currentIndex
     val radioState: StateFlow<RadioState> = radioManager.radioState

@@ -87,6 +87,8 @@ fun SharedTransitionScope.MusicPlayerScreen(
     val queue by viewModel.queue.collectAsStateWithLifecycle()
     val showPlaybackStats by viewModel.showPlaybackStats.collectAsStateWithLifecycle()
     val playbackStats by viewModel.playbackStats.collectAsStateWithLifecycle()
+    val isContinueListeningAdvancing by
+        viewModel.isContinueListeningAdvancing.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     var showQueue by rememberSaveable { mutableStateOf(false) }
@@ -102,10 +104,10 @@ fun SharedTransitionScope.MusicPlayerScreen(
     LaunchedEffect(playbackState.isPodcast) { if (!playbackState.isPodcast) showSpeed = false }
 
     var hadTrack by remember { mutableStateOf(false) }
-    LaunchedEffect(playbackState.currentTrack) {
+    LaunchedEffect(playbackState.currentTrack, isContinueListeningAdvancing) {
         if (playbackState.currentTrack != null) {
             hadTrack = true
-        } else if (hadTrack) {
+        } else if (hadTrack && !isContinueListeningAdvancing) {
             onNavigateBack()
         }
     }

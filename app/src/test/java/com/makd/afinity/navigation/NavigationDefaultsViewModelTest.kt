@@ -8,6 +8,7 @@ import com.makd.afinity.data.repository.AppDataRepository
 import com.makd.afinity.data.repository.PreferencesRepository
 import com.makd.afinity.data.repository.auth.AuthRepository
 import com.makd.afinity.data.repository.server.ServerRepository
+import com.makd.afinity.player.ContinueListeningQueue
 import com.makd.afinity.testutil.MainDispatcherRule
 import io.mockk.coEvery
 import io.mockk.every
@@ -72,6 +73,7 @@ class NavigationDefaultsViewModelTest {
                     sessionManager = sessionManager,
                     preferencesRepository = preferencesRepository,
                     pendingNavigationManager = mockk(relaxed = true),
+                    continueListeningQueue = ContinueListeningQueue(),
                     serverRepository = serverRepository,
                 )
 

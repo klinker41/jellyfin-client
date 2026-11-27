@@ -18,6 +18,7 @@ import com.makd.afinity.data.repository.AudiobookshelfRepository
 import com.makd.afinity.data.repository.PreferencesRepository
 import com.makd.afinity.data.repository.SecurePreferencesRepository
 import com.makd.afinity.navigation.Destination
+import com.makd.afinity.player.ContinueListeningQueue
 import com.makd.afinity.player.LastPlayback
 import com.makd.afinity.player.LastPlaybackStore
 import com.makd.afinity.player.audiobook.AudiobookNotFoundException
@@ -64,6 +65,7 @@ constructor(
     private val lastPlaybackStore: LastPlaybackStore,
     private val sessionManager: SessionManager,
     preferencesRepository: PreferencesRepository,
+    continueListeningQueue: ContinueListeningQueue,
 ) : ViewModel() {
 
     private val itemId: String = savedStateHandle.get<String>("itemId") ?: ""
@@ -82,6 +84,7 @@ constructor(
     val uiState: StateFlow<AudiobookshelfPlayerUiState> = _uiState.asStateFlow()
 
     val playbackState = playbackManager.playbackState
+    val isContinueListeningAdvancing: StateFlow<Boolean> = continueListeningQueue.isAdvancing
     val currentConfig = audiobookshelfRepository.currentConfig
     val equalizerState = equalizerManager.state
     val skipSilenceEnabled = skipSilenceManager.isEnabled

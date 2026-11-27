@@ -50,6 +50,7 @@ import com.makd.afinity.data.models.media.ItemFilterCriteria
 import com.makd.afinity.data.models.media.groupedIntoBooks
 import com.makd.afinity.data.models.music.AfinityAlbum
 import com.makd.afinity.data.models.music.AfinityTrack
+import com.makd.afinity.data.podcasts.ContinueListeningEntry
 import com.makd.afinity.data.repository.AppDataRepository
 import com.makd.afinity.data.repository.DatabaseRepository
 import com.makd.afinity.data.repository.audiobookshelf.AbsDownloadRepository
@@ -64,6 +65,7 @@ import com.makd.afinity.data.storage.StorageLocationProvider
 import com.makd.afinity.data.store.ItemProjection
 import com.makd.afinity.data.store.ItemStore
 import com.makd.afinity.data.workers.HomeDataReloadWorker
+import com.makd.afinity.player.ContinueListeningQueue
 import com.makd.afinity.ui.components.EpisodeSelection
 import com.makd.afinity.ui.item.delegates.ItemUserDataDelegate
 import com.makd.afinity.ui.utils.IntentUtils
@@ -119,6 +121,7 @@ constructor(
     private val itemStore: ItemStore,
     private val bookMetadataStore: BookMetadataStore,
     private val audiobookDownloadStore: AudiobookDownloadStore,
+    private val continueListeningQueue: ContinueListeningQueue,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -949,6 +952,14 @@ constructor(
             _uiState.update { it.copy(upcomingLoaded = true) }
             Timber.e(e, "Failed to load upcoming episodes")
         }
+    }
+
+    fun startContinueListening(entries: List<ContinueListeningEntry>, clickedIndex: Int) {
+        continueListeningQueue.startFrom(entries, clickedIndex)
+    }
+
+    fun startContinueListeningAudiobooks(books: List<AfinityAudiobook>, clickedIndex: Int) {
+        continueListeningQueue.startFromAudiobooks(books, clickedIndex)
     }
 
     fun onScreenResumed() {

@@ -16,6 +16,8 @@ import com.makd.afinity.data.models.player.StreamDecision
 import com.makd.afinity.data.repository.DatabaseRepository
 import com.makd.afinity.data.repository.PreferencesRepository
 import com.makd.afinity.data.repository.playback.PlaybackRepository
+import com.makd.afinity.player.ContinueListeningQueue
+import com.makd.afinity.player.ContinueListeningQueueItem
 import com.makd.afinity.testutil.TestMediaFixtures.testUuid
 import com.makd.afinity.util.NetworkConnectivityMonitor
 import io.mockk.coEvery
@@ -141,6 +143,7 @@ class MusicQueueManagerTest {
                     flowOf(emptyList())
             }
 
+        val continueListeningQueue = ContinueListeningQueue()
         val manager =
             MusicQueueManager(
                 context = context,
@@ -152,6 +155,7 @@ class MusicQueueManagerTest {
                 networkConnectivityMonitor = networkMonitor,
                 playbackRepository = playbackRepository,
                 databaseRepository = databaseRepository,
+                continueListeningQueue = continueListeningQueue,
             )
     }
 
@@ -296,4 +300,43 @@ class MusicQueueManagerTest {
         assertNull(h.manager.currentTrack)
         coVerify(atLeast = 1) { h.musicQueueDao.clearQueue() }
     }
+
+    @Test
+    fun `loadQueue preserves matching single podcast in ContinueListeningQueue and clears unrelated queues`() =
+        runTest {
+            val h = Harness(backgroundScope)
+            val ep1 = track(1)
+            val ep2 = track(2)
+            val other = track(3)
+
+            h.continueListeningQueue.startFromItems(
+                listOf(
+                    ContinueListeningQueueItem.PodcastEpisode(ep1),
+                    ContinueListeningQueueItem.PodcastEpisode(ep2),
+                ),
+                clickedIndex = 0,
+            )
+
+            h.manager.loadQueue(listOf(ep1), startIndex = 0)
+            withContext(Dispatchers.Default) {
+                withTimeout(2_000L) { h.manager.loadQueueEvents.first() }
+            }
+            val next = h.continueListeningQueue.consumeNextForPodcast(ep1.id)
+            assertNotNull(next)
+            assertEquals(ContinueListeningQueueItem.PodcastEpisode(ep2), next!!.item)
+
+            h.continueListeningQueue.startFromItems(
+                listOf(
+                    ContinueListeningQueueItem.PodcastEpisode(ep1),
+                    ContinueListeningQueueItem.PodcastEpisode(ep2),
+                ),
+                clickedIndex = 0,
+            )
+            h.manager.loadQueue(listOf(other), startIndex = 0)
+            withContext(Dispatchers.Default) {
+                withTimeout(2_000L) { h.manager.loadQueueEvents.first() }
+            }
+            assertNull(h.continueListeningQueue.consumeNextForPodcast(ep1.id))
+            assertNull(h.continueListeningQueue.consumeNextForPodcast(other.id))
+        }
 }
