@@ -56,7 +56,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -98,13 +97,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -509,7 +506,7 @@ fun PlayerControls(
         )
     val overlayBottomPadding by
         animateDpAsState(
-            targetValue = if (shouldShowControls) 100.dp else 24.dp,
+            targetValue = if (shouldShowControls) 116.dp else 24.dp,
             animationSpec = tween(300),
             label = "overlayBottomPadding",
         )
@@ -1899,7 +1896,7 @@ private fun LabeledControl(
 
 @OptIn(UnstableApi::class)
 @Composable
-private fun SeekBar(
+internal fun SeekBar(
     uiState: PlayerViewModel.PlayerUiState,
     playbackProgress: State<PlayerViewModel.PlaybackProgress>,
     onPlayerEvent: (PlayerEvent) -> Unit,
@@ -1926,12 +1923,12 @@ private fun SeekBar(
             else -> playbackProgress.value.currentPosition
         }
 
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        if (uiState.isLiveChannel) {
+    if (uiState.isLiveChannel) {
+        Row(
+            modifier = modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             Box(
                 modifier =
                     Modifier.weight(1f)
@@ -1939,24 +1936,40 @@ private fun SeekBar(
                         .padding(start = 8.dp)
                         .background(Color.Red.copy(alpha = 0.8f), RoundedCornerShape(3.dp)),
             )
-        } else {
-            val seekRange = 0f..duration.toFloat().coerceAtLeast(0f)
-            val seekState = remember(seekRange) { SliderState(trackRange = seekRange) }
-            seekState.value = draggedPosition ?: position.toFloat()
-            val interactionSource = remember { MutableInteractionSource() }
-            val seekBarStyle =
-                rememberSeekBarVisualStyle(
-                    isFocused = isSeekBarFocused,
-                    isSeeking = uiState.isSeeking,
-                    primaryColor = MaterialTheme.colorScheme.primary,
-                    onPrimaryColor = MaterialTheme.colorScheme.onPrimary,
-                )
-            val sliderColors =
-                SliderDefaults.colors(
-                    thumbColor = seekBarStyle.dotColor,
-                    activeTrackColor = seekBarStyle.activeTrackColor,
-                    inactiveTrackColor = seekBarStyle.inactiveTrackColor,
-                )
+            LiveBadge()
+        }
+    } else {
+        val displayedPosition = draggedPosition?.toLong() ?: position
+        val seekRange = 0f..duration.toFloat().coerceAtLeast(0f)
+        val seekState = remember(seekRange) { SliderState(trackRange = seekRange) }
+        seekState.value = draggedPosition ?: position.toFloat()
+        val interactionSource = remember { MutableInteractionSource() }
+        val seekBarStyle =
+            rememberSeekBarVisualStyle(
+                isFocused = isSeekBarFocused,
+                isSeeking = uiState.isSeeking,
+                primaryColor = MaterialTheme.colorScheme.primary,
+                onPrimaryColor = MaterialTheme.colorScheme.onPrimary,
+            )
+        val sliderColors =
+            SliderDefaults.colors(
+                thumbColor = seekBarStyle.dotColor,
+                activeTrackColor = seekBarStyle.activeTrackColor,
+                inactiveTrackColor = seekBarStyle.inactiveTrackColor,
+            )
+        Column(
+            modifier =
+                modifier.fillMaxWidth().padding(horizontal = 8.dp).onGloballyPositioned {
+                    seekBarAnchor?.report(anchorOwner, it.boundsInWindow())
+                },
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            SeekBarTimestamps(
+                positionMs = displayedPosition,
+                durationMs = duration,
+                showRemainingTime = uiState.showRemainingTime,
+                onToggleRemainingTime = { onPlayerEvent(PlayerEvent.ToggleRemainingTime) },
+            )
             Slider(
                 state = seekState,
                 onValueChange = { newPosition ->
@@ -2052,9 +2065,8 @@ private fun SeekBar(
                     }
                 },
                 modifier =
-                    Modifier.weight(1f)
+                    Modifier.fillMaxWidth()
                         .height(24.dp)
-                        .padding(start = 8.dp)
                         .onFocusChanged { focusState ->
                             val focused = focusState.isFocused || focusState.hasFocus
                             if (isSeekBarFocused && !focused) {
@@ -2079,51 +2091,8 @@ private fun SeekBar(
                                     )
                                 },
                             )
-                        }
-                        .onGloballyPositioned {
-                            seekBarAnchor?.report(anchorOwner, it.boundsInWindow())
                         },
             )
-        }
-
-        if (uiState.isLiveChannel) {
-            LiveBadge()
-        } else {
-            val timeLabelStyle =
-                LocalTextStyle.current.copy(fontSize = 12.sp, fontFeatureSettings = "tnum")
-            val textMeasurer = rememberTextMeasurer()
-            val density = LocalDensity.current
-            val timeLabelWidth =
-                remember(duration, timeLabelStyle, textMeasurer, density) {
-                    val widest = "-" + formatClock(duration).replace(Regex("\\d"), "0")
-                    with(density) { textMeasurer.measure(widest, timeLabelStyle).size.width.toDp() }
-                }
-            Box(
-                modifier =
-                    Modifier.width(maxOf(50.dp, timeLabelWidth))
-                        .focusOutline(RoundedCornerShape(6.dp))
-                        .clip(RoundedCornerShape(6.dp))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            role = Role.Button,
-                        ) {
-                            onPlayerEvent(PlayerEvent.ToggleRemainingTime)
-                        },
-                contentAlignment = Alignment.CenterEnd,
-            ) {
-                Text(
-                    text =
-                        if (uiState.showRemainingTime) {
-                            "-${formatClock((duration - position).coerceAtLeast(0L))}"
-                        } else {
-                            formatClock(position)
-                        },
-                    color = Color.White,
-                    style = timeLabelStyle,
-                    maxLines = 1,
-                )
-            }
         }
     }
 }

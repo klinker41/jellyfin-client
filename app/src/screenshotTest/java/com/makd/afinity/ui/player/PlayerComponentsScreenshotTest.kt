@@ -1,5 +1,6 @@
 package com.makd.afinity.ui.player
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -7,10 +8,15 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.android.tools.screenshot.PreviewTest
+import com.makd.afinity.data.models.media.AfinityChapter
 import com.makd.afinity.ui.components.TransportControls
+import com.makd.afinity.ui.player.components.SeekBar
 import com.makd.afinity.ui.player.components.SkipButton
 import com.makd.afinity.ui.player.components.UndoSkipChip
 import com.makd.afinity.ui.preview.ScreenshotComponentPreviews
@@ -87,6 +93,67 @@ fun SkipButtonsScreenshotTest() {
                 isAutoSkip = true,
             )
             UndoSkipChip(onClick = {})
+        }
+    }
+}
+
+@PreviewTest
+@ScreenshotComponentPreviews
+@Composable
+fun VideoSeekBarScreenshotTest() {
+    ScreenshotPreviewHost {
+        Column(
+            modifier = Modifier.fillMaxWidth().background(Color.Black).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+        ) {
+            SeekBar(
+                uiState =
+                    PlayerViewModel.PlayerUiState(
+                        duration = 2_468_000L,
+                        chapters =
+                            listOf(
+                                AfinityChapter(startPosition = 180_000L, name = "Intro"),
+                                AfinityChapter(startPosition = 1_650_000L, name = "Climax"),
+                            ),
+                    ),
+                playbackProgress =
+                    remember {
+                        mutableStateOf(
+                            PlayerViewModel.PlaybackProgress(
+                                currentPosition = 862_000L,
+                                bufferedPosition = 1_500_000L,
+                            ),
+                        )
+                    },
+                onPlayerEvent = {},
+                seekBarAnchor = null,
+            )
+
+            SeekBar(
+                uiState =
+                    PlayerViewModel.PlayerUiState(
+                        duration = 7_230_000L,
+                        showRemainingTime = true,
+                    ),
+                playbackProgress =
+                    remember {
+                        mutableStateOf(
+                            PlayerViewModel.PlaybackProgress(
+                                currentPosition = 4_325_000L,
+                                bufferedPosition = 5_100_000L,
+                            ),
+                        )
+                    },
+                onPlayerEvent = {},
+                seekBarAnchor = null,
+            )
+
+            SeekBar(
+                uiState = PlayerViewModel.PlayerUiState(isLiveChannel = true),
+                playbackProgress = remember { mutableStateOf(PlayerViewModel.PlaybackProgress()) },
+                onPlayerEvent = {},
+                seekBarAnchor = null,
+            )
         }
     }
 }
